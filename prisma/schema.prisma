@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role         String   @default("user")
+  logoSociete    String?
+  nomSociete     String?
+  adresseSociete String?
+  telSociete     String?
+  faxSociete     String?
+  certifications String?
+  createdAt      DateTime @default(now())
+  projets      ProjetMember[]
+  rapports  RapportJournalier[] @relation("redacteur")
+}
+
+model Projet {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  createdAt    DateTime @default(now())
+  moaNom          String?
+  moaPrenom       String?
+  moaAdresse      String?
+  numeroAffaire   String?
+  numeroCommande  String?
+  numeroOTP       String?
+  adresseChantier String?
+  dateDebut       DateTime?
+  dateFin         DateTime?
+  updatedAt       DateTime @updatedAt
+  members         ProjetMember[]
+  tableaux        TableauService[]
+  lignesDE        LigneDE[]
+  rapports        RapportJournalier[]
+  soudures        SoudureAluminothermique[]
+  compositions    CompositionTTx[]
+  evenements      EvenementChantier[]
+  courriers        CourrierChantier[]
+  lignesFicheEcart LigneFicheEcart[]
+}
+
+model ProjetMember {
+  id       String @id @default(cuid())
+  userId   String
+  projetId String
+  role     String @default("member")
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projet   Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@unique([userId, projetId])
+}
+
+model Personnel {
+  id         String   @id @default(cuid())
+  nom        String
+  prenom     String
+  poste      String
+  telephone  String?
+  entreprise String?
+  createdAt  DateTime @default(now())
+}
+
+model TableauService {
+  id         String   @id @default(cuid())
+  projetId   String
+  titre      String
+  entreprise String?
+  semaine    Int
+  annee      Int
+  colonnes   Json
+  lignes     Json
+  cellules   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  projet     Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model LigneDE {
+  id           String   @id @default(cuid())
+  projetId     String
+  code         String
+  designation  String
+  unite        String
+  quantite     Float
+  prixUnitaire Float
+  ordre        Int      @default(0)
+  createdAt    DateTime @default(now())
+  projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model RapportJournalier {
+  id               String    @id @default(cuid())
+  projetId         String
+  date             DateTime
+  nomChantier      String?
+  titre            String?
+  posteNuit        Boolean   @default(true)
+  heureDebutPrevue String?
+  heureFinPrevue   String?
+  heureDebut       String?
+  heureFin         String?
+  heureRestituee   String?
+  production       String?
+  commentaire      String?
+  redacteurId      String?
+  dateRedaction    DateTime?
+  valide           Boolean   @default(false)
+  travaux          Json      @default("[]")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  projet           Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  redacteur        User?     @relation("redacteur", fields: [redacteurId], references: [id])
+}
+
+model SoudureAluminothermique {
+  id            String    @id @default(cuid())
+  projetId      String
+  ordre         Int       @default(0)
+  zoneTravaux   String?
+  date          DateTime?
+  poincon       String?
+  pk            String?
+  voie          String?
+  fileGD        String?
+  lacune        String?
+  profilRail    String?
+  nuanceAcier   String?
+  e1            String?
+  e2            String?
+  meulageProfil String?
+  creuxZone     String?
+  tracePointu   String?
+  traceCreux    String?
+  traceMeulage  String?
+  observations  String?
+  reception     String?
+  raisonHS      String?
+  couleurLigne  String?
+  createdAt     DateTime  @default(now())
+  projet        Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model MaterielTTx {
+  id                String   @id @default(cuid())
+  type              String
+  designation       String
+  imageUrl          String?
+  nbEssieux         Float?
+  poidsEntrant      Float?
+  poidsSortant      Float?
+  longueur          Float?
+  capTraction       Float?
+  capEssieuxFreines Float?
+  commentaires      String?
+  estSysteme        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}
+
+model EvenementChantier {
+  id           String    @id @default(cuid())
+  projetId     String
+  date         DateTime
+  titre        String
+  description  String?
+  categorie    String
+  source       String?
+  courrierId   String?
+  fichiers     FichierEvenement[]
+  createdAt    DateTime  @default(now())
+  projet       Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  courrier     CourrierChantier? @relation(fields: [courrierId], references: [id])
+}
+
+model FichierEvenement {
+  id          String   @id @default(cuid())
+  evenementId String
+  nom         String
+  type        String
+  contenu     String
+  taille      Int
+  createdAt   DateTime @default(now())
+  evenement   EvenementChantier @relation(fields: [evenementId], references: [id], onDelete: Cascade)
+}
+
+model CourrierChantier {
+  id           String    @id @default(cuid())
+  projetId     String
+  reference    String
+  objet        String
+  type         String
+  dateEnvoi    DateTime?
+  destinataire String?
+  expediteur   String?
+  corps        String    @default("")
+  statut       String    @default("brouillon")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projet       Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  evenements   EvenementChantier[]
+}
+
+model CompositionTTx {
+  id        String    @id @default(cuid())
+  projetId  String
+  titre     String?
+  date      DateTime?
+  sens      String    @default("Paris → Province")
+  vehicules Json      @default("[]")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projet    Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model LigneFicheEcart {
+  id               String   @id @default(cuid())
+  projetId         String
+  evenementId      String?
+  etude            String   @default("")
+  prevuDCE         String   @default("")
+  phaseTransitoire String   @default("")
+  exe              String   @default("")
+  impacts          String   @default("")
+  delaisImpactes   String   @default("")
+  coutImpactes     String   @default("")
+  ordre            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}

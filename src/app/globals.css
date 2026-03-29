@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1A237E;
+  --color-primary-light: #283593;
+  --color-accent: #F9A825;
+  --color-danger: #B71C1C;
+  --color-success: #2E7D32;
+  --color-surface-dark: #263238;
+  --color-surface-dark2: #37474F;
+  --color-surface-light: #F5F7FA;
+  --color-surface-light2: #ECEFF1;
+  --color-text-main: #212121;
+  --color-text-secondary: #546E7A;
+  --color-border: #CFD8DC;
+  --color-action: #1565C0;
+}
+
+@layer base {
+  body {
+    @apply bg-surface-light text-text-main;
+  }
+}
+
+@layer components {
+  /* Table styles */
+  .table-header {
+    @apply bg-surface-dark text-white font-bold text-table;
+  }
+
+  .table-row-even {
+    @apply bg-white;
+  }
+
+  .table-row-odd {
+    @apply bg-surface-light;
+  }
+
+  /* Toolbar button */
+  .btn-toolbar {
+    @apply bg-surface-dark2 text-surface-light2 px-3 py-1.5 rounded text-sm font-medium
+           hover:bg-surface-dark transition-colors;
+  }
+
+  /* Action button */
+  .btn-action {
+    @apply bg-action text-white px-4 py-2 rounded-md text-sm font-medium
+           hover:bg-blue-700 transition-colors;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply bg-danger text-white px-4 py-2 rounded-md text-sm font-medium
+           hover:bg-red-900 transition-colors;
+  }
+}
