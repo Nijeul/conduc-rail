@@ -21,25 +21,27 @@ export const MATERIEL_SVGS: Record<string, string> = {
   </svg>`,
 
   "Ballastiere": `<svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="14" cy="53" r="5" fill="#263238"/>
-    <circle cx="30" cy="53" r="5" fill="#263238"/>
-    <circle cx="90" cy="53" r="5" fill="#263238"/>
-    <circle cx="106" cy="53" r="5" fill="#263238"/>
-    <rect x="4" y="38" width="112" height="17" rx="2" fill="#FF6F00"/>
-    <polygon points="20,38 34,38 31,50 23,50" fill="#78909C"/>
-    <polygon points="52,38 68,38 65,50 55,50" fill="#78909C"/>
-    <polygon points="86,38 100,38 97,50 89,50" fill="#78909C"/>
-    <rect x="4" y="14" width="26" height="25" rx="2" fill="#E65100"/>
-    <rect x="90" y="14" width="26" height="25" rx="2" fill="#E65100"/>
-    <rect x="30" y="18" width="60" height="21" rx="3" fill="#FF8F00"/>
-    <polygon points="36,22 84,22 80,38 40,38" fill="#FF6F00" opacity="0.5"/>
-    <rect x="7" y="18" width="9" height="7" rx="1" fill="#B3E5FC"/>
-    <rect x="18" y="18" width="9" height="7" rx="1" fill="#B3E5FC"/>
-    <rect x="93" y="18" width="9" height="7" rx="1" fill="#B3E5FC"/>
-    <rect x="104" y="18" width="9" height="7" rx="1" fill="#B3E5FC"/>
-    <rect x="4" y="38" width="112" height="3" fill="#FFC107" opacity="0.5"/>
-    <rect x="0" y="43" width="5" height="4" rx="1" fill="#546E7A"/>
-    <rect x="115" y="43" width="5" height="4" rx="1" fill="#546E7A"/>
+    <circle cx="18" cy="54" r="5" fill="#263238"/>
+    <circle cx="34" cy="54" r="5" fill="#263238"/>
+    <circle cx="86" cy="54" r="5" fill="#263238"/>
+    <circle cx="102" cy="54" r="5" fill="#263238"/>
+    <rect x="10" y="42" width="100" height="13" rx="1" fill="#6D2E1A"/>
+    <polygon points="14,14 106,14 96,42 24,42" fill="#7D3520"/>
+    <rect x="12" y="11" width="96" height="5" rx="1" fill="#5D2010"/>
+    <line x1="60" y1="14" x2="60" y2="42" stroke="#5D2010" stroke-width="2"/>
+    <polygon points="24,42 44,42 40,52 28,52" fill="#5D2010"/>
+    <polygon points="76,42 96,42 92,52 80,52" fill="#5D2010"/>
+    <rect x="10" y="20" width="3" height="20" rx="0.5" fill="#4A1C0C"/>
+    <line x1="10" y1="24" x2="13" y2="24" stroke="#4A1C0C" stroke-width="1.2"/>
+    <line x1="10" y1="29" x2="13" y2="29" stroke="#4A1C0C" stroke-width="1.2"/>
+    <line x1="10" y1="34" x2="13" y2="34" stroke="#4A1C0C" stroke-width="1.2"/>
+    <rect x="107" y="20" width="3" height="20" rx="0.5" fill="#4A1C0C"/>
+    <line x1="107" y1="24" x2="110" y2="24" stroke="#4A1C0C" stroke-width="1.2"/>
+    <line x1="107" y1="29" x2="110" y2="29" stroke="#4A1C0C" stroke-width="1.2"/>
+    <line x1="107" y1="34" x2="110" y2="34" stroke="#4A1C0C" stroke-width="1.2"/>
+    <text x="60" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#5D2010">V</text>
+    <rect x="4" y="46" width="7" height="4" rx="1" fill="#546E7A"/>
+    <rect x="109" y="46" width="7" height="4" rx="1" fill="#546E7A"/>
   </svg>`,
 
   "Bigrue": `<svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">

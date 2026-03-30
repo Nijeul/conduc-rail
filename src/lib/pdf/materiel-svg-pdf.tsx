@@ -65,25 +65,20 @@ export function LocoSVGPDF() {
 export function BallastiereSVGPDF() {
   return (
     <Svg width={W} height={H} viewBox={VB}>
-      <Circle cx="14" cy="53" r="5" style={{ fill: '#263238' }} />
-      <Circle cx="30" cy="53" r="5" style={{ fill: '#263238' }} />
-      <Circle cx="90" cy="53" r="5" style={{ fill: '#263238' }} />
-      <Circle cx="106" cy="53" r="5" style={{ fill: '#263238' }} />
-      <Rect x="4" y="38" width="112" height="17" rx="2" style={{ fill: '#FF6F00' }} />
-      <Polygon points="20,38 34,38 31,50 23,50" style={{ fill: '#78909C' }} />
-      <Polygon points="52,38 68,38 65,50 55,50" style={{ fill: '#78909C' }} />
-      <Polygon points="86,38 100,38 97,50 89,50" style={{ fill: '#78909C' }} />
-      <Rect x="4" y="14" width="26" height="25" rx="2" style={{ fill: '#E65100' }} />
-      <Rect x="90" y="14" width="26" height="25" rx="2" style={{ fill: '#E65100' }} />
-      <Rect x="30" y="18" width="60" height="21" rx="3" style={{ fill: '#FF8F00' }} />
-      <Polygon points="36,22 84,22 80,38 40,38" style={{ fill: '#FF6F00', opacity: 0.5 }} />
-      <Rect x="7" y="18" width="9" height="7" rx="1" style={{ fill: '#B3E5FC' }} />
-      <Rect x="18" y="18" width="9" height="7" rx="1" style={{ fill: '#B3E5FC' }} />
-      <Rect x="93" y="18" width="9" height="7" rx="1" style={{ fill: '#B3E5FC' }} />
-      <Rect x="104" y="18" width="9" height="7" rx="1" style={{ fill: '#B3E5FC' }} />
-      <Rect x="4" y="38" width="112" height="3" style={{ fill: '#FFC107', opacity: 0.5 }} />
-      <Rect x="0" y="43" width="5" height="4" rx="1" style={{ fill: '#546E7A' }} />
-      <Rect x="115" y="43" width="5" height="4" rx="1" style={{ fill: '#546E7A' }} />
+      <Circle cx="18" cy="54" r="5" style={{ fill: '#263238' }} />
+      <Circle cx="34" cy="54" r="5" style={{ fill: '#263238' }} />
+      <Circle cx="86" cy="54" r="5" style={{ fill: '#263238' }} />
+      <Circle cx="102" cy="54" r="5" style={{ fill: '#263238' }} />
+      <Rect x="10" y="42" width="100" height="13" rx="1" style={{ fill: '#6D2E1A' }} />
+      <Polygon points="14,14 106,14 96,42 24,42" style={{ fill: '#7D3520' }} />
+      <Rect x="12" y="11" width="96" height="5" rx="1" style={{ fill: '#5D2010' }} />
+      <Line x1="60" y1="14" x2="60" y2="42" style={{ stroke: '#5D2010', strokeWidth: 2 }} />
+      <Polygon points="24,42 44,42 40,52 28,52" style={{ fill: '#5D2010' }} />
+      <Polygon points="76,42 96,42 92,52 80,52" style={{ fill: '#5D2010' }} />
+      <Rect x="10" y="20" width="3" height="20" rx="0.5" style={{ fill: '#4A1C0C' }} />
+      <Rect x="107" y="20" width="3" height="20" rx="0.5" style={{ fill: '#4A1C0C' }} />
+      <Rect x="4" y="46" width="7" height="4" rx="1" style={{ fill: '#546E7A' }} />
+      <Rect x="109" y="46" width="7" height="4" rx="1" style={{ fill: '#546E7A' }} />
     </Svg>
   )
 }
