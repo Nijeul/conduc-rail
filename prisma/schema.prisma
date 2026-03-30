@@ -234,6 +234,8 @@ model LigneFicheEcart {
   delaisImpactes   String   @default("")
   coutImpactes     String   @default("")
   ordre            Int      @default(0)
+  chapitre         String   @default("")
+  estChapitre      Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)

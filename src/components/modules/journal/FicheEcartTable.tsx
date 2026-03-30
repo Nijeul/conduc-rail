@@ -9,10 +9,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Plus, Download, Import, Trash2 } from 'lucide-react'
+import { Plus, Download, Import, Trash2, ChevronDown } from 'lucide-react'
 import {
   getLignesFicheEcart,
   createLigneFicheEcart,
+  createChapitreFicheEcart,
+  createLigneSousChapitre,
+  renommerChapitre,
+  deleteChapitreFicheEcart,
   updateLigneFicheEcart,
   deleteLigneFicheEcart,
   importerDepuisJournal,
@@ -44,6 +48,8 @@ interface LigneFicheEcart {
   delaisImpactes: string
   coutImpactes: string
   ordre: number
+  chapitre: string
+  estChapitre: boolean
 }
 
 interface EvenementRow {
@@ -89,8 +95,72 @@ function CellTextarea({
   )
 }
 
+// Inline editable chapter name
+function ChapitreNameEditor({
+  nom,
+  onSave,
+}: {
+  nom: string
+  onSave: (newNom: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(nom)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setValue(nom)
+  }, [nom])
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editing])
+
+  const handleSave = () => {
+    setEditing(false)
+    const trimmed = value.trim()
+    if (trimmed && trimmed !== nom) {
+      onSave(trimmed)
+    } else {
+      setValue(nom)
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSave()
+          if (e.key === 'Escape') {
+            setValue(nom)
+            setEditing(false)
+          }
+        }}
+        className="bg-white/20 text-white font-semibold text-sm px-2 py-0.5 rounded border border-white/30 outline-none"
+        style={{ minWidth: '120px' }}
+      />
+    )
+  }
+
+  return (
+    <span
+      onDoubleClick={() => setEditing(true)}
+      className="cursor-pointer font-semibold text-sm select-none"
+      title="Double-cliquez pour renommer"
+    >
+      <ChevronDown className="h-3.5 w-3.5 inline mr-1.5" />
+      {nom}
+    </span>
+  )
+}
+
 type FieldKey =
-  | 'etude'
   | 'prevuDCE'
   | 'phaseTransitoire'
   | 'exe'
@@ -99,7 +169,6 @@ type FieldKey =
   | 'coutImpactes'
 
 const COLUMNS: { key: FieldKey; label: string }[] = [
-  { key: 'etude', label: 'ETUDE' },
   { key: 'prevuDCE', label: 'Prevu au DCE' },
   { key: 'phaseTransitoire', label: 'Phase transitoire' },
   { key: 'exe', label: 'EXE' },
@@ -107,6 +176,8 @@ const COLUMNS: { key: FieldKey; label: string }[] = [
   { key: 'delaisImpactes', label: 'Delais impactes' },
   { key: 'coutImpactes', label: 'Couts impactes' },
 ]
+
+const TOTAL_COLS = COLUMNS.length + 1 // +1 for delete button column
 
 export function FicheEcartTable({
   projetId,
@@ -118,6 +189,7 @@ export function FicheEcartTable({
   const [isPending, startTransition] = useTransition()
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([])
+  const [deleteChapitreConfirm, setDeleteChapitreConfirm] = useState<string | null>(null)
 
   // Debounce timers
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
@@ -157,12 +229,50 @@ export function FicheEcartTable({
     }, 500)
   }
 
-  const handleAddLine = () => {
+  const handleAddChapitre = () => {
     startTransition(async () => {
-      const result = await createLigneFicheEcart(projetId)
+      const result = await createChapitreFicheEcart(projetId)
       if (result.success) {
         await fetchLignes()
       }
+    })
+  }
+
+  const handleAddLigneSousChapitre = (chapitreNom: string) => {
+    startTransition(async () => {
+      const result = await createLigneSousChapitre(projetId, chapitreNom)
+      if (result.success) {
+        await fetchLignes()
+      }
+    })
+  }
+
+  const handleRenommerChapitre = (ligneId: string, newNom: string) => {
+    // Optimistic update
+    setLignes((prev) => {
+      const chapitre = prev.find((l) => l.id === ligneId)
+      if (!chapitre) return prev
+      const ancienNom = chapitre.chapitre
+      return prev.map((l) => {
+        if (l.id === ligneId) return { ...l, chapitre: newNom }
+        if (l.chapitre === ancienNom && !l.estChapitre)
+          return { ...l, chapitre: newNom }
+        return l
+      })
+    })
+
+    startTransition(async () => {
+      await renommerChapitre(projetId, ligneId, newNom)
+    })
+  }
+
+  const handleDeleteChapitre = (ligneId: string) => {
+    startTransition(async () => {
+      const result = await deleteChapitreFicheEcart(projetId, ligneId)
+      if (result.success) {
+        await fetchLignes()
+      }
+      setDeleteChapitreConfirm(null)
     })
   }
 
@@ -209,19 +319,22 @@ export function FicheEcartTable({
     )
   }
 
+  // Group lines: iterate in order, render chapter headers and data rows
+  let dataRowIndex = 0
+
   return (
     <div>
       {/* Toolbar */}
       <div className="flex items-center gap-2 mb-4">
         <Button
-          onClick={handleAddLine}
+          onClick={handleAddChapitre}
           size="sm"
           disabled={isPending}
           style={{ backgroundColor: '#1565C0' }}
           className="text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4 mr-1.5" />
-          Ajouter une ligne
+          Ajouter un chapitre
         </Button>
 
         <Button
@@ -262,45 +375,131 @@ export function FicheEcartTable({
             {lignes.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={TOTAL_COLS}
                   className="text-center text-gray-400 py-12"
                 >
-                  Aucune ligne. Cliquez sur "Ajouter une ligne" ou "Importer
-                  depuis Journal".
+                  Aucune ligne. Cliquez sur &quot;Ajouter un chapitre&quot; ou
+                  &quot;Importer depuis Journal&quot;.
                 </td>
               </tr>
             )}
-            {lignes.map((ligne, i) => (
-              <tr
-                key={ligne.id}
-                style={
-                  i % 2 !== 0 ? { backgroundColor: '#F5F7FA' } : undefined
-                }
-              >
-                {COLUMNS.map((col) => (
-                  <td key={col.key} className="px-2 py-1 align-top">
-                    <CellTextarea
-                      value={ligne[col.key]}
-                      onChange={(val) =>
-                        handleCellChange(ligne.id, col.key, val)
-                      }
-                    />
+            {lignes.map((ligne) => {
+              if (ligne.estChapitre) {
+                // Chapter header row
+                return (
+                  <tr key={ligne.id}>
+                    <td
+                      colSpan={TOTAL_COLS}
+                      style={{ backgroundColor: '#1A237E' }}
+                      className="text-white px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <ChapitreNameEditor
+                          nom={ligne.chapitre}
+                          onSave={(newNom) =>
+                            handleRenommerChapitre(ligne.id, newNom)
+                          }
+                        />
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() =>
+                              handleAddLigneSousChapitre(ligne.chapitre)
+                            }
+                            disabled={isPending}
+                            className="text-white/80 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-white/10 transition-colors flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Ligne
+                          </button>
+                          <button
+                            onClick={() =>
+                              setDeleteChapitreConfirm(ligne.id)
+                            }
+                            className="text-white/60 hover:text-red-300 transition-colors p-1"
+                            title="Supprimer le chapitre"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              }
+
+              // Data row
+              const rowIdx = dataRowIndex++
+              return (
+                <tr
+                  key={ligne.id}
+                  style={
+                    rowIdx % 2 !== 0
+                      ? { backgroundColor: '#F5F7FA' }
+                      : undefined
+                  }
+                >
+                  {COLUMNS.map((col) => (
+                    <td key={col.key} className="px-2 py-1 align-top">
+                      <CellTextarea
+                        value={ligne[col.key]}
+                        onChange={(val) =>
+                          handleCellChange(ligne.id, col.key, val)
+                        }
+                      />
+                    </td>
+                  ))}
+                  <td className="px-2 py-1 text-center align-top">
+                    <button
+                      onClick={() => handleDeleteLine(ligne.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </td>
-                ))}
-                <td className="px-2 py-1 text-center align-top">
-                  <button
-                    onClick={() => handleDeleteLine(ligne.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                    title="Supprimer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Delete Chapter Confirmation Dialog */}
+      <Dialog
+        open={deleteChapitreConfirm !== null}
+        onOpenChange={() => setDeleteChapitreConfirm(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Supprimer le chapitre ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            Cette action supprimera le chapitre et toutes ses lignes. Cette
+            action est irreversible.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteChapitreConfirm(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                if (deleteChapitreConfirm) {
+                  handleDeleteChapitre(deleteChapitreConfirm)
+                }
+              }}
+              disabled={isPending}
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Import Dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>

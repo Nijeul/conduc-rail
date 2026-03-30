@@ -14,6 +14,8 @@ interface LigneData {
   impacts: string
   delaisImpactes: string
   coutImpactes: string
+  chapitre: string
+  estChapitre: boolean
 }
 
 interface Props {

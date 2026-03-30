@@ -50,6 +50,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 7,
   },
+  chapitreRow: {
+    backgroundColor: '#1A237E',
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+  },
+  chapitreText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 9,
+  },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 3,
@@ -60,13 +70,12 @@ const styles = StyleSheet.create({
   rowAlt: {
     backgroundColor: '#F5F7FA',
   },
-  colEtude: { width: '16%', paddingRight: 3 },
-  colPrevuDCE: { width: '14%', paddingRight: 3 },
-  colPhaseTransitoire: { width: '14%', paddingRight: 3 },
-  colExe: { width: '12%', paddingRight: 3 },
-  colImpacts: { width: '18%', paddingRight: 3 },
-  colDelais: { width: '13%', paddingRight: 3 },
-  colCout: { width: '13%' },
+  colPrevuDCE: { width: '17%', paddingRight: 3 },
+  colPhaseTransitoire: { width: '17%', paddingRight: 3 },
+  colExe: { width: '14%', paddingRight: 3 },
+  colImpacts: { width: '22%', paddingRight: 3 },
+  colDelais: { width: '15%', paddingRight: 3 },
+  colCout: { width: '15%' },
   cellText: {
     fontSize: 8,
   },
@@ -93,6 +102,8 @@ interface LignePDF {
   impacts: string
   delaisImpactes: string
   coutImpactes: string
+  chapitre: string
+  estChapitre: boolean
 }
 
 interface Props {
@@ -106,6 +117,8 @@ export function FicheEcartTablePDF({ projetName, lignes }: Props) {
     month: '2-digit',
     year: 'numeric',
   })
+
+  let dataRowIndex = 0
 
   return (
     <Document>
@@ -125,7 +138,6 @@ export function FicheEcartTablePDF({ projetName, lignes }: Props) {
 
         {/* Table header */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderText, styles.colEtude]}>ETUDE</Text>
           <Text style={[styles.tableHeaderText, styles.colPrevuDCE]}>
             Prevu au DCE
           </Text>
@@ -145,33 +157,43 @@ export function FicheEcartTablePDF({ projetName, lignes }: Props) {
         </View>
 
         {/* Table rows */}
-        {lignes.map((ligne, i) => (
-          <View
-            key={i}
-            style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}
-            wrap={false}
-          >
-            <Text style={[styles.cellText, styles.colEtude]}>
-              {ligne.etude}
-            </Text>
-            <Text style={[styles.cellText, styles.colPrevuDCE]}>
-              {ligne.prevuDCE}
-            </Text>
-            <Text style={[styles.cellText, styles.colPhaseTransitoire]}>
-              {ligne.phaseTransitoire}
-            </Text>
-            <Text style={[styles.cellText, styles.colExe]}>{ligne.exe}</Text>
-            <Text style={[styles.cellText, styles.colImpacts]}>
-              {ligne.impacts}
-            </Text>
-            <Text style={[styles.cellText, styles.colDelais]}>
-              {ligne.delaisImpactes}
-            </Text>
-            <Text style={[styles.cellText, styles.colCout]}>
-              {ligne.coutImpactes}
-            </Text>
-          </View>
-        ))}
+        {lignes.map((ligne, i) => {
+          if (ligne.estChapitre) {
+            // Chapter header row
+            return (
+              <View key={i} style={styles.chapitreRow} wrap={false}>
+                <Text style={styles.chapitreText}>{ligne.chapitre}</Text>
+              </View>
+            )
+          }
+
+          // Data row
+          const rowIdx = dataRowIndex++
+          return (
+            <View
+              key={i}
+              style={[styles.tableRow, rowIdx % 2 !== 0 ? styles.rowAlt : {}]}
+              wrap={false}
+            >
+              <Text style={[styles.cellText, styles.colPrevuDCE]}>
+                {ligne.prevuDCE}
+              </Text>
+              <Text style={[styles.cellText, styles.colPhaseTransitoire]}>
+                {ligne.phaseTransitoire}
+              </Text>
+              <Text style={[styles.cellText, styles.colExe]}>{ligne.exe}</Text>
+              <Text style={[styles.cellText, styles.colImpacts]}>
+                {ligne.impacts}
+              </Text>
+              <Text style={[styles.cellText, styles.colDelais]}>
+                {ligne.delaisImpactes}
+              </Text>
+              <Text style={[styles.cellText, styles.colCout]}>
+                {ligne.coutImpactes}
+              </Text>
+            </View>
+          )
+        })}
 
         {/* Footer */}
         <View style={styles.footer} fixed>
