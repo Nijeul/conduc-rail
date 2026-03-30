@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateFR } from "@/lib/utils";
 import { createProjet, deleteProjet } from "@/actions/projets";
-import type { ProjetWithMembers } from "@/types";
-import { Plus, Users, FileText, MoreVertical, Trash2 } from "lucide-react";
+import type { ProjetWithMembers, ProjetPartage } from "@/types";
+import { Plus, Users, FileText, MoreVertical, Trash2, FolderOpen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,11 +24,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface ProjetsListProps {
-  projets: ProjetWithMembers[];
+  mesProjets: ProjetWithMembers[];
+  projetsPartages: ProjetPartage[];
   currentUserId: string;
 }
 
-export function ProjetsList({ projets, currentUserId }: ProjetsListProps) {
+export function ProjetsList({ mesProjets, projetsPartages, currentUserId }: ProjetsListProps) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -38,12 +39,6 @@ export function ProjetsList({ projets, currentUserId }: ProjetsListProps) {
   const [deleteTarget, setDeleteTarget] = useState<ProjetWithMembers | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
-
-  function isOwner(projet: ProjetWithMembers) {
-    return projet.members.some(
-      (m) => m.userId === currentUserId && m.role === "owner"
-    );
-  }
 
   async function handleCreate(formData: FormData) {
     setCreating(true);
@@ -72,103 +67,137 @@ export function ProjetsList({ projets, currentUserId }: ProjetsListProps) {
     setDeleting(false);
   }
 
+  function ProjetCard({ projet, showMenu }: { projet: ProjetWithMembers; showMenu: boolean }) {
+    return (
+      <div
+        className="relative bg-white rounded-lg border border-border p-5 text-left
+                   hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
+        onClick={() => router.push(`/projets/${projet.id}/suivi/rapports`)}
+      >
+        {showMenu && (
+          <div className="absolute top-3 right-3 z-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-md hover:bg-gray-100 text-text-secondary
+                             hover:text-text-main transition-colors"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(projet);
+                    setDeleteConfirmName("");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer ce projet
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        <h3 className="font-semibold text-text-main group-hover:text-primary transition-colors pr-8">
+          {projet.name}
+        </h3>
+        {projet.description && (
+          <p className="text-sm text-text-secondary mt-1 line-clamp-2">
+            {projet.description}
+          </p>
+        )}
+        <div className="flex items-center gap-4 mt-4 text-xs text-text-secondary">
+          <span className="flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" />
+            {projet._count?.members ?? projet.members.length} membre
+            {(projet._count?.members ?? projet.members.length) !== 1 ? "s" : ""}
+          </span>
+          <span className="flex items-center gap-1">
+            <FileText className="h-3.5 w-3.5" />
+            {projet._count?.rapports ?? 0} rapport
+            {(projet._count?.rapports ?? 0) !== 1 ? "s" : ""}
+          </span>
+          <span className="ml-auto">
+            {formatDateFR(new Date(projet.createdAt))}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Header with create button */}
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-text-secondary text-sm">
-          {projets.length} projet{projets.length !== 1 ? "s" : ""}
-        </p>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="btn-action flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nouveau projet
-        </button>
+      {/* ── Section : Mes projets ── */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-[#263238]" />
+            <h2 className="text-base font-semibold text-[#263238]">Mes projets</h2>
+            <span className="text-sm text-text-secondary ml-1">
+              ({mesProjets.length})
+            </span>
+          </div>
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="btn-action flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nouveau projet
+          </button>
+        </div>
+
+        {mesProjets.length === 0 ? (
+          <div className="text-center py-12 text-text-secondary bg-white rounded-lg border border-border">
+            <p className="text-base mb-2">Aucun projet</p>
+            <p className="text-sm">Creez votre premier projet pour commencer.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {mesProjets.map((projet) => (
+              <ProjetCard key={projet.id} projet={projet} showMenu={true} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Grid */}
-      {projets.length === 0 ? (
-        <div className="text-center py-20 text-text-secondary">
-          <p className="text-lg mb-2">Aucun projet</p>
-          <p className="text-sm">
-            Creez votre premier projet pour commencer.
-          </p>
+      {/* ── Section : Partages avec moi ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="h-5 w-5 text-[#263238]" />
+          <h2 className="text-base font-semibold text-[#263238]">Partages avec moi</h2>
+          <span className="text-sm text-text-secondary ml-1">
+            ({projetsPartages.length})
+          </span>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {projets.map((projet) => (
-            <div
-              key={projet.id}
-              className="relative bg-white rounded-lg border border-border p-5 text-left
-                         hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
-              onClick={() =>
-                router.push(`/projets/${projet.id}/suivi/rapports`)
-              }
-            >
-              {/* Dropdown menu for owner */}
-              {isOwner(projet) && (
-                <div className="absolute top-3 right-3 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 rounded-md hover:bg-gray-100 text-text-secondary
-                                   hover:text-text-main transition-colors"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenuItem
-                        className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(projet);
-                          setDeleteConfirmName("");
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer ce projet
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
 
-              <h3 className="font-semibold text-text-main group-hover:text-primary transition-colors pr-8">
-                {projet.name}
-              </h3>
-              {projet.description && (
-                <p className="text-sm text-text-secondary mt-1 line-clamp-2">
-                  {projet.description}
-                </p>
-              )}
-              <div className="flex items-center gap-4 mt-4 text-xs text-text-secondary">
-                <span className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  {projet._count?.members ?? projet.members.length} membre
-                  {(projet._count?.members ?? projet.members.length) !== 1
-                    ? "s"
-                    : ""}
-                </span>
-                <span className="flex items-center gap-1">
-                  <FileText className="h-3.5 w-3.5" />
-                  {projet._count?.rapports ?? 0} rapport
-                  {(projet._count?.rapports ?? 0) !== 1 ? "s" : ""}
-                </span>
-                <span className="ml-auto">
-                  {formatDateFR(new Date(projet.createdAt))}
-                </span>
+        {projetsPartages.length === 0 ? (
+          <div className="text-center py-8 text-text-secondary text-sm">
+            Aucun projet partage avec vous
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {projetsPartages.map((projet) => (
+              <div key={projet.id} className="relative">
+                <ProjetCard projet={projet} showMenu={false} />
+                <div className="absolute top-3 right-3 z-10">
+                  <span className="inline-flex items-center gap-1 text-xs bg-[#ECEFF1] text-[#37474F] px-2 py-0.5 rounded-full">
+                    <Users className="h-3 w-3" />
+                    {projet.ownerName}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

@@ -17,6 +17,10 @@ export type ProjetWithMembers = Projet & {
   };
 };
 
+export type ProjetPartage = ProjetWithMembers & {
+  ownerName: string;
+};
+
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };

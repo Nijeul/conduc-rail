@@ -38,31 +38,46 @@ async function checkMembership(projetId: string, userId: string) {
 export async function getUserProjets() {
   const user = await getAuthUser();
 
-  const projets = await prisma.projet.findMany({
-    where: {
-      members: {
-        some: { userId: user.id },
-      },
-    },
+  const memberships = await prisma.projetMember.findMany({
+    where: { userId: user.id },
     include: {
-      members: {
+      projet: {
         include: {
-          user: { select: { id: true, name: true, email: true } },
-        },
-      },
-      _count: {
-        select: {
-          members: true,
-          rapports: true,
-          lignesDE: true,
-          soudures: true,
+          members: {
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              rapports: true,
+              lignesDE: true,
+              soudures: true,
+            },
+          },
         },
       },
     },
-    orderBy: { updatedAt: "desc" },
   });
 
-  return projets;
+  const mesProjets = memberships
+    .filter((m) => m.role === "owner")
+    .map((m) => m.projet)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  const projetsPartages = memberships
+    .filter((m) => m.role === "member")
+    .map((m) => {
+      const owner = m.projet.members.find((pm) => pm.role === "owner");
+      return {
+        ...m.projet,
+        ownerName: owner?.user?.name || owner?.user?.email || "Inconnu",
+      };
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  return { mesProjets, projetsPartages };
 }
 
 export async function getProjet(id: string) {
@@ -222,5 +237,108 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
   } catch (error) {
     console.error("deleteProjet error:", error);
     return { success: false, error: "Erreur lors de la suppression" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Partage de projet
+// ---------------------------------------------------------------------------
+
+export async function getProjetMembers(projetId: string) {
+  const user = await getAuthUser();
+  await checkMembership(projetId, user.id);
+
+  const members = await prisma.projetMember.findMany({
+    where: { projetId },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { role: "asc" },
+  });
+
+  return members;
+}
+
+export async function shareProjet(
+  projetId: string,
+  email: string
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    const member = await checkMembership(projetId, user.id);
+
+    if (member.role !== "owner") {
+      return { success: false, error: "Seul le proprietaire peut partager le projet" };
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+
+    if (!targetUser) {
+      return { success: false, error: "Aucun utilisateur avec cet email" };
+    }
+
+    const existing = await prisma.projetMember.findUnique({
+      where: { userId_projetId: { userId: targetUser.id, projetId } },
+    });
+
+    if (existing) {
+      return { success: false, error: "Cet utilisateur est deja membre du projet" };
+    }
+
+    await prisma.projetMember.create({
+      data: {
+        userId: targetUser.id,
+        projetId,
+        role: "member",
+      },
+    });
+
+    revalidatePath(`/projets/${projetId}/infos`);
+    revalidatePath(`/projets/${projetId}`);
+    revalidatePath("/projets");
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("shareProjet error:", error);
+    return { success: false, error: "Erreur lors du partage" };
+  }
+}
+
+export async function removeProjetMember(
+  projetId: string,
+  memberId: string
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    const callerMember = await checkMembership(projetId, user.id);
+
+    if (callerMember.role !== "owner") {
+      return { success: false, error: "Seul le proprietaire peut retirer un membre" };
+    }
+
+    const targetMember = await prisma.projetMember.findUnique({
+      where: { id: memberId },
+    });
+
+    if (!targetMember || targetMember.projetId !== projetId) {
+      return { success: false, error: "Membre introuvable" };
+    }
+
+    if (targetMember.role === "owner") {
+      return { success: false, error: "Impossible de retirer le proprietaire du projet" };
+    }
+
+    await prisma.projetMember.delete({
+      where: { id: memberId },
+    });
+
+    revalidatePath(`/projets/${projetId}/infos`);
+    revalidatePath(`/projets/${projetId}`);
+    revalidatePath("/projets");
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("removeProjetMember error:", error);
+    return { success: false, error: "Erreur lors du retrait du membre" };
   }
 }
