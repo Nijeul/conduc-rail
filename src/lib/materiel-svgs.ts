@@ -412,8 +412,27 @@ export function getSVGMateriel(type: string, designation?: string): string | nul
   if (typeLower === 'bourreuse') {
     return MATERIEL_SVGS['Bourreuse']
   }
-  if (typeLower === 'wagon') {
+  if (typeLower === 'wagon' || typeLower === 'wagonlrs') {
     return MATERIEL_SVGS['Wagon_vide']
+  }
+  if (typeLower === 'ballastiere') {
+    return MATERIEL_SVGS['Ballastiere']
+  }
+  if (typeLower === 'bigrue') {
+    // Fallback to Bourreuse (large machine with multiple bogies)
+    return MATERIEL_SVGS['Bourreuse']
+  }
+  if (typeLower === 'bml') {
+    // Fallback to Bourreuse (track maintenance machine)
+    return MATERIEL_SVGS['Bourreuse']
+  }
+  if (typeLower === 'regaleuse') {
+    // Fallback to Ballastiere (ballast-related machine)
+    return MATERIEL_SVGS['Ballastiere']
+  }
+  if (typeLower === 'stabilisateur') {
+    // Fallback to Bourreuse (similar track maintenance machine)
+    return MATERIEL_SVGS['Bourreuse']
   }
 
   return null

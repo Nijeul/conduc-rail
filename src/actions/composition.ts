@@ -23,7 +23,7 @@ async function checkMembership(projetId: string, userId: string) {
 const VehiculeSchema = z.object({
   id: z.string(),
   materielId: z.string().default(''),
-  type: z.enum(['Loco', 'Wagon', 'Locotracteur', 'Draisine', 'Bourreuse', 'Autre']),
+  type: z.enum(['Loco', 'Ballastiere', 'Bigrue', 'BML', 'Regaleuse', 'Stabilisateur', 'Wagon', 'WagonLRS']),
   designation: z.string().default(''),
   nombre: z.number().min(1).default(1),
   capEssieuxFreines: z.number().default(0),

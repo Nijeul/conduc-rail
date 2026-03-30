@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from 'react'
 import { Search, Plus, Trash2 } from 'lucide-react'
 import type { MaterielTTx } from '@prisma/client'
 import { MaterielSheet } from './MaterielSheet'
-import { COULEURS_TYPE_MATERIEL } from './constants'
+import { COULEURS_TYPE_MATERIEL, TYPES_MATERIEL } from './constants'
 import {
   createMateriel,
   updateMateriel,
@@ -162,15 +162,8 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
                   }}
                 >
                   <td className="px-4 py-2.5">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="w-3 h-3 rounded-full inline-block shrink-0"
-                        style={{
-                          backgroundColor:
-                            COULEURS_TYPE_MATERIEL[m.type] || '#546E7A',
-                        }}
-                      />
-                      {m.type}
+                    <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: COULEURS_TYPE_MATERIEL[m.type] ?? '#ECEFF1' }}>
+                      {TYPES_MATERIEL.find(t => t.value === m.type)?.label ?? m.type}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 font-medium">{m.designation}</td>

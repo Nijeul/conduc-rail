@@ -352,8 +352,23 @@ export function getMaterielSVGPDF(type: string, designation?: string): React.JSX
   if (typeLower === 'bourreuse') {
     return <BourreuseSVGPDF />
   }
-  if (typeLower === 'wagon') {
+  if (typeLower === 'wagon' || typeLower === 'wagonlrs') {
     return <WagonVideSVGPDF />
+  }
+  if (typeLower === 'ballastiere') {
+    return <BallastiereSVGPDF />
+  }
+  if (typeLower === 'bigrue') {
+    return <BourreuseSVGPDF />
+  }
+  if (typeLower === 'bml') {
+    return <BourreuseSVGPDF />
+  }
+  if (typeLower === 'regaleuse') {
+    return <BallastiereSVGPDF />
+  }
+  if (typeLower === 'stabilisateur') {
+    return <BourreuseSVGPDF />
   }
 
   return null

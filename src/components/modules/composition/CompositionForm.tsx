@@ -36,7 +36,7 @@ interface CompositionFormProps {
   isNew: boolean
 }
 
-const VEHICLE_TYPES = TYPES_MATERIEL
+const VEHICLE_TYPES = TYPES_MATERIEL.map(t => t.value)
 
 const PROPERTIES = [
   { key: 'type', label: 'Type', inputType: 'select' },

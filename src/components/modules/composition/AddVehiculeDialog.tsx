@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useMaterielTTx } from '@/hooks/useMaterielTTx'
-import { TYPES_MATERIEL, COULEURS_TYPE_MATERIEL } from '../materiel/constants'
+import { TYPES_MATERIEL } from '../materiel/constants'
 
 interface AddVehiculeResult {
   materielId: string
@@ -117,14 +117,11 @@ export function AddVehiculeDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {TYPES_MATERIEL.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="w-3 h-3 rounded-full inline-block"
-                            style={{ backgroundColor: COULEURS_TYPE_MATERIEL[t] }}
-                          />
-                          {t}
-                        </span>
+                      <SelectItem key={t.value} value={t.value}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: t.couleur }} />
+                          {t.label}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
