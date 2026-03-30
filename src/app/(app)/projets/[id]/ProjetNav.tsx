@@ -1,54 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ChevronDown } from "lucide-react";
-import { DEButton } from "@/components/layout";
-import { useState, useRef, useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
 
 interface ProjetNavProps {
   projetId: string;
   projetName: string;
 }
 
-const suiviSubItems = [
-  { label: "Rapports", href: "suivi/rapports" },
-  { label: "Situation", href: "suivi/situation" },
-  { label: "ARF", href: "suivi/arf" },
-  { label: "Journal", href: "suivi/journal" },
-  { label: "SA", href: "suivi/sa" },
+const ONGLETS = [
+  {
+    id: 'contractuelle',
+    label: 'Gestion Contractuelle',
+    routes: ['/infos', '/courriers', '/suivi/journal'],
+    sousMenus: [
+      { label: 'Infos', href: 'infos' },
+      { label: 'Courriers', href: 'courriers' },
+      { label: 'Journal', href: 'suivi/journal' },
+    ],
+  },
+  {
+    id: 'financiere',
+    label: 'Gestion Financière',
+    routes: ['/detail-estimatif', '/suivi/situation', '/suivi/arf'],
+    sousMenus: [
+      { label: 'Détail Estimatif', href: 'detail-estimatif' },
+      { label: 'Situation', href: 'suivi/situation' },
+      { label: 'Suivi ARF', href: 'suivi/arf' },
+    ],
+  },
+  {
+    id: 'chantier',
+    label: 'Gestion de Chantier',
+    routes: ['/tableau-service', '/suivi/rapports', '/composition', '/suivi/sa'],
+    sousMenus: [
+      { label: 'Tableau de Service', href: 'tableau-service' },
+      { label: 'Rapports', href: 'suivi/rapports' },
+      { label: 'Composition TTx', href: 'composition' },
+      { label: 'SA', href: 'suivi/sa' },
+    ],
+  },
 ];
 
 export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const base = `/projets/${projetId}`;
-  const [suiviOpen, setSuiviOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isInfosActive = pathname.includes(`${base}/infos`);
-  const isSuiviActive = pathname.includes(`${base}/suivi`);
-  const isTableauActive = pathname.includes(`${base}/tableau-service`);
-  const isCompositionActive = pathname.includes(`${base}/composition`);
-  const isCourriersActive = pathname.includes(`${base}/courriers`);
+  // Determine active top-level tab
+  const activeOnglet = ONGLETS.find((o) =>
+    o.routes.some((r) => pathname.startsWith(`${base}${r}`))
+  ) ?? ONGLETS[2]; // Default to "Gestion de Chantier"
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setSuiviOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  const handleOngletClick = (onglet: typeof ONGLETS[number]) => {
+    // Navigate to the first sub-menu of the clicked tab
+    router.push(`${base}/${onglet.sousMenus[0].href}`);
+  };
 
   return (
     <div className="bg-white border-b border-border shrink-0">
-      {/* Top bar: breadcrumb + DE button */}
+      {/* Top bar: breadcrumb */}
       <div className="flex items-center justify-between px-6 h-12">
         <div className="flex items-center gap-3">
           <Link
@@ -68,102 +81,50 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
             <span className="font-medium text-text-main">{projetName}</span>
           </div>
         </div>
-        <DEButton projetId={projetId} projetName={projetName} />
       </div>
 
-      {/* Navigation tabs */}
-      <div className="flex items-center gap-1 px-6">
-        {/* Infos */}
-        <Link
-          href={`${base}/infos`}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-            isInfosActive
-              ? "border-action text-action"
-              : "border-transparent text-text-secondary hover:text-text-main hover:border-gray-300"
-          )}
-        >
-          Infos
-        </Link>
+      {/* N1: Main tabs */}
+      <div className="flex items-center gap-0 px-6 border-b" style={{ borderColor: '#ECEFF1' }}>
+        {ONGLETS.map((onglet) => {
+          const isActive = onglet.id === activeOnglet.id;
+          return (
+            <button
+              key={onglet.id}
+              onClick={() => handleOngletClick(onglet)}
+              className={cn(
+                "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                isActive
+                  ? "border-[#1A237E] text-[#1A237E]"
+                  : "border-transparent text-[#546E7A] hover:text-[#1A237E]"
+              )}
+              style={isActive ? { backgroundColor: '#F5F7FA' } : undefined}
+            >
+              {onglet.label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Tableau de Service */}
-        <Link
-          href={`${base}/tableau-service`}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-            isTableauActive
-              ? "border-action text-action"
-              : "border-transparent text-text-secondary hover:text-text-main hover:border-gray-300"
-          )}
-        >
-          Tableau de Service
-        </Link>
-
-        {/* Suivi dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setSuiviOpen(!suiviOpen)}
-            className={cn(
-              "flex items-center gap-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-              isSuiviActive
-                ? "border-action text-action"
-                : "border-transparent text-text-secondary hover:text-text-main hover:border-gray-300"
-            )}
-          >
-            Suivi
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-
-          {suiviOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-border rounded-md shadow-lg py-1 z-30 min-w-[160px]">
-              {suiviSubItems.map((item) => {
-                const href = `${base}/${item.href}`;
-                const isActive = pathname === href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={href}
-                    onClick={() => setSuiviOpen(false)}
-                    className={cn(
-                      "block px-4 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-surface-light text-action font-medium"
-                        : "text-text-main hover:bg-surface-light"
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Composition TTx */}
-        <Link
-          href={`${base}/composition`}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-            isCompositionActive
-              ? "border-action text-action"
-              : "border-transparent text-text-secondary hover:text-text-main hover:border-gray-300"
-          )}
-        >
-          Composition TTx
-        </Link>
-
-        {/* Courriers */}
-        <Link
-          href={`${base}/courriers`}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-            isCourriersActive
-              ? "border-action text-action"
-              : "border-transparent text-text-secondary hover:text-text-main hover:border-gray-300"
-          )}
-        >
-          Courriers
-        </Link>
+      {/* N2: Sub-menu of active tab */}
+      <div className="flex items-center gap-1 px-6" style={{ backgroundColor: '#F5F7FA' }}>
+        {activeOnglet.sousMenus.map((item) => {
+          const href = `${base}/${item.href}`;
+          const isActive = pathname.startsWith(href);
+          return (
+            <Link
+              key={item.href}
+              href={href}
+              className={cn(
+                "px-4 py-2 text-sm border-b-2 transition-colors",
+                isActive
+                  ? "border-[#F9A825] text-[#1A237E] font-bold"
+                  : "border-transparent text-[#546E7A] hover:text-[#1A237E]"
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
