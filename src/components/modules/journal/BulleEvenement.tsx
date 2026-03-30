@@ -6,6 +6,7 @@ import type { PlacementBulle } from './FriseChronologique'
 
 interface BulleEvenementProps {
   titre: string
+  description?: string | null
   date: Date
   categorie: string
   hasFichiers: boolean
@@ -15,6 +16,7 @@ interface BulleEvenementProps {
 
 export function BulleEvenement({
   titre,
+  description,
   date,
   categorie,
   hasFichiers,
@@ -53,17 +55,36 @@ export function BulleEvenement({
           {dateStr}
         </div>
         <div
-          className="mt-0.5 leading-tight"
+          className="mt-0.5 leading-tight font-bold"
           style={{
             fontSize: 11,
             display: '-webkit-box',
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
         >
           {titre}
         </div>
+        {description && description.trim() !== '' && (
+          <div
+            data-description="true"
+            className="leading-tight"
+            style={{
+              fontSize: 10,
+              opacity: 0.85,
+              borderTop: `1px solid ${cat.border}`,
+              paddingTop: 3,
+              marginTop: 2,
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {description}
+          </div>
+        )}
         {hasFichiers && (
           <FileText
             className="absolute bottom-1.5 right-1.5 opacity-50"

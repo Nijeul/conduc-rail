@@ -15,7 +15,7 @@ const MARGE_GAUCHE = 60
 const Y_LIGNE = 225
 const HAUTEUR_CONTENEUR_MIN = 400
 
-const LARGEUR_BULLE = 165
+const LARGEUR_BULLE = 185
 const HAUTEUR_BULLE = 90
 const MARGE_H = 10
 const MARGE_V = 8
@@ -30,13 +30,18 @@ export interface PlacementBulle {
   hauteur: number
 }
 
-function estimerHauteur(titre: string): number {
-  const lignes = Math.ceil(titre.length / 22)
-  return Math.min(28 + lignes * 16, HAUTEUR_BULLE)
+function estimerHauteur(titre: string, description?: string): number {
+  const lignesTitre = Math.ceil(titre.length / 20)
+  const lignesDesc = description ? Math.min(3, Math.ceil(description.length / 22)) : 0
+  const hauteurDate = 18
+  const hauteurTitre = lignesTitre * 16 + 4
+  const hauteurDesc = lignesDesc > 0 ? lignesDesc * 14 + 10 : 0
+  const padding = 14
+  return Math.max(55, hauteurDate + hauteurTitre + hauteurDesc + padding)
 }
 
 function calculerPlacements(
-  evenements: { id: string; titre: string }[],
+  evenements: { id: string; titre: string; description?: string | null }[],
   positionsX: Record<string, number>,
   yLigne: number
 ): PlacementBulle[] {
@@ -48,7 +53,7 @@ function calculerPlacements(
   for (const ev of tries) {
     const x = positionsX[ev.id]
     const largeur = LARGEUR_BULLE
-    const hauteur = estimerHauteur(ev.titre)
+    const hauteur = estimerHauteur(ev.titre, ev.description ?? undefined)
     let placed = false
 
     for (const cote of ['haut', 'bas'] as const) {
@@ -163,17 +168,43 @@ export function FriseChronologique({
 
   const handleExportFrise = () =>
     exportAvecGuard(async () => {
-      if (!friseRef.current) return
+      const friseElement = friseRef.current
+      if (!friseElement) return
 
-      const canvas = await html2canvas(friseRef.current, {
+      const PADDING_CAPTURE = 30
+
+      // Sauvegarder le style original
+      const styleOriginal = friseElement.style.overflow
+
+      // Forcer overflow visible et ajouter padding pour la capture
+      friseElement.style.overflow = 'visible'
+      friseElement.style.paddingTop = `${PADDING_CAPTURE}px`
+      friseElement.style.paddingBottom = `${PADDING_CAPTURE}px`
+
+      // Supprimer le line-clamp sur les descriptions pour le PDF
+      const bulles = friseElement.querySelectorAll('[data-description]')
+      bulles.forEach((b) => {
+        ;(b as HTMLElement).style.webkitLineClamp = 'unset'
+        ;(b as HTMLElement).style.overflow = 'visible'
+      })
+
+      const canvas = await html2canvas(friseElement, {
         scale: 2,
-        useCORS: true,
         backgroundColor: '#ffffff',
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        width: friseRef.current.scrollWidth,
-        height: friseRef.current.scrollHeight,
+        width: friseElement.scrollWidth,
+        height: friseElement.scrollHeight,
+        windowWidth: friseElement.scrollWidth,
+        windowHeight: friseElement.scrollHeight,
+      })
+
+      // Restaurer les styles
+      friseElement.style.overflow = styleOriginal
+      friseElement.style.paddingTop = ''
+      friseElement.style.paddingBottom = ''
+
+      bulles.forEach((b) => {
+        ;(b as HTMLElement).style.webkitLineClamp = ''
+        ;(b as HTMLElement).style.overflow = ''
       })
 
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
@@ -201,20 +232,50 @@ export function FriseChronologique({
       const imgData = canvas.toDataURL('image/png')
       const ratioW = friseW / (canvas.width / 2)
       const ratioH = friseH / (canvas.height / 2)
-      const ratio = Math.min(ratioW, ratioH)
+      const ratio = Math.min(ratioW, ratioH, 0.8) // ratio minimum pour lisibilite
       const imgFinalW = (canvas.width / 2) * ratio
       const imgFinalH = (canvas.height / 2) * ratio
-      const imgY = friseY + (friseH - imgFinalH) / 2
 
-      pdf.addImage(imgData, 'PNG', MARGIN, imgY, imgFinalW, imgFinalH)
+      // Paginer si l'image depasse une page
+      const totalPages = Math.ceil(imgFinalW / friseW)
 
-      // Pied de page
-      pdf.setDrawColor(207, 216, 220)
-      pdf.line(MARGIN, PAGE_H - FOOTER_H, PAGE_W - MARGIN, PAGE_H - FOOTER_H)
-      pdf.setFontSize(7)
-      pdf.setTextColor(176, 190, 197)
-      pdf.text(nomProjet, MARGIN, PAGE_H - FOOTER_H + 4)
-      pdf.text('Page 1 / 1', PAGE_W - MARGIN, PAGE_H - FOOTER_H + 4, { align: 'right' })
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) pdf.addPage()
+
+        // En-tete sur chaque page
+        if (page > 0) {
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(13)
+          pdf.setTextColor(26, 35, 126)
+          pdf.text('JOURNAL DE CHANTIER — FRISE CHRONOLOGIQUE', PAGE_W / 2, MARGIN + 6, { align: 'center' })
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9)
+          pdf.setTextColor(84, 110, 122)
+          pdf.text(nomProjet, PAGE_W / 2, MARGIN + 12, { align: 'center' })
+          pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 6, { align: 'right' })
+          pdf.setDrawColor(207, 216, 220)
+          pdf.setLineWidth(0.3)
+          pdf.line(MARGIN, MARGIN + HEADER_H, PAGE_W - MARGIN, MARGIN + HEADER_H)
+        }
+
+        const imgY = friseY + (friseH - imgFinalH) / 2
+
+        if (totalPages === 1) {
+          pdf.addImage(imgData, 'PNG', MARGIN, imgY, imgFinalW, imgFinalH)
+        } else {
+          // Clip via negative offset
+          const offsetX = MARGIN - page * friseW
+          pdf.addImage(imgData, 'PNG', offsetX, imgY, imgFinalW, imgFinalH)
+        }
+
+        // Pied de page
+        pdf.setDrawColor(207, 216, 220)
+        pdf.line(MARGIN, PAGE_H - FOOTER_H, PAGE_W - MARGIN, PAGE_H - FOOTER_H)
+        pdf.setFontSize(7)
+        pdf.setTextColor(176, 190, 197)
+        pdf.text(nomProjet, MARGIN, PAGE_H - FOOTER_H + 4)
+        pdf.text(`Page ${page + 1} / ${totalPages}`, PAGE_W - MARGIN, PAGE_H - FOOTER_H + 4, { align: 'right' })
+      }
 
       pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`)
     })
@@ -468,6 +529,7 @@ export function FriseChronologique({
               <BulleEvenement
                 key={ev.id}
                 titre={ev.titre}
+                description={ev.description}
                 date={ev.date}
                 categorie={ev.categorie}
                 hasFichiers={ev.fichiers.length > 0}
