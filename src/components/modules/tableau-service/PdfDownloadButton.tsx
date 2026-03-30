@@ -4,9 +4,10 @@ import { pdf } from '@react-pdf/renderer'
 import { TableauServicePdf } from '@/lib/pdf/tableau-service'
 import { useProfilStore } from '@/stores/profil'
 import { useExportPDF } from '@/hooks/useExportPDF'
+import { getAllPersonnelForMap } from '@/actions/tableau-service'
 import { FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { ColonneTS, LigneTS, CellulesTS } from './types'
+import type { ColonneTS, LigneTS, CellulesTS, PersonnelMap } from './types'
 
 interface Props {
   titre: string
@@ -36,6 +37,20 @@ export function PdfDownloadButton({
   const handleExport = () => {
     exportAvecGuard(async () => {
       try {
+        // Charger le personnel pour la map id -> infos (telephone)
+        const allPersonnel = await getAllPersonnelForMap()
+        const personnelMap: PersonnelMap = {}
+        for (const p of allPersonnel) {
+          personnelMap[p.id] = {
+            id: p.id,
+            prenom: p.prenom,
+            nom: p.nom,
+            poste: p.poste,
+            telephone: p.telephone,
+            entreprise: p.entreprise,
+          }
+        }
+
         const blob = await pdf(
           <TableauServicePdf
             titre={titre}
@@ -46,6 +61,7 @@ export function PdfDownloadButton({
             colonnes={colonnes}
             lignes={lignes}
             cellules={cellules}
+            personnelMap={personnelMap}
             userLogo={userLogo ?? undefined}
             nomSociete={nomSociete ?? undefined}
           />

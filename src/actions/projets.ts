@@ -170,11 +170,52 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
     const user = await getAuthUser();
     const member = await checkMembership(id, user.id);
 
-    if (member.role !== "owner" && (user as { role?: string }).role !== "admin") {
+    if (member.role !== "owner") {
       return { success: false, error: "Seul le proprietaire peut supprimer le projet" };
     }
 
-    await prisma.projet.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      // 1. Fichiers liés aux événements
+      const evenements = await tx.evenementChantier.findMany({
+        where: { projetId: id },
+        select: { id: true },
+      });
+      if (evenements.length > 0) {
+        await tx.fichierEvenement.deleteMany({
+          where: { evenementId: { in: evenements.map((e) => e.id) } },
+        });
+      }
+
+      // 2. Lignes fiche écart
+      await tx.ligneFicheEcart.deleteMany({ where: { projetId: id } });
+
+      // 3. Événements chantier
+      await tx.evenementChantier.deleteMany({ where: { projetId: id } });
+
+      // 4. Courriers chantier
+      await tx.courrierChantier.deleteMany({ where: { projetId: id } });
+
+      // 5. Soudures aluminothermiques
+      await tx.soudureAluminothermique.deleteMany({ where: { projetId: id } });
+
+      // 6. Compositions TTx
+      await tx.compositionTTx.deleteMany({ where: { projetId: id } });
+
+      // 7. Rapports journaliers
+      await tx.rapportJournalier.deleteMany({ where: { projetId: id } });
+
+      // 8. Lignes DE
+      await tx.ligneDE.deleteMany({ where: { projetId: id } });
+
+      // 9. Tableaux de service
+      await tx.tableauService.deleteMany({ where: { projetId: id } });
+
+      // 10. Membres du projet
+      await tx.projetMember.deleteMany({ where: { projetId: id } });
+
+      // 11. Le projet lui-même
+      await tx.projet.delete({ where: { id } });
+    });
 
     revalidatePath("/projets");
     return { success: true, data: undefined };

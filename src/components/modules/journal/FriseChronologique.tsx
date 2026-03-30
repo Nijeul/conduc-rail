@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { BulleEvenement } from './BulleEvenement'
 import { FiltresFrise } from './FiltresFrise'
 import { DialogEvenement } from './DialogEvenement'
 import { CAT, type CategorieKey } from './categories'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
+import { useExportPDF } from '@/hooks/useExportPDF'
+import { formatDateFR } from '@/lib/utils'
 
 const LARGEUR_MOIS = 260
 const MARGE_GAUCHE = 60
@@ -123,6 +127,7 @@ interface EvenementRow {
 interface FriseChronologiqueProps {
   evenements: EvenementRow[]
   projetId: string
+  nomProjet: string
 }
 
 function dateVersX(
@@ -151,7 +156,68 @@ function genererMois(dateMin: Date, dateMax: Date): Date[] {
 export function FriseChronologique({
   evenements,
   projetId,
+  nomProjet,
 }: FriseChronologiqueProps) {
+  const friseRef = useRef<HTMLDivElement>(null)
+  const { exportAvecGuard, isExporting } = useExportPDF()
+
+  const handleExportFrise = () =>
+    exportAvecGuard(async () => {
+      if (!friseRef.current) return
+
+      const canvas = await html2canvas(friseRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        width: friseRef.current.scrollWidth,
+        height: friseRef.current.scrollHeight,
+      })
+
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const PAGE_W = 297, PAGE_H = 210, MARGIN = 10, HEADER_H = 18, FOOTER_H = 8
+
+      // En-tete
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.setTextColor(26, 35, 126)
+      pdf.text('JOURNAL DE CHANTIER — FRISE CHRONOLOGIQUE', PAGE_W / 2, MARGIN + 6, { align: 'center' })
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(9)
+      pdf.setTextColor(84, 110, 122)
+      pdf.text(nomProjet, PAGE_W / 2, MARGIN + 12, { align: 'center' })
+      pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 6, { align: 'right' })
+      pdf.setDrawColor(207, 216, 220)
+      pdf.setLineWidth(0.3)
+      pdf.line(MARGIN, MARGIN + HEADER_H, PAGE_W - MARGIN, MARGIN + HEADER_H)
+
+      // Zone frise
+      const friseY = MARGIN + HEADER_H + 3
+      const friseH = PAGE_H - MARGIN - HEADER_H - FOOTER_H - 6
+      const friseW = PAGE_W - MARGIN * 2
+
+      const imgData = canvas.toDataURL('image/png')
+      const ratioW = friseW / (canvas.width / 2)
+      const ratioH = friseH / (canvas.height / 2)
+      const ratio = Math.min(ratioW, ratioH)
+      const imgFinalW = (canvas.width / 2) * ratio
+      const imgFinalH = (canvas.height / 2) * ratio
+      const imgY = friseY + (friseH - imgFinalH) / 2
+
+      pdf.addImage(imgData, 'PNG', MARGIN, imgY, imgFinalW, imgFinalH)
+
+      // Pied de page
+      pdf.setDrawColor(207, 216, 220)
+      pdf.line(MARGIN, PAGE_H - FOOTER_H, PAGE_W - MARGIN, PAGE_H - FOOTER_H)
+      pdf.setFontSize(7)
+      pdf.setTextColor(176, 190, 197)
+      pdf.text(nomProjet, MARGIN, PAGE_H - FOOTER_H + 4)
+      pdf.text('Page 1 / 1', PAGE_W - MARGIN, PAGE_H - FOOTER_H + 4, { align: 'right' })
+
+      pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`)
+    })
   const [filtresActifs, setFiltresActifs] = useState<Set<CategorieKey>>(
     () => new Set(Object.keys(CAT) as CategorieKey[])
   )
@@ -267,13 +333,23 @@ export function FriseChronologique({
 
   return (
     <div>
-      <FiltresFrise actifs={filtresActifs} onToggle={toggleFiltre} />
+      <div className="flex items-center justify-between mb-2">
+        <FiltresFrise actifs={filtresActifs} onToggle={toggleFiltre} />
+        <button
+          onClick={handleExportFrise}
+          disabled={isExporting}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm bg-[#37474F] text-[#ECEFF1] hover:bg-[#455A64] disabled:opacity-50"
+        >
+          {isExporting ? 'Génération...' : '📄 Export PDF'}
+        </button>
+      </div>
 
       <div
         className="overflow-x-auto border rounded-lg bg-white"
         style={{ height: hauteurConteneur }}
       >
         <div
+          ref={friseRef}
           className="relative"
           style={{
             width: largeurTotale,

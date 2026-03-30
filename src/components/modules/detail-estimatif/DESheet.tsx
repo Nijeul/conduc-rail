@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Plus, Trash2, GripVertical, FileDown } from 'lucide-react'
+import { Plus, Trash2, GripVertical, FileDown, Loader2 } from 'lucide-react'
 import { formatNombreFR } from '@/lib/utils'
 import {
   getLignesDE,
@@ -17,7 +17,8 @@ import {
   reorderLignesDE,
 } from '@/actions/detail-estimatif'
 import type { LigneDE } from '@prisma/client'
-import { DEPdfExport } from './DEPdfExport'
+import { useExportPDF } from '@/hooks/useExportPDF'
+import { useProfilStore } from '@/stores/profil'
 import {
   DndContext,
   closestCenter,
@@ -240,7 +241,9 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
   const [editValue, setEditValue] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [isExporting, setIsExporting] = useState(false)
+  const { exportAvecGuard, isExporting } = useExportPDF()
+  const userLogo = useProfilStore((s) => s.logoSociete)
+  const nomSociete = useProfilStore((s) => s.nomSociete)
   const [isPending, startTransition] = useTransition()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSaveRef = useRef<{ ligneId: string; field: string; value: unknown } | null>(null)
@@ -423,7 +426,6 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
   )
 
   return (
-    <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
@@ -436,16 +438,52 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
               </SheetTitle>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    if (isExporting) return
-                    setIsExporting(true)
-                  }}
+                  onClick={() =>
+                    exportAvecGuard(async () => {
+                      const date = new Date().toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                      const fileName = `DE_${projetName.replace(/[^a-zA-Z0-9]/g, '_')}_${date.replace(/\//g, '-')}.pdf`
+
+                      const { pdf } = await import('@react-pdf/renderer')
+                      const { DetailEstimatifPDF } = await import('@/lib/pdf/detail-estimatif')
+                      const { createElement } = await import('react')
+
+                      const doc = createElement(DetailEstimatifPDF, {
+                        lignes,
+                        projetName,
+                        totalHT,
+                        userLogo: userLogo ?? undefined,
+                        nomSociete: nomSociete ?? undefined,
+                      })
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const blob = await pdf(doc as any).toBlob()
+                      const url = URL.createObjectURL(blob)
+
+                      const a = document.createElement('a')
+                      a.style.display = 'none'
+                      a.href = url
+                      a.download = fileName
+                      document.body.appendChild(a)
+                      a.click()
+                      setTimeout(() => {
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                      }, 100)
+                    })
+                  }
                   disabled={isExporting}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50"
                   style={{ backgroundColor: '#37474F', color: '#ECEFF1' }}
                 >
-                  <FileDown className="h-4 w-4" />
-                  {isExporting ? 'Export...' : 'Export PDF'}
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4" />
+                  )}
+                  {isExporting ? 'Generation...' : 'Export PDF'}
                 </button>
               </div>
             </div>
@@ -529,15 +567,5 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
           </div>
         </SheetContent>
       </Sheet>
-
-      {isExporting && (
-        <DEPdfExport
-          lignes={lignes}
-          projetName={projetName}
-          totalHT={totalHT}
-          onClose={() => setIsExporting(false)}
-        />
-      )}
-    </>
   )
 }

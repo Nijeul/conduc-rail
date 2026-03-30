@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Font,
 } from '@react-pdf/renderer'
-import type { ColonneTS, LigneTS, CellulesTS } from '@/components/modules/tableau-service/types'
+import type { ColonneTS, LigneTS, CellulesTS, PersonnelMap } from '@/components/modules/tableau-service/types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +22,7 @@ interface TableauServicePdfProps {
   colonnes: ColonneTS[]
   lignes: LigneTS[]
   cellules: CellulesTS
+  personnelMap?: PersonnelMap
   userLogo?: string
   nomSociete?: string
 }
@@ -106,11 +107,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ECEFF1',
     justifyContent: 'center',
-    minHeight: 18,
+    minHeight: 36,
   },
   tdText: {
     fontSize: 8,
     textAlign: 'center',
+  },
+  celluleNom: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center' as const,
+  },
+  celluleTel: {
+    fontSize: 7,
+    color: '#546E7A',
+    textAlign: 'center' as const,
+    marginTop: 1,
   },
   // Libelle column
   libCell: {
@@ -120,7 +132,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ECEFF1',
     justifyContent: 'center',
-    minHeight: 18,
+    minHeight: 36,
   },
   libText: {
     fontSize: 8,
@@ -152,15 +164,17 @@ export function TableauServicePdf({
   colonnes,
   lignes,
   cellules,
+  personnelMap,
   userLogo,
   nomSociete,
 }: TableauServicePdfProps) {
-  const nbCols = colonnes.length + 1 // +1 for libelle column
-  const colWidth = nbCols > 0 ? `${(100 / nbCols).toFixed(2)}%` : '100%'
-  const libWidth = colonnes.length > 6 ? '14%' : '18%'
-  const dataWidth = colonnes.length > 0
-    ? `${((100 - parseFloat(libWidth)) / colonnes.length).toFixed(2)}%`
-    : '100%'
+  // Colonne "Poste" = 120pt fixe, le reste réparti également
+  const posteWidth = 120
+  // Page A4 landscape = 842pt - 2*30pt padding = 782pt usable
+  const usableWidth = 782
+  const dataWidthPt = colonnes.length > 0
+    ? (usableWidth - posteWidth) / colonnes.length
+    : usableWidth
 
   const dateGeneration = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
@@ -202,7 +216,7 @@ export function TableauServicePdf({
             <View
               style={[
                 styles.thCell,
-                { width: libWidth, backgroundColor: '#263238' },
+                { width: posteWidth, backgroundColor: '#263238' },
               ]}
             >
               <Text style={styles.thText}>Poste</Text>
@@ -212,7 +226,7 @@ export function TableauServicePdf({
                 key={col.id}
                 style={[
                   styles.thCell,
-                  { width: dataWidth, backgroundColor: col.couleur },
+                  { width: dataWidthPt, backgroundColor: col.couleur },
                 ]}
               >
                 <Text style={styles.thText}>{col.nom}</Text>
@@ -230,7 +244,7 @@ export function TableauServicePdf({
                   style={[
                     styles.libCell,
                     {
-                      width: libWidth,
+                      width: posteWidth,
                       backgroundColor: ligne.bg,
                     },
                   ]}
@@ -244,9 +258,15 @@ export function TableauServicePdf({
                 {colonnes.map((col) => {
                   const key = `${ligne.id}|${col.id}`
                   const cell = cellules[key]
-                  const display = cell?.personnelNom
+
+                  // Resolve telephone: from cell, or from personnelMap
+                  const telephone = cell?.personnelTelephone
+                    || (cell?.personnelId && personnelMap?.[cell.personnelId]?.telephone)
+                    || null
+
+                  const nomDisplay = cell?.personnelNom
                     ? cell.texte
-                      ? `${cell.personnelNom}\n${cell.texte}`
+                      ? `${cell.personnelNom} - ${cell.texte}`
                       : cell.personnelNom
                     : cell?.texte || ''
 
@@ -255,10 +275,15 @@ export function TableauServicePdf({
                       key={col.id}
                       style={[
                         styles.tdCell,
-                        { width: dataWidth, backgroundColor: rowBg },
+                        { width: dataWidthPt, backgroundColor: rowBg },
                       ]}
                     >
-                      <Text style={styles.tdText}>{display}</Text>
+                      <Text style={styles.celluleNom}>{nomDisplay}</Text>
+                      {telephone ? (
+                        <Text style={styles.celluleTel}>
+                          {'\u{1F4DE}'} {telephone}
+                        </Text>
+                      ) : null}
                     </View>
                   )
                 })}

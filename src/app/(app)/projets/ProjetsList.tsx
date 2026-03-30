@@ -3,19 +3,47 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateFR } from "@/lib/utils";
-import { createProjet } from "@/actions/projets";
+import { createProjet, deleteProjet } from "@/actions/projets";
 import type { ProjetWithMembers } from "@/types";
-import { Plus, Users, FileText } from "lucide-react";
+import { Plus, Users, FileText, MoreVertical, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ProjetsListProps {
   projets: ProjetWithMembers[];
+  currentUserId: string;
 }
 
-export function ProjetsList({ projets }: ProjetsListProps) {
+export function ProjetsList({ projets, currentUserId }: ProjetsListProps) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<ProjetWithMembers | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  function isOwner(projet: ProjetWithMembers) {
+    return projet.members.some(
+      (m) => m.userId === currentUserId && m.role === "owner"
+    );
+  }
 
   async function handleCreate(formData: FormData) {
     setCreating(true);
@@ -28,6 +56,20 @@ export function ProjetsList({ projets }: ProjetsListProps) {
       setError(result.error);
     }
     setCreating(false);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const result = await deleteProjet(deleteTarget.id);
+    if (result.success) {
+      setDeleteTarget(null);
+      setDeleteConfirmName("");
+      router.refresh();
+    } else {
+      setError(result.error);
+    }
+    setDeleting(false);
   }
 
   return (
@@ -57,15 +99,48 @@ export function ProjetsList({ projets }: ProjetsListProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {projets.map((projet) => (
-            <button
+            <div
               key={projet.id}
+              className="relative bg-white rounded-lg border border-border p-5 text-left
+                         hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
               onClick={() =>
                 router.push(`/projets/${projet.id}/suivi/rapports`)
               }
-              className="bg-white rounded-lg border border-border p-5 text-left
-                         hover:shadow-md hover:border-primary/30 transition-all group"
             >
-              <h3 className="font-semibold text-text-main group-hover:text-primary transition-colors">
+              {/* Dropdown menu for owner */}
+              {isOwner(projet) && (
+                <div className="absolute top-3 right-3 z-10">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 rounded-md hover:bg-gray-100 text-text-secondary
+                                   hover:text-text-main transition-colors"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenuItem
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(projet);
+                          setDeleteConfirmName("");
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer ce projet
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+
+              <h3 className="font-semibold text-text-main group-hover:text-primary transition-colors pr-8">
                 {projet.name}
               </h3>
               {projet.description && (
@@ -90,10 +165,63 @@ export function ProjetsList({ projets }: ProjetsListProps) {
                   {formatDateFR(new Date(projet.createdAt))}
                 </span>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteConfirmName("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Cette action est <strong className="text-red-600">irreversible</strong>.
+                  Toutes les donnees associees seront definitivement supprimees :
+                  rapports, soudures, courriers, evenements, compositions, fiches ecart, etc.
+                </p>
+                <p>
+                  Pour confirmer, tapez le nom du projet :{" "}
+                  <strong className="text-text-main">{deleteTarget?.name}</strong>
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder="Nom du projet"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm
+                             focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmName !== deleteTarget?.name || deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleting ? "Suppression..." : "Supprimer definitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Dialog */}
       {dialogOpen && (

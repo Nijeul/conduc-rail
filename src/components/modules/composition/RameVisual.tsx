@@ -1,6 +1,7 @@
 'use client'
 
 import { COULEURS_TYPE_MATERIEL } from '../materiel/constants'
+import { getSVGMateriel } from '@/lib/materiel-svgs'
 
 interface Vehicule {
   id: string
@@ -18,45 +19,73 @@ interface RameVisualProps {
 export function RameVisual({ vehicules, selectedIdx, onSelect }: RameVisualProps) {
   if (vehicules.length === 0) {
     return (
-      <div className="h-20 flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-24 flex items-center justify-center text-gray-400 text-sm">
         Aucun vehicule
       </div>
     )
   }
 
   return (
-    <div className="flex items-end gap-1 overflow-x-auto pb-1" style={{ minHeight: '88px' }}>
+    <div className="flex items-end gap-1 overflow-x-auto pb-1" style={{ minHeight: '100px' }}>
       {vehicules.map((v, i) => {
         const bgColor = COULEURS_TYPE_MATERIEL[v.type] || '#546E7A'
         const nombre = v.nombre || 1
-        const widthPx = Math.max(nombre * 60, 60)
         const isSelected = selectedIdx === i
+        const svgContent = getSVGMateriel(v.type, v.designation)
 
         return (
           <div
             key={v.id}
             onClick={() => onSelect(selectedIdx === i ? null : i)}
-            className={`relative flex flex-col items-center justify-center rounded cursor-pointer transition-all shrink-0 ${
-              isSelected ? 'ring-2 ring-[#0D47A1] ring-offset-1' : ''
+            className={`relative flex flex-col items-center cursor-pointer transition-all shrink-0 ${
+              isSelected ? 'ring-2 ring-[#0D47A1] ring-offset-1 rounded' : ''
             }`}
-            style={{
-              backgroundColor: bgColor,
-              width: `${widthPx}px`,
-              height: '80px',
-            }}
+            style={{ width: '130px' }}
           >
-            <span className="text-white text-[10px] font-bold leading-tight">
-              {v.type}
-            </span>
-            {v.designation && (
-              <span className="text-white/80 text-[9px] leading-tight truncate max-w-full px-1">
-                {v.designation.length > 12
-                  ? v.designation.substring(0, 12) + '...'
-                  : v.designation}
-              </span>
-            )}
-            <span className="text-white/90 text-[10px] font-medium">
-              x{nombre}
+            {/* SVG ou fallback colore */}
+            <div
+              className="relative rounded overflow-hidden"
+              style={{ width: '130px', height: '80px' }}
+            >
+              {svgContent ? (
+                <div
+                  className="w-full h-full flex items-center justify-center bg-white/5"
+                  dangerouslySetInnerHTML={{ __html: svgContent }}
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center rounded"
+                  style={{ backgroundColor: bgColor }}
+                >
+                  <span className="text-white text-[10px] font-bold leading-tight">
+                    {v.type}
+                  </span>
+                </div>
+              )}
+
+              {/* Badge xN en haut a droite */}
+              {nombre > 1 && (
+                <div
+                  className="absolute top-1 right-1 flex items-center justify-center rounded-full text-white text-[10px] font-bold"
+                  style={{
+                    backgroundColor: '#263238',
+                    minWidth: '22px',
+                    height: '22px',
+                    padding: '0 4px',
+                  }}
+                >
+                  &times;{nombre}
+                </div>
+              )}
+            </div>
+
+            {/* Label designation sous le bloc */}
+            <span className="text-[9px] text-gray-600 leading-tight truncate max-w-[130px] mt-0.5 text-center px-0.5">
+              {v.designation
+                ? v.designation.length > 18
+                  ? v.designation.substring(0, 18) + '...'
+                  : v.designation
+                : v.type}
             </span>
           </div>
         )

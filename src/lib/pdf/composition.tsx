@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
 } from '@react-pdf/renderer'
+import { getMaterielSVGPDF } from './materiel-svg-pdf'
 
 const TYPE_COLORS: Record<string, string> = {
   Loco: '#FF8F00',
@@ -58,9 +59,10 @@ const styles = StyleSheet.create({
   },
   rameContainer: {
     flexDirection: 'row',
-    gap: 2,
+    gap: 3,
     marginBottom: 15,
-    height: 35,
+    minHeight: 55,
+    alignItems: 'flex-end',
   },
   rameBlock: {
     justifyContent: 'center',
@@ -72,6 +74,36 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 6,
     fontWeight: 'bold',
+  },
+  rameVehicule: {
+    alignItems: 'center',
+    width: 95,
+  },
+  rameSvgContainer: {
+    position: 'relative',
+    width: 90,
+    height: 50,
+  },
+  rameBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#263238',
+    color: 'white',
+    fontSize: 6,
+    fontWeight: 'bold',
+    borderRadius: 7,
+    width: 14,
+    height: 14,
+    textAlign: 'center',
+    paddingTop: 2,
+  },
+  rameLabel: {
+    fontSize: 5,
+    color: '#546E7A',
+    textAlign: 'center',
+    marginTop: 1,
+    maxWidth: 90,
   },
   mainContent: {
     flexDirection: 'row',
@@ -280,30 +312,45 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props
           </View>
         </View>
 
-        {/* Rame visuelle */}
+        {/* Rame visuelle avec SVG */}
         <View style={styles.rameContainer}>
           {vehicules.map((v, i) => {
+            const svgElement = getMaterielSVGPDF(v.type, v.designation)
             const bgColor = TYPE_COLORS[v.type] || '#78909C'
-            const widthPercent = Math.max(
-              ((v.nombre || 1) / Math.max(totalNombre, 1)) * 100,
-              8
-            )
+            const nombre = v.nombre || 1
+            const label =
+              v.designation && v.designation.length > 16
+                ? v.designation.substring(0, 16) + '...'
+                : v.designation || v.type
+
             return (
-              <View
-                key={i}
-                style={[
-                  styles.rameBlock,
-                  {
-                    backgroundColor: bgColor,
-                    width: `${widthPercent}%`,
-                    minWidth: 35,
-                  },
-                ]}
-              >
-                <Text style={styles.rameBlockText}>{v.type}</Text>
-                <Text style={[styles.rameBlockText, { fontSize: 5 }]}>
-                  x{v.nombre || 1}
-                </Text>
+              <View key={i} style={styles.rameVehicule}>
+                <View style={styles.rameSvgContainer}>
+                  {svgElement ? (
+                    svgElement
+                  ) : (
+                    <View
+                      style={[
+                        styles.rameBlock,
+                        {
+                          backgroundColor: bgColor,
+                          width: 90,
+                          height: 50,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.rameBlockText}>{v.type}</Text>
+                    </View>
+                  )}
+                  {nombre > 1 && (
+                    <View style={styles.rameBadge}>
+                      <Text style={{ color: 'white', fontSize: 6, fontWeight: 'bold' }}>
+                        x{nombre}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.rameLabel}>{label}</Text>
               </View>
             )
           })}

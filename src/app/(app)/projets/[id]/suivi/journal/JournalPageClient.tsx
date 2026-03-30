@@ -86,7 +86,7 @@ export function JournalPageClient({
       {vue === 'liste' ? (
         <JournalListe evenements={evenements} projetId={projetId} />
       ) : vue === 'frise' ? (
-        <FriseChronologique evenements={evenements} projetId={projetId} />
+        <FriseChronologique evenements={evenements} projetId={projetId} nomProjet={projetName} />
       ) : (
         <FicheEcartTable
           projetId={projetId}
