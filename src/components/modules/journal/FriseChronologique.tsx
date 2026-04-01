@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from 'react'
 import { BulleEvenement } from './BulleEvenement'
 import { FiltresFrise } from './FiltresFrise'
 import { DialogEvenement } from './DialogEvenement'
-import { CAT, type CategorieKey } from './categories'
+import { resolveCatColors, type CategorieRow, type CouleursCatMap } from './categories'
 import html2canvas from 'html2canvas'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { formatDateFR } from '@/lib/utils'
@@ -14,7 +14,6 @@ const MARGE_GAUCHE = 60
 const Y_LIGNE_BASE = 200
 
 const LARGEUR_BULLE = 185
-const HAUTEUR_BULLE = 90
 const MARGE_H = 10
 const MARGE_V = 8
 const QUEUE_H = 14
@@ -73,7 +72,6 @@ function calculerPlacements(
     }
 
     if (!placed) {
-      // Empiler verticalement du cote le moins charge
       const chevauchants = placements.filter(
         (p) => Math.abs(p.x - x) < (largeur + p.largeur) / 2 + MARGE_H
       )
@@ -106,7 +104,7 @@ function calculerPlacements(
 
 function calculerHauteurConteneur(
   placements: PlacementBulle[],
-  yLigne: number
+  _yLigne: number
 ): { hauteur: number; offsetY: number } {
   if (placements.length === 0) return { hauteur: 400, offsetY: 0 }
 
@@ -129,6 +127,17 @@ interface FichierRow {
   nom: string
   type: string
   taille: number
+  contenu?: string
+}
+
+interface CategorieRefRow {
+  id: string
+  nom: string
+  couleurBg: string
+  couleurBorder: string
+  couleurText: string
+  couleurPoint: string
+  estSysteme: boolean
 }
 
 interface EvenementRow {
@@ -137,11 +146,16 @@ interface EvenementRow {
   titre: string
   description: string | null
   categorie: string
+  categorieId: string | null
+  afficherFrise: boolean
   fichiers: FichierRow[]
+  categorieRef: CategorieRefRow | null
 }
 
 interface FriseChronologiqueProps {
   evenements: EvenementRow[]
+  categories: CategorieRow[]
+  couleursCat: CouleursCatMap
   projetId: string
   nomProjet: string
 }
@@ -171,18 +185,146 @@ function genererMois(dateMin: Date, dateMax: Date): Date[] {
 
 export function FriseChronologique({
   evenements,
+  categories,
+  couleursCat,
   projetId,
   nomProjet,
 }: FriseChronologiqueProps) {
   const friseRef = useRef<HTMLDivElement>(null)
   const { exportAvecGuard, isExporting } = useExportPDF()
 
+  // Build a set of category IDs for filtering
+  const allCatIds = useMemo(() => {
+    const ids = new Set<string>()
+    categories.forEach(c => ids.add(c.id))
+    // Also add a special key for events without categorieId (legacy)
+    ids.add('__legacy__')
+    return ids
+  }, [categories])
+
+  const [filtresActifs, setFiltresActifs] = useState<Set<string>>(() => new Set(allCatIds))
+
+  function toggleFiltre(catId: string) {
+    setFiltresActifs((prev) => {
+      const next = new Set(prev)
+      if (next.has(catId)) {
+        next.delete(catId)
+      } else {
+        next.add(catId)
+      }
+      return next
+    })
+  }
+
+  // Filter: only events with afficherFrise AND matching active category
+  const evenementsFiltres = useMemo(
+    () =>
+      evenements.filter((ev) => {
+        if (!ev.afficherFrise) return false
+        if (ev.categorieId) return filtresActifs.has(ev.categorieId)
+        // Legacy event (no categorieId) — pass through if __legacy__ is active
+        return filtresActifs.has('__legacy__')
+      }),
+    [evenements, filtresActifs]
+  )
+
+  const { dateMin, dateMax, largeurTotale, moisLabels, placements, hauteurConteneur, yLigne } =
+    useMemo(() => {
+      if (evenementsFiltres.length === 0) {
+        const now = new Date()
+        return {
+          dateMin: now,
+          dateMax: now,
+          largeurTotale: LARGEUR_MOIS * 3,
+          moisLabels: [] as { date: Date; x: number }[],
+          placements: [] as PlacementBulle[],
+          hauteurConteneur: 400,
+          yLigne: Y_LIGNE_BASE,
+        }
+      }
+
+      const dates = evenementsFiltres.map((ev) => new Date(ev.date).getTime())
+      const minMs = Math.min(...dates)
+      const maxMs = Math.max(...dates)
+
+      const dMin = new Date(minMs)
+      dMin.setMonth(dMin.getMonth() - 1)
+      const dMax = new Date(maxMs)
+      dMax.setMonth(dMax.getMonth() + 1)
+
+      const mois = genererMois(dMin, dMax)
+      const totalWidth = Math.max(mois.length * LARGEUR_MOIS, 800)
+
+      const positionsX: Record<string, number> = {}
+      for (const ev of evenementsFiltres) {
+        positionsX[ev.id] = dateVersX(new Date(ev.date), dMin, dMax, totalWidth)
+      }
+
+      const placementsInitiaux = calculerPlacements(evenementsFiltres, positionsX, Y_LIGNE_BASE)
+      const { hauteur, offsetY } = calculerHauteurConteneur(placementsInitiaux, Y_LIGNE_BASE)
+      const placementsDecales = placementsInitiaux.map(p => ({ ...p, y: p.y + offsetY }))
+      const yLigneVal = Y_LIGNE_BASE + offsetY
+
+      const moisLabels = mois.map((d) => ({
+        date: d,
+        x: dateVersX(d, dMin, dMax, totalWidth),
+      }))
+
+      return {
+        dateMin: dMin,
+        dateMax: dMax,
+        largeurTotale: totalWidth,
+        moisLabels,
+        placements: placementsDecales,
+        hauteurConteneur: hauteur,
+        yLigne: yLigneVal,
+      }
+    }, [evenementsFiltres])
+
+  const placementMap = useMemo(() => {
+    const map = new Map<string, PlacementBulle>()
+    for (const p of placements) {
+      map.set(p.id, p)
+    }
+    return map
+  }, [placements])
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editData, setEditData] = useState<{
+    id: string
+    date: string
+    titre: string
+    description: string
+    categorie: string
+    categorieId: string | null
+    fichiers: FichierRow[]
+  } | null>(null)
+
+  function handleBulleClick(ev: EvenementRow) {
+    setEditData({
+      id: ev.id,
+      date: new Date(ev.date).toISOString().slice(0, 10),
+      titre: ev.titre,
+      description: ev.description || '',
+      categorie: ev.categorie,
+      categorieId: ev.categorieId,
+      fichiers: ev.fichiers,
+    })
+    setDialogOpen(true)
+  }
+
+  function getCatColor(evId: string): string {
+    const ev = evenementsFiltres.find((e) => e.id === evId)
+    if (!ev) return '#607D8B'
+    const cat = resolveCatColors(ev, couleursCat)
+    return cat.border
+  }
+
   const handleExportFrise = () =>
     exportAvecGuard(async () => {
       if (!friseRef.current) return
       const el = friseRef.current
 
-      // Sauvegarder styles originaux
       const styleOriginal = {
         overflow: el.style.overflow,
         position: el.style.position,
@@ -191,14 +333,12 @@ export function FriseChronologique({
         height: el.style.height,
       }
 
-      // Passer en position relative pour que offsetParent fonctionne
       el.style.position = 'relative'
       el.style.overflow = 'visible'
       el.style.height = 'auto'
 
       await new Promise(r => requestAnimationFrame(r))
 
-      // Calculer via offsetTop
       const bulles = el.querySelectorAll('[data-bulle]') as NodeListOf<HTMLElement>
       let topMinRelative = 0
       bulles.forEach(bulle => {
@@ -216,11 +356,9 @@ export function FriseChronologique({
         ? Math.ceil(Math.abs(topMinRelative)) + MARGE
         : MARGE
 
-      // Appliquer styles de capture
       el.style.paddingTop = `${paddingTop}px`
       el.style.paddingBottom = '20px'
 
-      // Lever les clamps pour texte complet
       const clampEls = Array.from(el.querySelectorAll('[data-clamp]')) as HTMLElement[]
       const clampBackup = clampEls.map(c => ({
         el: c,
@@ -236,10 +374,8 @@ export function FriseChronologique({
         if (bulle) bulle.style.height = 'auto'
       })
 
-      // Attendre 2 frames pour recalcul DOM
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
 
-      // Capturer
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
@@ -260,7 +396,6 @@ export function FriseChronologique({
         },
       })
 
-      // Restaurer styles et clamps
       el.style.overflow = styleOriginal.overflow
       el.style.position = styleOriginal.position
       el.style.paddingTop = styleOriginal.paddingTop
@@ -275,14 +410,13 @@ export function FriseChronologique({
         if (bulle) bulle.style.height = ''
       })
 
-      // Générer le PDF
       const jsPDFModule = await import('jspdf')
       const jsPDFCtor = jsPDFModule.default
       const pdf = new jsPDFCtor({ orientation: 'landscape', unit: 'mm', format: 'a4' })
 
       const PAGE_W = 297, PAGE_H = 210, MARGIN = 10, HEADER_H = 18, FOOTER_H = 8
 
-      // En-tête VINCI
+      // En-tete VINCI
       pdf.setFillColor(0, 68, 137)
       pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
       pdf.setFont('helvetica', 'bold')
@@ -292,9 +426,8 @@ export function FriseChronologique({
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
       pdf.text(nomProjet, PAGE_W / 2, MARGIN + 11, { align: 'center' })
-      pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 5, { align: 'right' })
+      pdf.text(`Edite le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 5, { align: 'right' })
 
-      // Zone frise
       const friseY = MARGIN + HEADER_H + 2
       const friseH = PAGE_H - friseY - FOOTER_H - 4
       const friseW = PAGE_W - MARGIN * 2
@@ -309,9 +442,10 @@ export function FriseChronologique({
       const imgY = friseY + (friseH - finalH) / 2
 
       const RATIO_MIN = 0.55
+      let totalPages = 1
       if (ratio < RATIO_MIN) {
-        // Pagination
         const nbPages = Math.ceil(imgW_mm / (friseW / RATIO_MIN))
+        totalPages = nbPages
         const trancheW_px = Math.ceil(canvas.width / nbPages)
 
         for (let i = 0; i < nbPages; i++) {
@@ -345,7 +479,7 @@ export function FriseChronologique({
           pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(7)
           pdf.setTextColor(181, 171, 161)
-          pdf.text(`Page ${i + 1} / ${nbPages}`, PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
+          pdf.text(`Page ${i + 1}`, PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
         }
       } else {
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', MARGIN, imgY, finalW, finalH)
@@ -356,142 +490,154 @@ export function FriseChronologique({
         pdf.setFontSize(7)
         pdf.setTextColor(181, 171, 161)
         pdf.text(nomProjet, MARGIN, PAGE_H - 2)
-        pdf.text('Page 1 / 1', PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
+        pdf.text('Page 1', PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
+      }
+
+      // ---- ETAPE 9 : Pages pieces jointes ----
+      const eventsWithImages = evenementsFiltres.filter(
+        ev => ev.fichiers.some(f => f.type.startsWith('image/') && f.contenu)
+      )
+
+      if (eventsWithImages.length > 0) {
+        // Switch to portrait for attachment pages
+        for (const ev of eventsWithImages) {
+          const cat = resolveCatColors(ev, couleursCat)
+          const images = ev.fichiers.filter(f => f.type.startsWith('image/') && f.contenu)
+          const pdfs = ev.fichiers.filter(f => f.type === 'application/pdf')
+
+          if (images.length === 0 && pdfs.length === 0) continue
+
+          pdf.addPage('a4', 'portrait')
+          totalPages++
+
+          const PW = 210, PH = 297, PM = 15
+
+          // Header band
+          pdf.setFillColor(0, 68, 137)
+          pdf.rect(0, 0, PW, 20, 'F')
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(10)
+          pdf.setTextColor(255, 255, 255)
+          pdf.text('PIECES JOINTES', PW / 2, 12, { align: 'center' })
+
+          // Event title bar with category color
+          const hexToRGB = (hex: string) => {
+            const r = parseInt(hex.slice(1, 3), 16)
+            const g = parseInt(hex.slice(3, 5), 16)
+            const b = parseInt(hex.slice(5, 7), 16)
+            return { r, g, b }
+          }
+          const bgRGB = hexToRGB(cat.bg)
+          const borderRGB = hexToRGB(cat.border)
+
+          pdf.setFillColor(bgRGB.r, bgRGB.g, bgRGB.b)
+          pdf.setDrawColor(borderRGB.r, borderRGB.g, borderRGB.b)
+          pdf.roundedRect(PM, 25, PW - PM * 2, 14, 2, 2, 'FD')
+
+          const textRGB = hexToRGB(cat.text)
+          pdf.setTextColor(textRGB.r, textRGB.g, textRGB.b)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(9)
+          const dateStr = formatDateFR(new Date(ev.date))
+          pdf.text(`${dateStr} - ${ev.titre}`, PM + 4, 33)
+
+          // Images: 2 per row
+          let curY = 44
+          const imgAreaW = (PW - PM * 2 - 10) / 2
+          const maxImgH = 80
+
+          for (let i = 0; i < images.length; i += 2) {
+            if (curY + maxImgH > PH - 30) {
+              // New page
+              pdf.addPage('a4', 'portrait')
+              totalPages++
+              pdf.setFillColor(0, 68, 137)
+              pdf.rect(0, 0, PW, 20, 'F')
+              pdf.setFont('helvetica', 'bold')
+              pdf.setFontSize(10)
+              pdf.setTextColor(255, 255, 255)
+              pdf.text('PIECES JOINTES (suite)', PW / 2, 12, { align: 'center' })
+              curY = 25
+            }
+
+            // Left image
+            try {
+              pdf.addImage(images[i].contenu!, 'JPEG', PM, curY, imgAreaW, maxImgH)
+            } catch {
+              // Skip if image can't be added
+            }
+
+            // Right image
+            if (i + 1 < images.length) {
+              try {
+                pdf.addImage(images[i + 1].contenu!, 'JPEG', PM + imgAreaW + 10, curY, imgAreaW, maxImgH)
+              } catch {
+                // Skip
+              }
+            }
+
+            // Captions
+            pdf.setFont('helvetica', 'normal')
+            pdf.setFontSize(7)
+            pdf.setTextColor(90, 90, 90)
+            pdf.text(images[i].nom, PM, curY + maxImgH + 4)
+            if (i + 1 < images.length) {
+              pdf.text(images[i + 1].nom, PM + imgAreaW + 10, curY + maxImgH + 4)
+            }
+
+            curY += maxImgH + 10
+          }
+
+          // List PDF files as notes
+          if (pdfs.length > 0) {
+            if (curY + 15 > PH - 20) {
+              pdf.addPage('a4', 'portrait')
+              totalPages++
+              curY = 25
+            }
+            pdf.setFont('helvetica', 'italic')
+            pdf.setFontSize(8)
+            pdf.setTextColor(90, 90, 90)
+            pdf.text('Documents PDF joints :', PM, curY + 5)
+            curY += 10
+            for (const p of pdfs) {
+              pdf.text(`- ${p.nom}`, PM + 4, curY)
+              curY += 5
+            }
+          }
+
+          // Footer
+          pdf.setFillColor(0, 51, 112)
+          pdf.rect(0, PH - 8, PW, 8, 'F')
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(7)
+          pdf.setTextColor(181, 171, 161)
+          pdf.text(nomProjet, PM, PH - 2)
+          pdf.text(`Page ${totalPages}`, PW - PM, PH - 2, { align: 'right' })
+        }
       }
 
       pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`)
     })
-  const [filtresActifs, setFiltresActifs] = useState<Set<CategorieKey>>(
-    () => new Set(Object.keys(CAT) as CategorieKey[])
-  )
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editData, setEditData] = useState<{
-    id: string
-    date: string
-    titre: string
-    description: string
-    categorie: string
-    fichiers: FichierRow[]
-  } | null>(null)
-
-  function toggleFiltre(cat: CategorieKey) {
-    setFiltresActifs((prev) => {
-      const next = new Set(prev)
-      if (next.has(cat)) {
-        next.delete(cat)
-      } else {
-        next.add(cat)
-      }
-      return next
-    })
-  }
-
-  const evenementsFiltres = useMemo(
-    () =>
-      evenements.filter((ev) =>
-        filtresActifs.has(ev.categorie as CategorieKey)
-      ),
-    [evenements, filtresActifs]
-  )
-
-  const { dateMin, dateMax, largeurTotale, moisLabels, placements, hauteurConteneur, yLigne } =
-    useMemo(() => {
-      if (evenementsFiltres.length === 0) {
-        const now = new Date()
-        return {
-          dateMin: now,
-          dateMax: now,
-          largeurTotale: LARGEUR_MOIS * 3,
-          moisLabels: [] as { date: Date; x: number }[],
-          placements: [] as PlacementBulle[],
-          hauteurConteneur: 400,
-          yLigne: Y_LIGNE_BASE,
-        }
-      }
-
-      const dates = evenementsFiltres.map((ev) => new Date(ev.date).getTime())
-      const minMs = Math.min(...dates)
-      const maxMs = Math.max(...dates)
-
-      // Add 1 month padding on each side
-      const dMin = new Date(minMs)
-      dMin.setMonth(dMin.getMonth() - 1)
-      const dMax = new Date(maxMs)
-      dMax.setMonth(dMax.getMonth() + 1)
-
-      const mois = genererMois(dMin, dMax)
-      const totalWidth = Math.max(mois.length * LARGEUR_MOIS, 800)
-
-      // Build positionsX map for the new algorithm
-      const positionsX: Record<string, number> = {}
-      for (const ev of evenementsFiltres) {
-        positionsX[ev.id] = dateVersX(new Date(ev.date), dMin, dMax, totalWidth)
-      }
-
-      const placementsInitiaux = calculerPlacements(evenementsFiltres, positionsX, Y_LIGNE_BASE)
-      const { hauteur, offsetY } = calculerHauteurConteneur(placementsInitiaux, Y_LIGNE_BASE)
-      const placementsDecales = placementsInitiaux.map(p => ({ ...p, y: p.y + offsetY }))
-      const yLigne = Y_LIGNE_BASE + offsetY
-
-      const moisLabels = mois.map((d) => ({
-        date: d,
-        x: dateVersX(d, dMin, dMax, totalWidth),
-      }))
-
-      return {
-        dateMin: dMin,
-        dateMax: dMax,
-        largeurTotale: totalWidth,
-        moisLabels,
-        placements: placementsDecales,
-        hauteurConteneur: hauteur,
-        yLigne,
-      }
-    }, [evenementsFiltres])
-
-  // Build a lookup from event id to its placement
-  const placementMap = useMemo(() => {
-    const map = new Map<string, PlacementBulle>()
-    for (const p of placements) {
-      map.set(p.id, p)
-    }
-    return map
-  }, [placements])
-
-  function handleBulleClick(ev: EvenementRow) {
-    setEditData({
-      id: ev.id,
-      date: new Date(ev.date).toISOString().slice(0, 10),
-      titre: ev.titre,
-      description: ev.description || '',
-      categorie: ev.categorie,
-      fichiers: ev.fichiers,
-    })
-    setDialogOpen(true)
-  }
-
-  // Helper to get category color by event id
-  function getCatColor(evId: string): string {
-    const ev = evenementsFiltres.find((e) => e.id === evId)
-    if (!ev) return '#607D8B'
-    const cat = CAT[ev.categorie as CategorieKey] || CAT.autre
-    return cat.border
-  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <FiltresFrise actifs={filtresActifs} onToggle={toggleFiltre} />
+        <FiltresFrise
+          categories={categories}
+          actifs={filtresActifs}
+          onToggle={toggleFiltre}
+        />
         <button
           onClick={handleExportFrise}
           disabled={isExporting}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm bg-[#F0F0F0] text-[#000000] border border-[#DCDCDC] hover:bg-[#E0E0E0] disabled:opacity-50"
         >
-          {isExporting ? 'Génération...' : '📄 Export PDF'}
+          {isExporting ? 'Generation...' : 'Export PDF'}
         </button>
       </div>
 
-      {/* Wrapper externe — controle hauteur + overflow hidden */}
+      {/* Wrapper externe */}
       <div
         className="border rounded-lg bg-white"
         style={{
@@ -573,7 +719,7 @@ export function FriseChronologique({
             {evenementsFiltres.map((ev) => {
               const placement = placementMap.get(ev.id)
               if (!placement) return null
-              const cat = CAT[ev.categorie as CategorieKey] || CAT.autre
+              const cat = resolveCatColors(ev, couleursCat)
               return (
                 <div
                   key={`point-${ev.id}`}
@@ -634,6 +780,9 @@ export function FriseChronologique({
                   description={ev.description}
                   date={ev.date}
                   categorie={ev.categorie}
+                  categorieId={ev.categorieId}
+                  categorieRef={ev.categorieRef}
+                  couleursCat={couleursCat}
                   hasFichiers={ev.fichiers.length > 0}
                   placement={placement}
                   onClick={() => handleBulleClick(ev)}
@@ -656,6 +805,8 @@ export function FriseChronologique({
         onOpenChange={setDialogOpen}
         projetId={projetId}
         evenement={editData}
+        categories={categories}
+        couleursCat={couleursCat}
       />
     </div>
   )

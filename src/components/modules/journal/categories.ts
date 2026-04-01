@@ -1,3 +1,4 @@
+// Legacy CAT map — used as fallback for events that have categorie (string) but no categorieId
 export const CAT: Record<string, { bg: string; border: string; text: string; point: string; label: string }> = {
   contrat:         { bg: '#E8EFDA', border: '#7AA536', text: '#5E8019', point: '#7AA536', label: 'Contrat' },
   groupement:      { bg: '#E5F1F9', border: '#307BFF', text: '#0041B7', point: '#307BFF', label: 'Groupement' },
@@ -12,3 +13,52 @@ export const CAT: Record<string, { bg: string; border: string; text: string; poi
 }
 
 export type CategorieKey = keyof typeof CAT
+
+export interface CategorieRow {
+  id: string
+  projetId: string
+  nom: string
+  couleurBg: string
+  couleurBorder: string
+  couleurText: string
+  couleurPoint: string
+  estSysteme: boolean
+}
+
+export interface CouleursCatEntry {
+  bg: string
+  border: string
+  text: string
+  point: string
+  label: string
+  id: string
+  estSysteme: boolean
+}
+
+export type CouleursCatMap = Record<string, CouleursCatEntry>
+
+/**
+ * Resolve colors for an event. Prefers categorieRef (BDD), falls back to legacy CAT map.
+ */
+export function resolveCatColors(
+  ev: { categorieId?: string | null; categorie: string; categorieRef?: { couleurBg: string; couleurBorder: string; couleurText: string; couleurPoint: string; nom: string; estSysteme: boolean } | null },
+  couleursCat: CouleursCatMap
+): { bg: string; border: string; text: string; point: string; label: string } {
+  // 1. If categorieId is set and exists in the map, use it
+  if (ev.categorieId && couleursCat[ev.categorieId]) {
+    const c = couleursCat[ev.categorieId]
+    return { bg: c.bg, border: c.border, text: c.text, point: c.point, label: c.label }
+  }
+  // 2. If categorieRef is included from Prisma
+  if (ev.categorieRef) {
+    return {
+      bg: ev.categorieRef.couleurBg,
+      border: ev.categorieRef.couleurBorder,
+      text: ev.categorieRef.couleurText,
+      point: ev.categorieRef.couleurPoint,
+      label: ev.categorieRef.nom,
+    }
+  }
+  // 3. Fallback to legacy string-based CAT
+  return CAT[ev.categorie] || CAT.autre
+}

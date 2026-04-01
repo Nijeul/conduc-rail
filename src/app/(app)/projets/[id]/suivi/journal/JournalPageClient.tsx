@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { JournalListe } from '@/components/modules/journal/JournalListe'
 import { FriseChronologique } from '@/components/modules/journal/FriseChronologique'
 import { FicheEcartTable } from '@/components/modules/journal/FicheEcartTable'
 import { List, Calendar, ClipboardList } from 'lucide-react'
+import type { CategorieRow, CouleursCatMap } from '@/components/modules/journal/categories'
 
 interface FichierRow {
   id: string
@@ -14,23 +14,40 @@ interface FichierRow {
   taille: number
 }
 
+interface CategorieRefRow {
+  id: string
+  nom: string
+  couleurBg: string
+  couleurBorder: string
+  couleurText: string
+  couleurPoint: string
+  estSysteme: boolean
+}
+
 interface EvenementRow {
   id: string
   date: Date
   titre: string
   description: string | null
   categorie: string
+  categorieId: string | null
+  afficherFrise: boolean
   fichiers: FichierRow[]
+  categorieRef: CategorieRefRow | null
 }
 
 interface JournalPageClientProps {
   evenements: EvenementRow[]
+  categories: CategorieRow[]
+  couleursCat: CouleursCatMap
   projetId: string
   projetName: string
 }
 
 export function JournalPageClient({
   evenements,
+  categories,
+  couleursCat,
   projetId,
   projetName,
 }: JournalPageClientProps) {
@@ -84,9 +101,20 @@ export function JournalPageClient({
 
       {/* Content */}
       {vue === 'liste' ? (
-        <JournalListe evenements={evenements} projetId={projetId} />
+        <JournalListe
+          evenements={evenements}
+          categories={categories}
+          couleursCat={couleursCat}
+          projetId={projetId}
+        />
       ) : vue === 'frise' ? (
-        <FriseChronologique evenements={evenements} projetId={projetId} nomProjet={projetName} />
+        <FriseChronologique
+          evenements={evenements}
+          categories={categories}
+          couleursCat={couleursCat}
+          projetId={projetId}
+          nomProjet={projetName}
+        />
       ) : (
         <FicheEcartTable
           projetId={projetId}

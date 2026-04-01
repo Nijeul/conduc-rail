@@ -4,16 +4,27 @@ import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatDateFR } from '@/lib/utils'
-import { deleteEvenement } from '@/actions/journal'
-import { CAT, type CategorieKey } from './categories'
+import { deleteEvenement, toggleAfficherFrise } from '@/actions/journal'
+import { resolveCatColors, type CategorieRow, type CouleursCatMap } from './categories'
 import { DialogEvenement } from './DialogEvenement'
-import { Plus, Pencil, Trash2, FileText, Image } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, Image, Eye, EyeOff } from 'lucide-react'
 
 interface FichierRow {
   id: string
   nom: string
   type: string
   taille: number
+  contenu?: string
+}
+
+interface CategorieRefRow {
+  id: string
+  nom: string
+  couleurBg: string
+  couleurBorder: string
+  couleurText: string
+  couleurPoint: string
+  estSysteme: boolean
 }
 
 interface EvenementRow {
@@ -22,15 +33,20 @@ interface EvenementRow {
   titre: string
   description: string | null
   categorie: string
+  categorieId: string | null
+  afficherFrise: boolean
   fichiers: FichierRow[]
+  categorieRef: CategorieRefRow | null
 }
 
 interface JournalListeProps {
   evenements: EvenementRow[]
+  categories: CategorieRow[]
+  couleursCat: CouleursCatMap
   projetId: string
 }
 
-export function JournalListe({ evenements, projetId }: JournalListeProps) {
+export function JournalListe({ evenements, categories, couleursCat, projetId }: JournalListeProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editData, setEditData] = useState<{
@@ -39,10 +55,12 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
     titre: string
     description: string
     categorie: string
+    categorieId: string | null
     fichiers: FichierRow[]
   } | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   function handleNew() {
     setEditData(null)
@@ -56,6 +74,7 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
       titre: ev.titre,
       description: ev.description || '',
       categorie: ev.categorie,
+      categorieId: ev.categorieId,
       fichiers: ev.fichiers,
     })
     setDialogOpen(true)
@@ -79,7 +98,26 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
     })
   }
 
-  const catInfo = (cat: string) => CAT[cat as CategorieKey] || CAT.autre
+  function handleToggleFrise(e: React.MouseEvent, evId: string) {
+    e.stopPropagation()
+    startTransition(async () => {
+      await toggleAfficherFrise(evId, projetId)
+    })
+  }
+
+  function handleFichierClick(e: React.MouseEvent, fichier: FichierRow) {
+    e.stopPropagation()
+    if (fichier.type.startsWith('image/') && fichier.contenu) {
+      setLightboxSrc(fichier.contenu)
+    } else if (fichier.type === 'application/pdf' && fichier.contenu) {
+      // Open PDF in new tab
+      const win = window.open()
+      if (win) {
+        win.document.write(`<iframe src="${fichier.contenu}" width="100%" height="100%" style="border:none;position:absolute;inset:0;"></iframe>`)
+        win.document.title = fichier.nom
+      }
+    }
+  }
 
   return (
     <div>
@@ -132,19 +170,20 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
               <th className="text-left text-white font-medium px-4 py-2.5 w-[140px]">Categorie</th>
               <th className="text-left text-white font-medium px-4 py-2.5">Titre</th>
               <th className="text-left text-white font-medium px-4 py-2.5">Description</th>
-              <th className="text-center text-white font-medium px-4 py-2.5 w-[80px]">Fichiers</th>
+              <th className="text-center text-white font-medium px-4 py-2.5 w-[100px]">Fichiers</th>
+              <th className="text-center text-white font-medium px-4 py-2.5 w-[50px]">Frise</th>
             </tr>
           </thead>
           <tbody>
             {evenements.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center text-gray-400 py-12">
+                <td colSpan={6} className="text-center text-gray-400 py-12">
                   Aucun evenement enregistre
                 </td>
               </tr>
             )}
             {evenements.map((ev, i) => {
-              const cat = catInfo(ev.categorie)
+              const cat = resolveCatColors(ev, couleursCat)
               const isSelected = selectedId === ev.id
               return (
                 <tr
@@ -187,18 +226,41 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
                         : ev.description
                       : '-'}
                   </td>
-                  <td className="px-4 py-2.5 text-center">
+                  <td className="px-4 py-2.5">
                     {ev.fichiers.length > 0 && (
-                      <span className="inline-flex items-center gap-1 text-gray-500">
-                        {ev.fichiers.some((f) => f.type.startsWith('image/')) && (
-                          <Image className="h-3.5 w-3.5" />
-                        )}
-                        {ev.fichiers.some((f) => f.type === 'application/pdf') && (
-                          <FileText className="h-3.5 w-3.5" />
-                        )}
-                        <span className="text-xs">({ev.fichiers.length})</span>
-                      </span>
+                      <div className="flex items-center gap-1 justify-center flex-wrap">
+                        {ev.fichiers.map((f) => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={(e) => handleFichierClick(e, f)}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs border hover:bg-gray-100 transition-colors"
+                            style={{ borderColor: '#DCDCDC' }}
+                            title={f.nom}
+                          >
+                            {f.type.startsWith('image/') ? (
+                              <Image className="h-3 w-3 text-gray-500" />
+                            ) : (
+                              <FileText className="h-3 w-3 text-red-500" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     )}
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleFrise(e, ev.id)}
+                      className="p-1 rounded hover:bg-gray-200 transition-colors"
+                      title={ev.afficherFrise ? 'Masquer de la frise' : 'Afficher dans la frise'}
+                    >
+                      {ev.afficherFrise ? (
+                        <Eye className="h-4 w-4 text-[#004489]" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
                   </td>
                 </tr>
               )
@@ -235,12 +297,38 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
         </div>
       )}
 
+      {/* Lightbox for images */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 cursor-pointer"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img
+              src={lightboxSrc}
+              alt="Piece jointe"
+              className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl"
+            />
+            <button
+              onClick={() => setLightboxSrc(null)}
+              className="absolute -top-3 -right-3 bg-white rounded-full p-1 shadow-lg hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Dialog */}
       <DialogEvenement
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         projetId={projetId}
         evenement={editData}
+        categories={categories}
+        couleursCat={couleursCat}
       />
     </div>
   )

@@ -47,6 +47,7 @@ model Projet {
   soudures        SoudureAluminothermique[]
   compositions    CompositionTTx[]
   evenements      EvenementChantier[]
+  categories      CategorieEvenement[]
   courriers        CourrierChantier[]
   lignesFicheEcart LigneFicheEcart[]
   lignesARFManuelles LigneARFManuelle[]
@@ -168,19 +169,37 @@ model MaterielTTx {
   createdAt         DateTime @default(now())
 }
 
+model CategorieEvenement {
+  id            String   @id @default(cuid())
+  projetId      String
+  nom           String
+  couleurBg     String   @default("#F0F0F0")
+  couleurBorder String   @default("#B5ABA1")
+  couleurText   String   @default("#5A5A5A")
+  couleurPoint  String   @default("#B5ABA1")
+  estSysteme    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  projet        Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  evenements    EvenementChantier[]
+  @@unique([projetId, nom])
+}
+
 model EvenementChantier {
-  id           String    @id @default(cuid())
-  projetId     String
-  date         DateTime
-  titre        String
-  description  String?
-  categorie    String
-  source       String?
-  courrierId   String?
-  fichiers     FichierEvenement[]
-  createdAt    DateTime  @default(now())
-  projet       Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  courrier     CourrierChantier? @relation(fields: [courrierId], references: [id])
+  id             String    @id @default(cuid())
+  projetId       String
+  date           DateTime
+  titre          String
+  description    String?
+  categorie      String
+  categorieId    String?
+  afficherFrise  Boolean   @default(true)
+  source         String?
+  courrierId     String?
+  fichiers       FichierEvenement[]
+  createdAt      DateTime  @default(now())
+  projet         Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  courrier       CourrierChantier? @relation(fields: [courrierId], references: [id])
+  categorieRef   CategorieEvenement? @relation(fields: [categorieId], references: [id])
 }
 
 model FichierEvenement {

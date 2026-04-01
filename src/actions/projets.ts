@@ -11,6 +11,37 @@ const CreateProjetSchema = z.object({
   description: z.string().max(1000).optional(),
 });
 
+const CATEGORIES_SYSTEME = [
+  { nom: 'Contrat',         couleurBg: '#E8EFDA', couleurBorder: '#7AA536', couleurText: '#5E8019', couleurPoint: '#7AA536' },
+  { nom: 'Groupement',      couleurBg: '#E5F1F9', couleurBorder: '#307BFF', couleurText: '#0041B7', couleurPoint: '#307BFF' },
+  { nom: 'Alerte',          couleurBg: '#F9E9D9', couleurBorder: '#C26A32', couleurText: '#B24E25', couleurPoint: '#C26A32' },
+  { nom: 'EBGC',            couleurBg: '#FCE8FF', couleurBorder: '#A152E5', couleurText: '#7D18D6', couleurPoint: '#A152E5' },
+  { nom: 'SOS Terrain',     couleurBg: '#FFF7D1', couleurBorder: '#F2AB1B', couleurText: '#DD9412', couleurPoint: '#F2AB1B' },
+  { nom: 'Étude diffusion', couleurBg: '#C9E39E', couleurBorder: '#7AA536', couleurText: '#5E8019', couleurPoint: '#A9D461' },
+  { nom: 'VISA Étude',      couleurBg: '#FFE8E8', couleurBorder: '#F25799', couleurText: '#C4007D', couleurPoint: '#F25799' },
+  { nom: 'Suivi/Impact',    couleurBg: '#B2D4FC', couleurBorder: '#80B4FF', couleurText: '#0041B7', couleurPoint: '#307BFF' },
+  { nom: 'Courrier',        couleurBg: '#F0F0F0', couleurBorder: '#B5ABA1', couleurText: '#5A5A5A', couleurPoint: '#B5ABA1' },
+  { nom: 'Autre',           couleurBg: '#F0F0F0', couleurBorder: '#DCDCDC', couleurText: '#5A5A5A', couleurPoint: '#A0A0A0' },
+] as const;
+
+async function creerCategoriesSysteme(projetId: string) {
+  for (const cat of CATEGORIES_SYSTEME) {
+    await prisma.categorieEvenement.upsert({
+      where: { projetId_nom: { projetId, nom: cat.nom } },
+      update: {},
+      create: {
+        projetId,
+        nom: cat.nom,
+        couleurBg: cat.couleurBg,
+        couleurBorder: cat.couleurBorder,
+        couleurText: cat.couleurText,
+        couleurPoint: cat.couleurPoint,
+        estSysteme: true,
+      },
+    });
+  }
+}
+
 const UpdateProjetSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1, "Le nom est requis").max(200),
@@ -134,6 +165,9 @@ export async function createProjet(
       },
     });
 
+    // Créer les catégories système par défaut
+    await creerCategoriesSysteme(projet.id);
+
     revalidatePath("/projets");
     return { success: true, data: { id: projet.id } };
   } catch (error) {
@@ -206,6 +240,9 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
 
       // 3. Événements chantier
       await tx.evenementChantier.deleteMany({ where: { projetId: id } });
+
+      // 3b. Catégories événements
+      await tx.categorieEvenement.deleteMany({ where: { projetId: id } });
 
       // 4. Courriers chantier
       await tx.courrierChantier.deleteMany({ where: { projetId: id } });
@@ -306,6 +343,13 @@ export async function shareProjet(
   } catch (error) {
     console.error("shareProjet error:", error);
     return { success: false, error: "Erreur lors du partage" };
+  }
+}
+
+export async function ensureCategoriesSysteme(projetId: string): Promise<void> {
+  const existing = await prisma.categorieEvenement.count({ where: { projetId } });
+  if (existing === 0) {
+    await creerCategoriesSysteme(projetId);
   }
 }
 

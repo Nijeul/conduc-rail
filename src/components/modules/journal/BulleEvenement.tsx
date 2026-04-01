@@ -1,6 +1,6 @@
 'use client'
 
-import { CAT, type CategorieKey } from './categories'
+import { resolveCatColors, type CouleursCatMap } from './categories'
 import { FileText } from 'lucide-react'
 import type { PlacementBulle } from './FriseChronologique'
 
@@ -9,6 +9,16 @@ interface BulleEvenementProps {
   description?: string | null
   date: Date
   categorie: string
+  categorieId?: string | null
+  categorieRef?: {
+    couleurBg: string
+    couleurBorder: string
+    couleurText: string
+    couleurPoint: string
+    nom: string
+    estSysteme: boolean
+  } | null
+  couleursCat?: CouleursCatMap
   hasFichiers: boolean
   placement: PlacementBulle
   onClick: () => void
@@ -19,11 +29,14 @@ export function BulleEvenement({
   description,
   date,
   categorie,
+  categorieId,
+  categorieRef,
+  couleursCat = {},
   hasFichiers,
   placement,
   onClick,
 }: BulleEvenementProps) {
-  const cat = CAT[categorie as CategorieKey] || CAT.autre
+  const cat = resolveCatColors({ categorieId, categorie, categorieRef }, couleursCat)
 
   const dateStr = new Date(date).toLocaleDateString('fr-FR', {
     day: '2-digit',
