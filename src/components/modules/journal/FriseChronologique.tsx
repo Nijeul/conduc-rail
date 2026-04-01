@@ -6,7 +6,6 @@ import { FiltresFrise } from './FiltresFrise'
 import { DialogEvenement } from './DialogEvenement'
 import { CAT, type CategorieKey } from './categories'
 import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { formatDateFR } from '@/lib/utils'
 
@@ -168,113 +167,161 @@ export function FriseChronologique({
 
   const handleExportFrise = () =>
     exportAvecGuard(async () => {
-      const friseElement = friseRef.current
-      if (!friseElement) return
+      if (!friseRef.current) return
+      const el = friseRef.current
 
-      const PADDING_CAPTURE = 30
+      // Sauvegarder styles originaux
+      const styleOriginal = {
+        overflow: el.style.overflow,
+        paddingTop: el.style.paddingTop,
+        paddingBottom: el.style.paddingBottom,
+        height: el.style.height,
+      }
 
-      // Sauvegarder le style original
-      const styleOriginal = friseElement.style.overflow
+      // Calculer padding haut nécessaire (bulles qui dépassent en haut)
+      const bulles = el.querySelectorAll('[data-bulle]')
+      let topMin = 0
+      bulles.forEach(b => {
+        const relTop = b.getBoundingClientRect().top - el.getBoundingClientRect().top
+        if (relTop < topMin) topMin = relTop
+      })
+      const paddingTop = Math.max(20, Math.ceil(-topMin) + 20)
 
-      // Forcer overflow visible et ajouter padding pour la capture
-      friseElement.style.overflow = 'visible'
-      friseElement.style.paddingTop = `${PADDING_CAPTURE}px`
-      friseElement.style.paddingBottom = `${PADDING_CAPTURE}px`
+      // Appliquer styles de capture
+      el.style.overflow = 'visible'
+      el.style.paddingTop = `${paddingTop}px`
+      el.style.paddingBottom = '20px'
+      el.style.height = 'auto'
 
-      // Supprimer le line-clamp sur les descriptions pour le PDF
-      const bulles = friseElement.querySelectorAll('[data-description]')
-      bulles.forEach((b) => {
-        ;(b as HTMLElement).style.webkitLineClamp = 'unset'
-        ;(b as HTMLElement).style.overflow = 'visible'
+      // Lever les clamps pour texte complet
+      const clampEls = Array.from(el.querySelectorAll('[data-clamp]')) as HTMLElement[]
+      const clampBackup = clampEls.map(c => ({
+        el: c,
+        overflow: c.style.overflow,
+        display: c.style.display,
+        webkitLineClamp: c.style.webkitLineClamp,
+      }))
+      clampEls.forEach(c => {
+        c.style.overflow = 'visible'
+        c.style.display = 'block'
+        c.style.webkitLineClamp = 'unset'
+        const bulle = c.closest('[data-bulle]') as HTMLElement | null
+        if (bulle) bulle.style.height = 'auto'
       })
 
-      const canvas = await html2canvas(friseElement, {
+      // Attendre 2 frames pour recalcul DOM
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+
+      // Capturer
+      const canvas = await html2canvas(el, {
         scale: 2,
+        useCORS: true,
         backgroundColor: '#ffffff',
-        width: friseElement.scrollWidth,
-        height: friseElement.scrollHeight,
-        windowWidth: friseElement.scrollWidth,
-        windowHeight: friseElement.scrollHeight,
+        logging: false,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
       })
 
-      // Restaurer les styles
-      friseElement.style.overflow = styleOriginal
-      friseElement.style.paddingTop = ''
-      friseElement.style.paddingBottom = ''
+      // Restaurer styles et clamps
+      el.style.overflow = styleOriginal.overflow
+      el.style.paddingTop = styleOriginal.paddingTop
+      el.style.paddingBottom = styleOriginal.paddingBottom
+      el.style.height = styleOriginal.height
 
-      bulles.forEach((b) => {
-        ;(b as HTMLElement).style.webkitLineClamp = ''
-        ;(b as HTMLElement).style.overflow = ''
+      clampBackup.forEach(({ el: c, overflow, display, webkitLineClamp }) => {
+        c.style.overflow = overflow
+        c.style.display = display
+        c.style.webkitLineClamp = webkitLineClamp
+        const bulle = c.closest('[data-bulle]') as HTMLElement | null
+        if (bulle) bulle.style.height = ''
       })
 
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      // Générer le PDF
+      const jsPDFModule = await import('jspdf')
+      const jsPDFCtor = jsPDFModule.default
+      const pdf = new jsPDFCtor({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+
       const PAGE_W = 297, PAGE_H = 210, MARGIN = 10, HEADER_H = 18, FOOTER_H = 8
 
-      // En-tete
+      // En-tête VINCI
+      pdf.setFillColor(0, 68, 137)
+      pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
       pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(13)
-      pdf.setTextColor(26, 35, 126)
-      pdf.text('JOURNAL DE CHANTIER — FRISE CHRONOLOGIQUE', PAGE_W / 2, MARGIN + 6, { align: 'center' })
+      pdf.setFontSize(12)
+      pdf.setTextColor(255, 255, 255)
+      pdf.text('JOURNAL DE CHANTIER — FRISE CHRONOLOGIQUE', PAGE_W / 2, MARGIN + 5, { align: 'center' })
       pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(9)
-      pdf.setTextColor(84, 110, 122)
-      pdf.text(nomProjet, PAGE_W / 2, MARGIN + 12, { align: 'center' })
-      pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 6, { align: 'right' })
-      pdf.setDrawColor(207, 216, 220)
-      pdf.setLineWidth(0.3)
-      pdf.line(MARGIN, MARGIN + HEADER_H, PAGE_W - MARGIN, MARGIN + HEADER_H)
+      pdf.setFontSize(8)
+      pdf.text(nomProjet, PAGE_W / 2, MARGIN + 11, { align: 'center' })
+      pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 5, { align: 'right' })
 
       // Zone frise
-      const friseY = MARGIN + HEADER_H + 3
-      const friseH = PAGE_H - MARGIN - HEADER_H - FOOTER_H - 6
+      const friseY = MARGIN + HEADER_H + 2
+      const friseH = PAGE_H - friseY - FOOTER_H - 4
       const friseW = PAGE_W - MARGIN * 2
 
-      const imgData = canvas.toDataURL('image/png')
-      const ratioW = friseW / (canvas.width / 2)
-      const ratioH = friseH / (canvas.height / 2)
-      const ratio = Math.min(ratioW, ratioH, 0.8) // ratio minimum pour lisibilite
-      const imgFinalW = (canvas.width / 2) * ratio
-      const imgFinalH = (canvas.height / 2) * ratio
+      const imgW_mm = (canvas.width / 2) / (96 / 25.4)
+      const imgH_mm = (canvas.height / 2) / (96 / 25.4)
+      const ratioW = friseW / imgW_mm
+      const ratioH = friseH / imgH_mm
+      const ratio = Math.min(ratioW, ratioH, 1)
+      const finalW = imgW_mm * ratio
+      const finalH = imgH_mm * ratio
+      const imgY = friseY + (friseH - finalH) / 2
 
-      // Paginer si l'image depasse une page
-      const totalPages = Math.ceil(imgFinalW / friseW)
+      const RATIO_MIN = 0.55
+      if (ratio < RATIO_MIN) {
+        // Pagination
+        const nbPages = Math.ceil(imgW_mm / (friseW / RATIO_MIN))
+        const trancheW_px = Math.ceil(canvas.width / nbPages)
 
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) pdf.addPage()
+        for (let i = 0; i < nbPages; i++) {
+          if (i > 0) {
+            pdf.addPage()
+            pdf.setFillColor(0, 68, 137)
+            pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(10)
+            pdf.setTextColor(255, 255, 255)
+            pdf.text(nomProjet, PAGE_W / 2, MARGIN + 7, { align: 'center' })
+          }
 
-        // En-tete sur chaque page
-        if (page > 0) {
-          pdf.setFont('helvetica', 'bold')
-          pdf.setFontSize(13)
-          pdf.setTextColor(26, 35, 126)
-          pdf.text('JOURNAL DE CHANTIER — FRISE CHRONOLOGIQUE', PAGE_W / 2, MARGIN + 6, { align: 'center' })
+          const sliceCanvas = document.createElement('canvas')
+          sliceCanvas.width = trancheW_px
+          sliceCanvas.height = canvas.height
+          const ctx = sliceCanvas.getContext('2d')
+          ctx?.drawImage(canvas, -i * trancheW_px, 0)
+
+          const sliceW_mm = (trancheW_px / 2) / (96 / 25.4)
+          const sliceH_mm = (canvas.height / 2) / (96 / 25.4)
+          const sliceRatio = Math.min(friseW / sliceW_mm, friseH / sliceH_mm)
+          const sliceFinalW = sliceW_mm * sliceRatio
+          const sliceFinalH = sliceH_mm * sliceRatio
+          const sliceImgY = friseY + (friseH - sliceFinalH) / 2
+
+          pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', MARGIN, sliceImgY, sliceFinalW, sliceFinalH)
+
+          pdf.setFillColor(0, 51, 112)
+          pdf.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H, 'F')
           pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(9)
-          pdf.setTextColor(84, 110, 122)
-          pdf.text(nomProjet, PAGE_W / 2, MARGIN + 12, { align: 'center' })
-          pdf.text(`Édité le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 6, { align: 'right' })
-          pdf.setDrawColor(207, 216, 220)
-          pdf.setLineWidth(0.3)
-          pdf.line(MARGIN, MARGIN + HEADER_H, PAGE_W - MARGIN, MARGIN + HEADER_H)
+          pdf.setFontSize(7)
+          pdf.setTextColor(181, 171, 161)
+          pdf.text(`Page ${i + 1} / ${nbPages}`, PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
         }
+      } else {
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', MARGIN, imgY, finalW, finalH)
 
-        const imgY = friseY + (friseH - imgFinalH) / 2
-
-        if (totalPages === 1) {
-          pdf.addImage(imgData, 'PNG', MARGIN, imgY, imgFinalW, imgFinalH)
-        } else {
-          // Clip via negative offset
-          const offsetX = MARGIN - page * friseW
-          pdf.addImage(imgData, 'PNG', offsetX, imgY, imgFinalW, imgFinalH)
-        }
-
-        // Pied de page
-        pdf.setDrawColor(207, 216, 220)
-        pdf.line(MARGIN, PAGE_H - FOOTER_H, PAGE_W - MARGIN, PAGE_H - FOOTER_H)
+        pdf.setFillColor(0, 51, 112)
+        pdf.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H, 'F')
+        pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(7)
-        pdf.setTextColor(176, 190, 197)
-        pdf.text(nomProjet, MARGIN, PAGE_H - FOOTER_H + 4)
-        pdf.text(`Page ${page + 1} / ${totalPages}`, PAGE_W - MARGIN, PAGE_H - FOOTER_H + 4, { align: 'right' })
+        pdf.setTextColor(181, 171, 161)
+        pdf.text(nomProjet, MARGIN, PAGE_H - 2)
+        pdf.text('Page 1 / 1', PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
       }
 
       pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`)

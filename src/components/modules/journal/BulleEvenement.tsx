@@ -33,6 +33,7 @@ export function BulleEvenement({
 
   return (
     <div
+      data-bulle="true"
       className="absolute cursor-pointer group"
       style={{
         left: placement.x - placement.largeur / 2,
@@ -55,6 +56,7 @@ export function BulleEvenement({
           {dateStr}
         </div>
         <div
+          data-clamp="true"
           className="mt-0.5 leading-tight font-bold"
           style={{
             fontSize: 11,
@@ -69,6 +71,7 @@ export function BulleEvenement({
         {description && description.trim() !== '' && (
           <div
             data-description="true"
+            data-clamp="true"
             className="leading-tight"
             style={{
               fontSize: 10,
