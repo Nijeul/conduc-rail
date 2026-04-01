@@ -173,25 +173,40 @@ export function FriseChronologique({
       // Sauvegarder styles originaux
       const styleOriginal = {
         overflow: el.style.overflow,
+        position: el.style.position,
         paddingTop: el.style.paddingTop,
         paddingBottom: el.style.paddingBottom,
         height: el.style.height,
       }
 
-      // Calculer padding haut nécessaire (bulles qui dépassent en haut)
-      const bulles = el.querySelectorAll('[data-bulle]')
-      let topMin = 0
-      bulles.forEach(b => {
-        const relTop = b.getBoundingClientRect().top - el.getBoundingClientRect().top
-        if (relTop < topMin) topMin = relTop
+      // Passer en position relative pour que offsetParent fonctionne
+      el.style.position = 'relative'
+      el.style.overflow = 'visible'
+      el.style.height = 'auto'
+
+      await new Promise(r => requestAnimationFrame(r))
+
+      // Calculer via offsetTop
+      const bulles = el.querySelectorAll('[data-bulle]') as NodeListOf<HTMLElement>
+      let topMinRelative = 0
+      bulles.forEach(bulle => {
+        let offsetTopVal = bulle.offsetTop
+        let parent = bulle.offsetParent as HTMLElement | null
+        while (parent && parent !== el) {
+          offsetTopVal += parent.offsetTop
+          parent = parent.offsetParent as HTMLElement | null
+        }
+        if (offsetTopVal < topMinRelative) topMinRelative = offsetTopVal
       })
-      const paddingTop = Math.max(20, Math.ceil(-topMin) + 20)
+
+      const MARGE = 30
+      const paddingTop = topMinRelative < 0
+        ? Math.ceil(Math.abs(topMinRelative)) + MARGE
+        : MARGE
 
       // Appliquer styles de capture
-      el.style.overflow = 'visible'
       el.style.paddingTop = `${paddingTop}px`
       el.style.paddingBottom = '20px'
-      el.style.height = 'auto'
 
       // Lever les clamps pour texte complet
       const clampEls = Array.from(el.querySelectorAll('[data-clamp]')) as HTMLElement[]
@@ -219,15 +234,23 @@ export function FriseChronologique({
         backgroundColor: '#ffffff',
         logging: false,
         scrollX: 0,
-        scrollY: -window.scrollY,
+        scrollY: 0,
         width: el.scrollWidth,
         height: el.scrollHeight,
         windowWidth: el.scrollWidth,
         windowHeight: el.scrollHeight,
+        onclone: (clonedDoc) => {
+          const clonedEl = clonedDoc.querySelector('[data-frise]') as HTMLElement
+          if (clonedEl) {
+            clonedEl.style.overflow = 'visible'
+            clonedEl.style.height = 'auto'
+          }
+        },
       })
 
       // Restaurer styles et clamps
       el.style.overflow = styleOriginal.overflow
+      el.style.position = styleOriginal.position
       el.style.paddingTop = styleOriginal.paddingTop
       el.style.paddingBottom = styleOriginal.paddingBottom
       el.style.height = styleOriginal.height
@@ -458,6 +481,7 @@ export function FriseChronologique({
       >
         <div
           ref={friseRef}
+          data-frise="true"
           className="relative"
           style={{
             width: largeurTotale,

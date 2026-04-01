@@ -75,12 +75,10 @@ export function BulleEvenement({
             className="leading-tight"
             style={{
               fontSize: 10,
-              opacity: 0.85,
-              borderTop: `1px solid ${cat.border}`,
-              paddingTop: 3,
-              marginTop: 2,
+              opacity: 0.80,
+              marginTop: 5,
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 10,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
             }}
@@ -90,8 +88,8 @@ export function BulleEvenement({
         )}
         {hasFichiers && (
           <FileText
-            className="absolute bottom-1.5 right-1.5 opacity-50"
-            style={{ width: 12, height: 12, color: cat.text }}
+            className="absolute bottom-1.5 right-1.5"
+            style={{ width: 12, height: 12, color: cat.text, opacity: 0.65 }}
           />
         )}
       </div>
