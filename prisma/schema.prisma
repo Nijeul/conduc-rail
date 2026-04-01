@@ -49,6 +49,7 @@ model Projet {
   evenements      EvenementChantier[]
   courriers        CourrierChantier[]
   lignesFicheEcart LigneFicheEcart[]
+  lignesARFManuelles LigneARFManuelle[]
 }
 
 model ProjetMember {
@@ -236,6 +237,23 @@ model LigneFicheEcart {
   ordre            Int      @default(0)
   chapitre         String   @default("")
   estChapitre      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model LigneARFManuelle {
+  id               String   @id @default(cuid())
+  projetId         String
+  date             DateTime
+  posteNuit        Boolean  @default(true)
+  heureDebutPrevue String?
+  heureFinPrevue   String?
+  heureDebut       String?
+  heureFin         String?
+  heureRestituee   String?
+  commentaire      String?
+  ordre            Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)

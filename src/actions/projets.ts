@@ -216,7 +216,10 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
       // 6. Compositions TTx
       await tx.compositionTTx.deleteMany({ where: { projetId: id } });
 
-      // 7. Rapports journaliers
+      // 7. Lignes ARF manuelles
+      await tx.ligneARFManuelle.deleteMany({ where: { projetId: id } });
+
+      // 8. Rapports journaliers
       await tx.rapportJournalier.deleteMany({ where: { projetId: id } });
 
       // 8. Lignes DE

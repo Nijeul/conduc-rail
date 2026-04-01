@@ -215,14 +215,22 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete }:
         {rows.map((row, i) => {
           const { dureeReelleMin, pourcentTemps } = computeRow(row)
           const dureeBg = getDureeBg(dureeReelleMin)
+          const isManuelle = row.source === 'manuelle'
+          const rowBg = isManuelle
+            ? { backgroundColor: '#FFFDE7' }
+            : i % 2 !== 0
+              ? styles.rowAlt
+              : {}
 
           return (
             <View
               key={row.id}
-              style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}
+              style={[styles.tableRow, rowBg]}
               wrap={false}
             >
-              <Text style={styles.colJour}>{formatDateFR(row.date)}</Text>
+              <Text style={styles.colJour}>
+                {formatDateFR(row.date)}{isManuelle ? ' \u270F' : ''}
+              </Text>
               <Text style={styles.colPoste}>
                 {row.posteNuit ? 'Nuit' : 'Jour'}
               </Text>
