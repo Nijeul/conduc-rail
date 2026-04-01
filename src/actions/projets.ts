@@ -276,6 +276,7 @@ export async function shareProjet(
 
     const targetUser = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
+      select: { id: true, name: true, email: true },
     });
 
     if (!targetUser) {

@@ -102,6 +102,7 @@ export async function changePassword(data: unknown): Promise<ActionResult> {
 
     const user = await prisma.user.findUnique({
       where: { id: sessionUser.id },
+      select: { id: true, password: true },
     })
 
     if (!user) {
