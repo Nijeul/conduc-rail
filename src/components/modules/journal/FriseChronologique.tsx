@@ -11,8 +11,7 @@ import { formatDateFR } from '@/lib/utils'
 
 const LARGEUR_MOIS = 260
 const MARGE_GAUCHE = 60
-const Y_LIGNE = 225
-const HAUTEUR_CONTENEUR_MIN = 400
+const Y_LIGNE_BASE = 200
 
 const LARGEUR_BULLE = 185
 const HAUTEUR_BULLE = 90
@@ -105,11 +104,24 @@ function calculerPlacements(
   return placements
 }
 
-function calculerHauteurConteneur(placements: PlacementBulle[]): number {
-  if (placements.length === 0) return HAUTEUR_CONTENEUR_MIN
-  const topMin = Math.min(...placements.map((p) => p.y)) - 20
-  const bottomMax = Math.max(...placements.map((p) => p.y + p.hauteur)) + 40
-  return Math.max(HAUTEUR_CONTENEUR_MIN, bottomMax - topMin + 60)
+function calculerHauteurConteneur(
+  placements: PlacementBulle[],
+  yLigne: number
+): { hauteur: number; offsetY: number } {
+  if (placements.length === 0) return { hauteur: 400, offsetY: 0 }
+
+  const topMin = Math.min(...placements.map(p => p.y))
+  const bottomMax = Math.max(...placements.map(p => p.y + p.hauteur))
+
+  const MARGE_HAUT = 30
+  const MARGE_BAS = 50
+
+  const offsetY = topMin < MARGE_HAUT
+    ? Math.ceil(Math.abs(topMin)) + MARGE_HAUT
+    : 0
+
+  const hauteur = offsetY + bottomMax + MARGE_BAS
+  return { hauteur: Math.max(hauteur, 350), offsetY }
 }
 
 interface FichierRow {
@@ -382,7 +394,7 @@ export function FriseChronologique({
     [evenements, filtresActifs]
   )
 
-  const { dateMin, dateMax, largeurTotale, moisLabels, placements, hauteurConteneur } =
+  const { dateMin, dateMax, largeurTotale, moisLabels, placements, hauteurConteneur, yLigne } =
     useMemo(() => {
       if (evenementsFiltres.length === 0) {
         const now = new Date()
@@ -392,7 +404,8 @@ export function FriseChronologique({
           largeurTotale: LARGEUR_MOIS * 3,
           moisLabels: [] as { date: Date; x: number }[],
           placements: [] as PlacementBulle[],
-          hauteurConteneur: HAUTEUR_CONTENEUR_MIN,
+          hauteurConteneur: 400,
+          yLigne: Y_LIGNE_BASE,
         }
       }
 
@@ -415,8 +428,10 @@ export function FriseChronologique({
         positionsX[ev.id] = dateVersX(new Date(ev.date), dMin, dMax, totalWidth)
       }
 
-      const placements = calculerPlacements(evenementsFiltres, positionsX, Y_LIGNE)
-      const hauteurConteneur = calculerHauteurConteneur(placements)
+      const placementsInitiaux = calculerPlacements(evenementsFiltres, positionsX, Y_LIGNE_BASE)
+      const { hauteur, offsetY } = calculerHauteurConteneur(placementsInitiaux, Y_LIGNE_BASE)
+      const placementsDecales = placementsInitiaux.map(p => ({ ...p, y: p.y + offsetY }))
+      const yLigne = Y_LIGNE_BASE + offsetY
 
       const moisLabels = mois.map((d) => ({
         date: d,
@@ -428,8 +443,9 @@ export function FriseChronologique({
         dateMax: dMax,
         largeurTotale: totalWidth,
         moisLabels,
-        placements,
-        hauteurConteneur,
+        placements: placementsDecales,
+        hauteurConteneur: hauteur,
+        yLigne,
       }
     }, [evenementsFiltres])
 
@@ -475,147 +491,163 @@ export function FriseChronologique({
         </button>
       </div>
 
+      {/* Wrapper externe — controle hauteur + overflow hidden */}
       <div
-        className="overflow-x-auto border rounded-lg bg-white"
-        style={{ height: hauteurConteneur }}
+        className="border rounded-lg bg-white"
+        style={{
+          width: '100%',
+          height: hauteurConteneur,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
       >
+        {/* Wrapper interne — scroll horizontal */}
         <div
           ref={friseRef}
           data-frise="true"
-          className="relative"
           style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            overflowX: 'auto',
+            overflowY: 'visible',
+          }}
+        >
+          {/* Contenu interne avec largeur totale */}
+          <div style={{
+            position: 'relative',
             width: largeurTotale,
             height: hauteurConteneur,
             minWidth: '100%',
-          }}
-        >
-          {/* Ligne horizontale centrale */}
-          <div
-            className="absolute"
-            style={{
-              top: Y_LIGNE,
-              left: MARGE_GAUCHE,
-              right: MARGE_GAUCHE,
-              height: 3,
-              backgroundColor: '#004489',
-              borderRadius: 2,
-            }}
-          />
-
-          {/* Labels des mois */}
-          {moisLabels.map((m, i) => {
-            const label = m.date.toLocaleDateString('fr-FR', {
-              month: 'short',
-              year: '2-digit',
-            })
-            return (
-              <div
-                key={i}
-                className="absolute text-xs text-gray-500 font-medium"
-                style={{
-                  left: m.x,
-                  top: Y_LIGNE + 12,
-                  transform: 'translateX(-50%)',
-                }}
-              >
-                {label}
-              </div>
-            )
-          })}
-
-          {/* Traits verticaux mois */}
-          {moisLabels.map((m, i) => (
+          }}>
+            {/* Ligne horizontale centrale */}
             <div
-              key={`tick-${i}`}
               className="absolute"
               style={{
-                left: m.x,
-                top: Y_LIGNE - 4,
-                width: 1,
-                height: 8,
+                top: yLigne,
+                left: MARGE_GAUCHE,
+                right: MARGE_GAUCHE,
+                height: 3,
                 backgroundColor: '#004489',
-                opacity: 0.4,
+                borderRadius: 2,
               }}
             />
-          ))}
 
-          {/* Points sur la ligne */}
-          {evenementsFiltres.map((ev) => {
-            const placement = placementMap.get(ev.id)
-            if (!placement) return null
-            const cat = CAT[ev.categorie as CategorieKey] || CAT.autre
-            return (
+            {/* Labels des mois */}
+            {moisLabels.map((m, i) => {
+              const label = m.date.toLocaleDateString('fr-FR', {
+                month: 'short',
+                year: '2-digit',
+              })
+              return (
+                <div
+                  key={i}
+                  className="absolute text-xs text-gray-500 font-medium"
+                  style={{
+                    left: m.x,
+                    top: yLigne + 16,
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  {label}
+                </div>
+              )
+            })}
+
+            {/* Traits verticaux mois */}
+            {moisLabels.map((m, i) => (
               <div
-                key={`point-${ev.id}`}
-                className="absolute rounded-full z-10"
+                key={`tick-${i}`}
+                className="absolute"
                 style={{
-                  left: placement.x - 5,
-                  top: Y_LIGNE - 4,
-                  width: 10,
-                  height: 10,
-                  backgroundColor: cat.point,
-                  border: '2px solid white',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  left: m.x,
+                  top: yLigne - 4,
+                  width: 1,
+                  height: 8,
+                  backgroundColor: '#004489',
+                  opacity: 0.4,
                 }}
               />
-            )
-          })}
+            ))}
 
-          {/* SVG overlay pour les lignes de connexion bulle -> ligne */}
-          <svg
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-            }}
-          >
-            {placements.map((p) => {
-              const yBulle = p.cote === 'haut' ? p.y + p.hauteur : p.y
+            {/* Points sur la ligne */}
+            {evenementsFiltres.map((ev) => {
+              const placement = placementMap.get(ev.id)
+              if (!placement) return null
+              const cat = CAT[ev.categorie as CategorieKey] || CAT.autre
               return (
-                <line
-                  key={`line-${p.id}`}
-                  x1={p.x}
-                  y1={yBulle}
-                  x2={p.x}
-                  y2={Y_LIGNE}
-                  stroke={getCatColor(p.id)}
-                  strokeWidth={1.5}
-                  strokeDasharray={
-                    Math.abs(yBulle - Y_LIGNE) > 30 ? '4 3' : 'none'
-                  }
-                  opacity={0.7}
+                <div
+                  key={`point-${ev.id}`}
+                  className="absolute rounded-full z-10"
+                  style={{
+                    left: placement.x - 5,
+                    top: yLigne - 5,
+                    width: 10,
+                    height: 10,
+                    backgroundColor: cat.point,
+                    border: '2px solid white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  }}
                 />
               )
             })}
-          </svg>
 
-          {/* Bulles */}
-          {evenementsFiltres.map((ev) => {
-            const placement = placementMap.get(ev.id)
-            if (!placement) return null
-            return (
-              <BulleEvenement
-                key={ev.id}
-                titre={ev.titre}
-                description={ev.description}
-                date={ev.date}
-                categorie={ev.categorie}
-                hasFichiers={ev.fichiers.length > 0}
-                placement={placement}
-                onClick={() => handleBulleClick(ev)}
-              />
-            )
-          })}
+            {/* SVG overlay pour les lignes de connexion bulle -> ligne */}
+            <svg
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                overflow: 'visible',
+              }}
+            >
+              {placements.map((p) => {
+                const yBulle = p.cote === 'haut' ? p.y + p.hauteur : p.y
+                return (
+                  <line
+                    key={`line-${p.id}`}
+                    x1={p.x}
+                    y1={yBulle}
+                    x2={p.x}
+                    y2={yLigne}
+                    stroke={getCatColor(p.id)}
+                    strokeWidth={1.5}
+                    strokeDasharray={
+                      Math.abs(yBulle - yLigne) > 30 ? '4 3' : 'none'
+                    }
+                    opacity={0.7}
+                  />
+                )
+              })}
+            </svg>
 
-          {/* Empty state */}
-          {evenementsFiltres.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-              Aucun evenement a afficher avec les filtres actuels
-            </div>
-          )}
+            {/* Bulles */}
+            {evenementsFiltres.map((ev) => {
+              const placement = placementMap.get(ev.id)
+              if (!placement) return null
+              return (
+                <BulleEvenement
+                  key={ev.id}
+                  titre={ev.titre}
+                  description={ev.description}
+                  date={ev.date}
+                  categorie={ev.categorie}
+                  hasFichiers={ev.fichiers.length > 0}
+                  placement={placement}
+                  onClick={() => handleBulleClick(ev)}
+                />
+              )
+            })}
+
+            {/* Empty state */}
+            {evenementsFiltres.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                Aucun evenement a afficher avec les filtres actuels
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
