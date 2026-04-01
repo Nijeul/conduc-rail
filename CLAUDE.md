@@ -69,8 +69,10 @@ Gris chaud        #B5ABA1  fond clair #F0F0F0   → autre, neutre
 ### Typographie
 
 ```
-Police principale : Arial, "Helvetica Neue", Helvetica, sans-serif
-(Substitution officielle VINCI quand VINCI Sans indisponible — page 17 de la charte)
+Police principale : VINCI Sans (fichiers dans public/fonts/)
+Fallback          : Arial, Helvetica, sans-serif
+Condensed         : VINCI Sans Condensed (tableaux denses)
+Serif             : VINCI Serif (usage éditorial uniquement)
 Taille body       : 14px
 Taille tables     : 12-13px
 ```

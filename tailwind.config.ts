@@ -44,7 +44,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Arial", "Helvetica Neue", "Helvetica", "sans-serif"],
+        sans: ['VINCI Sans', 'Arial', 'Helvetica Neue', 'Helvetica', 'sans-serif'],
+        condensed: ['VINCI Sans Condensed', 'Arial Narrow', 'Arial', 'sans-serif'],
+        serif: ['VINCI Serif', 'Georgia', 'serif'],
       },
       fontSize: {
         table: ["13px", { lineHeight: "1.4" }],

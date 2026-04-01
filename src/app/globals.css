@@ -1,3 +1,134 @@
+/* ========================================
+   VINCI Sans — 8 variantes
+   ======================================== */
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans';
+  src: url('/fonts/VinciSans-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ========================================
+   VINCI Sans Condensed — 6 variantes
+   ======================================== */
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Sans Condensed';
+  src: url('/fonts/VinciSansCondensed-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ========================================
+   VINCI Serif — 3 variantes
+   ======================================== */
+@font-face {
+  font-family: 'VINCI Serif';
+  src: url('/fonts/VinciSerif.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Serif';
+  src: url('/fonts/VinciSerif-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'VINCI Serif';
+  src: url('/fonts/VinciSerif-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,7 +169,8 @@
   --secondary-foreground: 211 100% 27%;
   --radius: 0.5rem;
 
-  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-family: 'VINCI Sans', Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  font-family: var(--font-family);
 }
 
 @layer base {
