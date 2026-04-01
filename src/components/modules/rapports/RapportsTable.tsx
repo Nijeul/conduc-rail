@@ -63,10 +63,10 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 p-3 bg-[#37474F] rounded-t-lg">
+      <div className="flex items-center gap-2 p-3 bg-[#F0F0F0] border border-[#DCDCDC] rounded-t-lg">
         <Button
           onClick={handleNew}
-          className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+          className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           size="sm"
         >
           <Plus className="h-4 w-4 mr-1" />
@@ -75,7 +75,7 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
         <Button
           onClick={handleEdit}
           disabled={!selectedId}
-          className="bg-[#37474F] hover:bg-[#455A64] text-[#ECEFF1] border border-[#546E7A]"
+          className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
           size="sm"
         >
           <Pencil className="h-4 w-4 mr-1" />
@@ -84,7 +84,7 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
         <Button
           onClick={handleDelete}
           disabled={!selectedId}
-          className="bg-[#B71C1C] hover:bg-[#B71C1C]/90 text-white"
+          className="bg-[#E20025] hover:bg-[#E20025]/90 text-white"
           size="sm"
         >
           <Trash2 className="h-4 w-4 mr-1" />
@@ -109,7 +109,7 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
                 Annuler
               </Button>
               <Button
-                className="bg-[#B71C1C] hover:bg-[#B71C1C]/90 text-white"
+                className="bg-[#E20025] hover:bg-[#E20025]/90 text-white"
                 size="sm"
                 onClick={confirmDelete}
                 disabled={isPending}
@@ -122,14 +122,14 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
       )}
 
       {/* Table */}
-      <div className="border border-[#ECEFF1] rounded-b-lg overflow-hidden">
+      <div className="border border-[#DCDCDC] rounded-b-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#263238] text-white font-bold">
-              <th className="text-left px-4 py-3 border-r border-[#ECEFF1]/20">Date</th>
-              <th className="text-left px-4 py-3 border-r border-[#ECEFF1]/20">Titre</th>
-              <th className="text-left px-4 py-3 border-r border-[#ECEFF1]/20">Redacteur</th>
-              <th className="text-center px-4 py-3 border-r border-[#ECEFF1]/20">Poste</th>
+            <tr className="bg-[#004489] text-white font-bold">
+              <th className="text-left px-4 py-3 border-r border-[#DCDCDC]/20">Date</th>
+              <th className="text-left px-4 py-3 border-r border-[#DCDCDC]/20">Titre</th>
+              <th className="text-left px-4 py-3 border-r border-[#DCDCDC]/20">Redacteur</th>
+              <th className="text-center px-4 py-3 border-r border-[#DCDCDC]/20">Poste</th>
               <th className="text-center px-4 py-3">Valide</th>
             </tr>
           </thead>
@@ -148,24 +148,24 @@ export function RapportsTable({ rapports, projetId }: RapportsTableProps) {
                     key={r.id}
                     onClick={() => handleRowClick(r.id)}
                     onDoubleClick={() => handleRowDoubleClick(r.id)}
-                    className={`cursor-pointer border-t border-[#ECEFF1] transition-colors ${
+                    className={`cursor-pointer border-t border-[#DCDCDC] transition-colors ${
                       isSelected
-                        ? 'bg-[#BBDEFB] text-[#0D47A1]'
+                        ? 'bg-[#E5EFF8] text-[#003370]'
                         : i % 2 === 0
                         ? 'bg-white hover:bg-gray-50'
-                        : 'bg-[#F5F7FA] hover:bg-gray-100'
+                        : 'bg-[#F0F0F0] hover:bg-gray-100'
                     }`}
                   >
-                    <td className="px-4 py-2.5 border-r border-[#ECEFF1]">
+                    <td className="px-4 py-2.5 border-r border-[#DCDCDC]">
                       {formatDateFR(new Date(r.date))}
                     </td>
-                    <td className="px-4 py-2.5 border-r border-[#ECEFF1]">
+                    <td className="px-4 py-2.5 border-r border-[#DCDCDC]">
                       {r.titre || '-'}
                     </td>
-                    <td className="px-4 py-2.5 border-r border-[#ECEFF1]">
+                    <td className="px-4 py-2.5 border-r border-[#DCDCDC]">
                       {r.redacteur?.name || '-'}
                     </td>
-                    <td className="px-4 py-2.5 border-r border-[#ECEFF1] text-center text-lg">
+                    <td className="px-4 py-2.5 border-r border-[#DCDCDC] text-center text-lg">
                       {r.posteNuit ? '\uD83C\uDF19' : '\u2600\uFE0F'}
                     </td>
                     <td className="px-4 py-2.5 text-center">

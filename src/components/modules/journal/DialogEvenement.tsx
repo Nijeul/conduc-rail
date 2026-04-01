@@ -342,7 +342,7 @@ export function DialogEvenement({
           <Button
             onClick={handleSubmit}
             disabled={isPending}
-            style={{ backgroundColor: '#1565C0' }}
+            style={{ backgroundColor: '#004489' }}
             className="text-white hover:opacity-90"
           >
             {isPending ? 'En cours...' : isEdit ? 'Modifier' : 'Ajouter'}

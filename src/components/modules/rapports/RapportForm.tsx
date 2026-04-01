@@ -211,7 +211,7 @@ export function RapportForm({
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#263238]">
+        <h1 className="text-xl font-bold text-[#004489]">
           {isNew ? 'Nouveau rapport journalier' : 'Modifier le rapport'}
         </h1>
         <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ export function RapportForm({
           <Button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             <Save className="h-4 w-4 mr-1" />
             {isPending ? 'Enregistrement...' : 'Enregistrer'}
@@ -237,8 +237,8 @@ export function RapportForm({
       )}
 
       {/* SECTION: Contexte Administratif */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
           Contexte Administratif
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -280,8 +280,8 @@ export function RapportForm({
       </div>
 
       {/* SECTION: Observations */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
           Observations
         </h2>
 
@@ -294,7 +294,7 @@ export function RapportForm({
               onClick={() => setPosteNuit(true)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 posteNuit
-                  ? 'bg-[#1565C0] text-white'
+                  ? 'bg-[#004489] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -305,7 +305,7 @@ export function RapportForm({
               onClick={() => setPosteNuit(false)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 !posteNuit
-                  ? 'bg-[#1565C0] text-white'
+                  ? 'bg-[#F2AB1B] text-black'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -389,7 +389,7 @@ export function RapportForm({
                   <button
                     key={u.id}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#BBDEFB] hover:text-[#0D47A1]"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#E5EFF8] hover:text-[#003370]"
                     onClick={() => {
                       setRedacteurId(u.id)
                       setRedacteurSearch(u.name)
@@ -427,18 +427,18 @@ export function RapportForm({
 
       {/* SECTION: Travaux Realises */}
       {lignesDE.length > 0 && (
-        <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-          <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+        <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+          <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
             Travaux Realises
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#263238] text-white font-bold">
-                  <th className="text-left px-3 py-2 border-r border-[#ECEFF1]/20">N° prix</th>
-                  <th className="text-left px-3 py-2 border-r border-[#ECEFF1]/20">Intitule</th>
-                  <th className="text-center px-3 py-2 border-r border-[#ECEFF1]/20">Unite</th>
-                  <th className="text-right px-3 py-2 border-r border-[#ECEFF1]/20">Qte marche</th>
+                <tr className="bg-[#004489] text-white font-bold">
+                  <th className="text-left px-3 py-2 border-r border-[#DCDCDC]/20">N° prix</th>
+                  <th className="text-left px-3 py-2 border-r border-[#DCDCDC]/20">Intitule</th>
+                  <th className="text-center px-3 py-2 border-r border-[#DCDCDC]/20">Unite</th>
+                  <th className="text-right px-3 py-2 border-r border-[#DCDCDC]/20">Qte marche</th>
                   <th className="text-center px-3 py-2">Qte realisee ce jour</th>
                 </tr>
               </thead>
@@ -446,20 +446,20 @@ export function RapportForm({
                 {lignesDE.map((l, i) => (
                   <tr
                     key={l.id}
-                    className={`border-t border-[#ECEFF1] ${
-                      i % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'
+                    className={`border-t border-[#DCDCDC] ${
+                      i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
                     }`}
                   >
-                    <td className="px-3 py-2 border-r border-[#ECEFF1] font-mono">
+                    <td className="px-3 py-2 border-r border-[#DCDCDC] font-mono">
                       {l.code}
                     </td>
-                    <td className="px-3 py-2 border-r border-[#ECEFF1]">
+                    <td className="px-3 py-2 border-r border-[#DCDCDC]">
                       {l.designation}
                     </td>
-                    <td className="px-3 py-2 border-r border-[#ECEFF1] text-center">
+                    <td className="px-3 py-2 border-r border-[#DCDCDC] text-center">
                       {l.unite}
                     </td>
-                    <td className="px-3 py-2 border-r border-[#ECEFF1] text-right">
+                    <td className="px-3 py-2 border-r border-[#DCDCDC] text-right">
                       {l.quantite}
                     </td>
                     <td className="px-3 py-1.5 text-center">

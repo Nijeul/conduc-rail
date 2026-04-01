@@ -7,10 +7,10 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 
-const BLEU = '#1A237E'
-const GRIS_FONCE = '#263238'
-const GRIS_MOYEN = '#546E7A'
-const GRIS_CLAIR = '#E0E0E0'
+const BLEU = '#004489'
+const GRIS_FONCE = '#004489'
+const GRIS_MOYEN = '#5A5A5A'
+const GRIS_CLAIR = '#DCDCDC'
 
 const styles = StyleSheet.create({
   page: {

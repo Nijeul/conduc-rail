@@ -79,7 +79,7 @@ export function TableauServiceModule({ projetId, projetNom, initialTableaux, per
       {activeId && activeTableau ? (
         <>
           {/* Tableau metadata bar */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-slate-50 border-b border-[#ECEFF1] text-[12px] text-slate-500">
+          <div className="flex items-center gap-4 px-4 py-2 bg-slate-50 border-b border-[#DCDCDC] text-[12px] text-slate-500">
             <span>
               <strong>Semaine {activeTableau.semaine}</strong> / {activeTableau.annee}
             </span>
@@ -112,7 +112,7 @@ export function TableauServiceModule({ projetId, projetNom, initialTableaux, per
             </p>
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1565C0] text-white text-sm font-medium rounded-md hover:bg-[#1565C0]/90 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004489] text-white text-sm font-medium rounded-md hover:bg-[#004489]/90 transition-colors"
             >
               Creer un tableau
             </button>

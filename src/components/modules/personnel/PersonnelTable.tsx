@@ -90,7 +90,7 @@ export function PersonnelTable({ initialData }: PersonnelTableProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 px-6 py-3 border-b" style={{ borderColor: '#ECEFF1' }}>
+      <div className="flex items-center justify-between gap-4 px-6 py-3 border-b" style={{ borderColor: '#DCDCDC' }}>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -104,7 +104,7 @@ export function PersonnelTable({ initialData }: PersonnelTableProps) {
         <button
           onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90"
-          style={{ backgroundColor: '#1565C0' }}
+          style={{ backgroundColor: '#004489' }}
         >
           <Plus className="h-4 w-4" />
           Ajouter
@@ -115,7 +115,7 @@ export function PersonnelTable({ initialData }: PersonnelTableProps) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-left" style={{ fontSize: '13px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#263238' }}>
+            <tr style={{ backgroundColor: '#004489' }}>
               <th className="px-4 py-3 text-white font-semibold">Prenom</th>
               <th className="px-4 py-3 text-white font-semibold">Nom</th>
               <th className="px-4 py-3 text-white font-semibold">Poste</th>
@@ -136,10 +136,10 @@ export function PersonnelTable({ initialData }: PersonnelTableProps) {
                 <tr
                   key={p.id}
                   onDoubleClick={() => openEdit(p)}
-                  className="cursor-pointer hover:!bg-[#BBDEFB] hover:!text-[#0D47A1] transition-colors"
+                  className="cursor-pointer hover:!bg-[#E5EFF8] hover:!text-[#003370] transition-colors"
                   style={{
-                    backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F5F7FA',
-                    borderBottom: '1px solid #ECEFF1',
+                    backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F0F0F0',
+                    borderBottom: '1px solid #DCDCDC',
                   }}
                 >
                   <td className="px-4 py-2.5">{p.prenom}</td>
@@ -172,7 +172,7 @@ export function PersonnelTable({ initialData }: PersonnelTableProps) {
       </div>
 
       {/* Footer count */}
-      <div className="px-6 py-2 border-t text-xs text-slate-500" style={{ borderColor: '#ECEFF1' }}>
+      <div className="px-6 py-2 border-t text-xs text-slate-500" style={{ borderColor: '#DCDCDC' }}>
         {filtered.length} personnel{filtered.length > 1 ? 's' : ''}{' '}
         {search && data.length !== filtered.length && `(sur ${data.length} total)`}
       </div>

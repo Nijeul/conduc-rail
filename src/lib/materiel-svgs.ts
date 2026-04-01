@@ -94,11 +94,11 @@ export const MATERIEL_SVGS: Record<string, string> = {
     <circle cx="20" cy="53" r="5" fill="#263238"/>
     <circle cx="100" cy="53" r="5" fill="#263238"/>
     <rect x="8" y="38" width="104" height="17" rx="2" fill="#9E9D24"/>
-    <polygon points="16,38 44,38 44,50 16,50" fill="#F9A825" opacity="0.9"/>
+    <polygon points="16,38 44,38 44,50 16,50" fill="#E20025" opacity="0.9"/>
     <line x1="24" y1="38" x2="24" y2="50" stroke="#E65100" stroke-width="1.5"/>
     <line x1="32" y1="38" x2="32" y2="50" stroke="#E65100" stroke-width="1.5"/>
     <line x1="40" y1="38" x2="40" y2="50" stroke="#E65100" stroke-width="1.5"/>
-    <polygon points="76,38 104,38 104,50 76,50" fill="#F9A825" opacity="0.9"/>
+    <polygon points="76,38 104,38 104,50 76,50" fill="#E20025" opacity="0.9"/>
     <line x1="84" y1="38" x2="84" y2="50" stroke="#E65100" stroke-width="1.5"/>
     <line x1="92" y1="38" x2="92" y2="50" stroke="#E65100" stroke-width="1.5"/>
     <line x1="100" y1="38" x2="100" y2="50" stroke="#E65100" stroke-width="1.5"/>

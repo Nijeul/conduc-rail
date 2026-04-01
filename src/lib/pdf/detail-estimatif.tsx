@@ -20,32 +20,32 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 10,
-    color: '#666666',
+    color: '#5A5A5A',
     marginBottom: 4,
   },
   mainTitle: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#263238',
+    color: '#004489',
     marginBottom: 4,
   },
   projectName: {
     fontSize: 12,
-    color: '#37474F',
+    color: '#5A5A5A',
     marginBottom: 2,
   },
   date: {
     fontSize: 9,
-    color: '#666666',
+    color: '#5A5A5A',
   },
   table: {
     width: '100%',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   tableHeaderCell: {
     color: '#FFFFFF',
@@ -56,18 +56,18 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   tableRowEven: {
     backgroundColor: '#FFFFFF',
   },
   tableRowOdd: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
   },
   tableCell: {
     fontSize: 8,
     padding: 5,
-    color: '#263238',
+    color: '#004489',
   },
   colCode: { width: '12%' },
   colDesignation: { width: '35%' },
@@ -78,14 +78,16 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: 'row',
     borderTopWidth: 2,
-    borderTopColor: '#263238',
+    borderTopColor: '#003370',
+    backgroundColor: '#003370',
     marginTop: 4,
     paddingTop: 8,
+    paddingBottom: 8,
   },
   totalLabel: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    color: '#263238',
+    color: '#FFFFFF',
     flex: 1,
     textAlign: 'right',
     paddingRight: 10,
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    color: '#263238',
+    color: '#FFFFFF',
     width: '17%',
     textAlign: 'right',
   },
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
     right: 40,
     textAlign: 'center',
     fontSize: 8,
-    color: '#999999',
+    color: '#B5ABA1',
   },
 })
 

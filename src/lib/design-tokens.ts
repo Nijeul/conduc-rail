@@ -1,0 +1,16 @@
+export const VINCI = {
+  bleu: '#004489', bleuDark: '#003370', bleuLight: '#0056B3', bleuXLight: '#E5EFF8',
+  rouge: '#E20025', rougeDark: '#B8001E', rougeXLight: '#FDEAED',
+  gris: '#B5ABA1', grisLight: '#F0F0F0', noir: '#000000', blanc: '#FFFFFF',
+  fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+  tableHeaderBg: '#004489', tableHeaderText: '#FFFFFF', tableRowAlt: '#F0F0F0',
+  tableSelected: '#E5EFF8', tableBorder: '#DCDCDC',
+  navBg: '#004489', navHover: '#003370', navActiveIndicator: '#E20025',
+  navText: '#FFFFFF', navTextMuted: 'rgba(255,255,255,0.70)',
+} as const
+
+export const VINCI_PDF = {
+  headerBg: '#004489', headerText: '#FFFFFF', rowAlt: '#F0F0F0',
+  footerBg: '#003370', footerText: '#FFFFFF', border: '#DCDCDC',
+  textMain: '#000000', textMuted: '#B5ABA1',
+} as const

@@ -11,7 +11,7 @@ export default async function SituationPage({ params }: Props) {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-[#263238]">
+        <h2 className="text-xl font-bold text-[#004489]">
           Situation de Travaux
         </h2>
         <p className="text-sm text-gray-500">

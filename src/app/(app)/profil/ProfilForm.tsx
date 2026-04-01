@@ -155,8 +155,8 @@ export function ProfilForm({ profil }: ProfilFormProps) {
   return (
     <div className="space-y-6">
       {/* Profil section */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
           Informations personnelles
         </h2>
 
@@ -229,7 +229,7 @@ export function ProfilForm({ profil }: ProfilFormProps) {
                 <img
                   src={logoPreview}
                   alt="Logo societe"
-                  className="h-16 w-auto max-w-[120px] object-contain border border-[#ECEFF1] rounded p-1"
+                  className="h-16 w-auto max-w-[120px] object-contain border border-[#DCDCDC] rounded p-1"
                 />
                 <button
                   type="button"
@@ -241,7 +241,7 @@ export function ProfilForm({ profil }: ProfilFormProps) {
                 </button>
               </div>
             ) : (
-              <div className="h-16 w-24 border-2 border-dashed border-[#ECEFF1] rounded flex items-center justify-center text-xs text-gray-400">
+              <div className="h-16 w-24 border-2 border-dashed border-[#DCDCDC] rounded flex items-center justify-center text-xs text-gray-400">
                 Aucun logo
               </div>
             )}
@@ -272,7 +272,7 @@ export function ProfilForm({ profil }: ProfilFormProps) {
           <Button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             <Save className="h-4 w-4 mr-1" />
             {isPending ? 'Enregistrement...' : 'Enregistrer'}
@@ -281,8 +281,8 @@ export function ProfilForm({ profil }: ProfilFormProps) {
       </div>
 
       {/* Coordonnees societe */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
           Coordonnees societe
         </h2>
         <p className="text-xs text-gray-500 mb-4">
@@ -348,7 +348,7 @@ export function ProfilForm({ profil }: ProfilFormProps) {
           <Button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             <Save className="h-4 w-4 mr-1" />
             {isPending ? 'Enregistrement...' : 'Enregistrer'}
@@ -357,8 +357,8 @@ export function ProfilForm({ profil }: ProfilFormProps) {
       </div>
 
       {/* Password section */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-base font-bold text-[#263238] mb-4 pb-2 border-b border-[#ECEFF1]">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
           Changer le mot de passe
         </h2>
 
@@ -414,7 +414,7 @@ export function ProfilForm({ profil }: ProfilFormProps) {
             <Button
               onClick={handleChangePassword}
               disabled={isPending || !ancienMdp || !nouveauMdp || !confirmMdp}
-              className="bg-[#37474F] hover:bg-[#455A64] text-white"
+              className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
             >
               {isPending ? 'Modification...' : 'Changer le mot de passe'}
             </Button>

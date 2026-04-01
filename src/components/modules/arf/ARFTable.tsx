@@ -82,16 +82,16 @@ function computeRow(row: ARFRow) {
 
 function getDureeBg(minutes: number | null): string {
   if (minutes === null) return ''
-  if (minutes > 12 * 60) return 'bg-[#FFEBEE]'
-  if (minutes > 10 * 60) return 'bg-[#FFF8E1]'
+  if (minutes > 12 * 60) return 'bg-[#FDEAED]'
+  if (minutes > 10 * 60) return 'bg-[#FFF7D1]'
   return ''
 }
 
 function getPourcentColor(pct: number | null): string {
   if (pct === null) return ''
-  if (pct >= 95) return 'text-[#2E7D32]'
-  if (pct >= 90) return 'text-[#F57F17]'
-  return 'text-[#B71C1C]'
+  if (pct >= 95) return 'text-[#7AA536]'
+  if (pct >= 90) return 'text-[#F2AB1B]'
+  return 'text-[#E20025]'
 }
 
 export function ARFTable({ projetId, projetName, initialData }: Props) {
@@ -186,7 +186,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             })
           }}
           disabled={isExporting}
-          className="bg-[#37474F] hover:bg-[#455A64] text-[#ECEFF1]"
+          className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
         >
           <FileText className="h-4 w-4 mr-1" />
           {isExporting ? 'Generation...' : 'Export PDF'}
@@ -194,10 +194,10 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-[#ECEFF1]">
+      <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="bg-[#263238] text-white font-bold">
+            <tr className="bg-[#004489] text-white font-bold">
               <th className="px-3 py-2 text-left">Jour</th>
               <th className="px-3 py-2 text-center">Poste</th>
               <th className="px-3 py-2 text-center">Debut prevu</th>
@@ -218,8 +218,8 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
               return (
                 <tr
                   key={row.id}
-                  className={`border-b border-[#ECEFF1] ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'
+                  className={`border-b border-[#DCDCDC] ${
+                    i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
                   }`}
                 >
                   <td className="px-3 py-2">
@@ -234,7 +234,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                     {isEditing('heureDebutPrevue') ? (
                       <input
                         type="text"
-                        className="w-20 px-1 py-0.5 text-center text-[13px] border border-[#1565C0] rounded bg-white focus:outline-none"
+                        className="w-20 px-1 py-0.5 text-center text-[13px] border border-[#004489] rounded bg-white focus:outline-none"
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
                         onBlur={handleSaveEdit}
@@ -243,7 +243,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                       />
                     ) : (
                       <span
-                        className="inline-block w-20 px-1 py-0.5 rounded cursor-pointer bg-[#FFFDE7] hover:bg-[#FFF9C4]"
+                        className="inline-block w-20 px-1 py-0.5 rounded cursor-pointer bg-[#FFF7D1] hover:bg-[#FFF1B0]"
                         onClick={() =>
                           handleStartEdit(
                             row.id,
@@ -262,7 +262,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                     {isEditing('heureFinPrevue') ? (
                       <input
                         type="text"
-                        className="w-20 px-1 py-0.5 text-center text-[13px] border border-[#1565C0] rounded bg-white focus:outline-none"
+                        className="w-20 px-1 py-0.5 text-center text-[13px] border border-[#004489] rounded bg-white focus:outline-none"
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
                         onBlur={handleSaveEdit}
@@ -271,7 +271,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                       />
                     ) : (
                       <span
-                        className="inline-block w-20 px-1 py-0.5 rounded cursor-pointer bg-[#FFFDE7] hover:bg-[#FFF9C4]"
+                        className="inline-block w-20 px-1 py-0.5 rounded cursor-pointer bg-[#FFF7D1] hover:bg-[#FFF1B0]"
                         onClick={() =>
                           handleStartEdit(
                             row.id,
@@ -330,11 +330,11 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             )}
           </tbody>
           <tfoot>
-            <tr className="bg-[#F5F7FA] font-bold border-t-2 border-[#263238]">
+            <tr className="bg-[#F0F0F0] font-bold border-t-2 border-[#004489]">
               <td colSpan={7} className="px-3 py-3 text-right">
                 Total cumule :
               </td>
-              <td className="px-3 py-3 text-right text-[#1565C0]">
+              <td className="px-3 py-3 text-right text-[#004489]">
                 {formatDuree(totalMinutes)}
               </td>
               <td />

@@ -44,10 +44,10 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#263238]">Courriers de chantier</h2>
+        <h2 className="text-lg font-semibold text-[#004489]">Courriers de chantier</h2>
         <Button
           onClick={() => router.push(`/projets/${projetId}/courriers/nouveau`)}
-          className="bg-[#37474F] hover:bg-[#37474F]/90 text-white"
+          className="bg-[#004489] hover:bg-[#004489]/90 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Nouveau courrier
@@ -58,7 +58,7 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
       <div className="border border-border rounded-md overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#263238] text-white">
+            <tr className="bg-[#004489] text-white">
               <th className="text-left px-4 py-3 font-medium">Reference</th>
               <th className="text-left px-4 py-3 font-medium">Objet</th>
               <th className="text-left px-4 py-3 font-medium">Type</th>
@@ -78,7 +78,7 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
             {courriers.map((c, i) => (
               <tr
                 key={c.id}
-                className={i % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'}
+                className={i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'}
               >
                 <td className="px-4 py-3 font-mono text-xs">{c.reference}</td>
                 <td className="px-4 py-3">{c.objet}</td>
@@ -125,7 +125,7 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
                       onClick={() => handleDelete(c.id)}
                       disabled={deleting === c.id}
                       title="Supprimer"
-                      className="text-[#B71C1C] hover:text-[#B71C1C] hover:bg-red-50"
+                      className="text-[#E20025] hover:text-[#E20025] hover:bg-red-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

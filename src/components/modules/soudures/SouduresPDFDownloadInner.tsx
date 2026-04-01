@@ -45,7 +45,7 @@ export default function SouduresPDFDownloadInner({
           disabled={loading || justClicked}
           onClick={handleClick}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors disabled:opacity-50"
-          style={{ backgroundColor: '#37474F', color: '#ECEFF1' }}
+          style={{ backgroundColor: '#F0F0F0', color: '#000000', border: '1px solid #DCDCDC' }}
         >
           <FileDown className="h-4 w-4" />
           {loading ? 'Preparation...' : justClicked ? 'Generation...' : 'Export PDF'}

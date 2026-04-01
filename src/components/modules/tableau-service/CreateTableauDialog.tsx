@@ -126,7 +126,7 @@ export function CreateTableauDialog({ projetId, open, onOpenChange, onCreated }:
             <Button
               type="submit"
               disabled={loading || !titre}
-              className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+              className="bg-[#004489] hover:bg-[#004489]/90 text-white"
             >
               {loading ? 'Creation...' : 'Creer'}
             </Button>

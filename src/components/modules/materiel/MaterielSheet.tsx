@@ -130,7 +130,7 @@ export function MaterielSheet({
             {isSysteme && (
               <span
                 className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"
-                style={{ backgroundColor: '#1565C0' }}
+                style={{ backgroundColor: '#004489' }}
               >
                 Systeme
               </span>
@@ -292,7 +292,7 @@ export function MaterielSheet({
               type="submit"
               disabled={saving}
               className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#1565C0' }}
+              style={{ backgroundColor: '#004489' }}
             >
               {saving ? 'Enregistrement...' : isEdit ? 'Modifier' : 'Ajouter'}
             </button>

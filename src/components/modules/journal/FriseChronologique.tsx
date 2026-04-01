@@ -399,7 +399,7 @@ export function FriseChronologique({
         <button
           onClick={handleExportFrise}
           disabled={isExporting}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm bg-[#37474F] text-[#ECEFF1] hover:bg-[#455A64] disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm bg-[#F0F0F0] text-[#000000] border border-[#DCDCDC] hover:bg-[#E0E0E0] disabled:opacity-50"
         >
           {isExporting ? 'Génération...' : '📄 Export PDF'}
         </button>
@@ -426,7 +426,7 @@ export function FriseChronologique({
               left: MARGE_GAUCHE,
               right: MARGE_GAUCHE,
               height: 3,
-              backgroundColor: '#1A237E',
+              backgroundColor: '#004489',
               borderRadius: 2,
             }}
           />
@@ -462,7 +462,7 @@ export function FriseChronologique({
                 top: Y_LIGNE - 4,
                 width: 1,
                 height: 8,
-                backgroundColor: '#1A237E',
+                backgroundColor: '#004489',
                 opacity: 0.4,
               }}
             />

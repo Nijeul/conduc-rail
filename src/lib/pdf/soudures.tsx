@@ -25,20 +25,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#263238',
+    borderBottomColor: '#004489',
   },
   headerLeft: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerRight: {
     fontSize: 9,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   projectName: {
     fontSize: 10,
-    color: '#546E7A',
+    color: '#5A5A5A',
     marginTop: 2,
   },
   table: {
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   colHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
   },
   dataRow: {
     flexDirection: 'row',
@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
     borderRightWidth: 0.5,
-    borderRightColor: '#ECEFF1',
+    borderRightColor: '#DCDCDC',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
     justifyContent: 'center',
   },
   cellText: {
@@ -85,11 +85,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 4,
     borderTopWidth: 0.5,
-    borderTopColor: '#263238',
+    borderTopColor: '#004489',
   },
   statusBar: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginTop: 6,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   pageNumber: {
     fontSize: 7,
-    color: '#546E7A',
+    color: '#5A5A5A',
     textAlign: 'right',
   },
 })
@@ -198,7 +198,7 @@ export function SouduresPDF({ projetName, soudures, userLogo, nomSociete }: Soud
 
           {/* Data rows */}
           {soudures.map((soudure, index) => {
-            let rowBg = index % 2 === 0 ? '#FFFFFF' : '#F5F7FA'
+            let rowBg = index % 2 === 0 ? '#FFFFFF' : '#F0F0F0'
             if (
               soudure.couleurLigne &&
               ROW_COLORS[soudure.couleurLigne]

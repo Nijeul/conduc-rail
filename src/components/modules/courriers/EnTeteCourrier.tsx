@@ -26,10 +26,10 @@ export function EnTeteCourrier({
   })
 
   return (
-    <div className="bg-[#F5F7FA] border border-border rounded-md p-6 text-sm space-y-4 font-mono">
+    <div className="bg-[#F0F0F0] border border-border rounded-md p-6 text-sm space-y-4 font-mono">
       {/* Header line */}
       <div className="flex justify-between items-start">
-        <span className="font-bold text-[#263238]">
+        <span className="font-bold text-[#004489]">
           {nomSociete || 'CONDUC RAIL'}
         </span>
         <span className="text-text-secondary">Le {today}</span>

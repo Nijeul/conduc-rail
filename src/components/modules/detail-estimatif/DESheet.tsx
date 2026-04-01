@@ -89,11 +89,11 @@ function SortableRow({
     transform: CSS.Transform.toString(transform),
     transition,
     backgroundColor: isDragging
-      ? '#BBDEFB'
+      ? '#E5EFF8'
       : index % 2 === 0
       ? '#FFFFFF'
-      : '#F5F7FA',
-    borderBottom: '1px solid #ECEFF1',
+      : '#F0F0F0',
+    borderBottom: '1px solid #DCDCDC',
     opacity: isDragging ? 0.8 : 1,
   }
 
@@ -431,9 +431,9 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
           side="right"
           className="!w-full !max-w-full sm:!max-w-full p-0 flex flex-col"
         >
-          <SheetHeader className="px-6 py-4 border-b shrink-0" style={{ borderColor: '#ECEFF1' }}>
+          <SheetHeader className="px-6 py-4 border-b shrink-0" style={{ borderColor: '#DCDCDC' }}>
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-lg font-bold" style={{ color: '#263238' }}>
+              <SheetTitle className="text-lg font-bold" style={{ color: '#004489' }}>
                 Detail Estimatif - {projetName}
               </SheetTitle>
               <div className="flex items-center gap-2">
@@ -476,7 +476,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
                   }
                   disabled={isExporting}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: '#37474F', color: '#ECEFF1' }}
+                  style={{ backgroundColor: '#F0F0F0', color: '#000000', border: '1px solid #DCDCDC' }}
                 >
                   {isExporting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -498,7 +498,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
             ) : (
               <table className="w-full text-left" style={{ fontSize: '12px' }}>
                 <thead className="sticky top-0 z-10">
-                  <tr style={{ backgroundColor: '#263238' }}>
+                  <tr style={{ backgroundColor: '#004489' }}>
                     <th className="px-1 py-2.5 w-8"></th>
                     <th className="px-2 py-2.5 text-white font-semibold w-[100px]">N&deg; de prix</th>
                     <th className="px-2 py-2.5 text-white font-semibold">Intitule</th>
@@ -551,17 +551,17 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#ECEFF1' }}>
+          <div className="shrink-0 border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#DCDCDC' }}>
             <button
               onClick={handleAddLine}
               disabled={isPending}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: '#1565C0' }}
+              style={{ backgroundColor: '#004489' }}
             >
               <Plus className="h-4 w-4" />
               Ligne
             </button>
-            <div className="text-sm font-bold" style={{ color: '#263238' }}>
+            <div className="text-sm font-bold" style={{ color: '#004489' }}>
               Total HT : {formatNombreFR(totalHT, 2)} &euro;
             </div>
           </div>

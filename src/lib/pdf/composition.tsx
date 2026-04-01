@@ -10,7 +10,7 @@ import { getMaterielSVGPDF } from './materiel-svg-pdf'
 
 const TYPE_COLORS: Record<string, string> = {
   Loco: '#FF8F00',
-  Wagon: '#1565C0',
+  Wagon: '#004489',
   Locotracteur: '#2E7D32',
   Draisine: '#6A1B9A',
 }
@@ -30,16 +30,16 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#263238',
+    borderBottomColor: '#004489',
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerSub: {
     fontSize: 9,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   infoRow: {
     flexDirection: 'row',
@@ -52,10 +52,10 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontWeight: 'bold',
-    color: '#37474F',
+    color: '#5A5A5A',
   },
   infoValue: {
-    color: '#263238',
+    color: '#004489',
   },
   rameContainer: {
     flexDirection: 'row',
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     color: 'white',
     fontSize: 6,
     fontWeight: 'bold',
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   rameLabel: {
     fontSize: 5,
-    color: '#546E7A',
+    color: '#5A5A5A',
     textAlign: 'center',
     marginTop: 1,
     maxWidth: 90,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     paddingVertical: 4,
     paddingHorizontal: 3,
   },
@@ -128,16 +128,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 3,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   rowAlt: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
   },
   propCol: {
     width: 90,
     fontWeight: 'bold',
-    color: '#37474F',
-    backgroundColor: '#F5F7FA',
+    color: '#5A5A5A',
+    backgroundColor: '#F0F0F0',
     paddingRight: 4,
   },
   valCol: {
@@ -145,18 +145,18 @@ const styles = StyleSheet.create({
   },
   summaryPanel: {
     width: 160,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
     borderRadius: 3,
     padding: 8,
   },
   summaryTitle: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
     marginBottom: 6,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -165,12 +165,12 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 7,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   summaryValue: {
     fontSize: 7,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
   },
   badgeGreen: {
     backgroundColor: '#C8E6C9',
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   badgeRed: {
     backgroundColor: '#FFCDD2',
-    color: '#B71C1C',
+    color: '#E20025',
     fontSize: 7,
     fontWeight: 'bold',
     paddingVertical: 1,
@@ -198,9 +198,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 7,
-    color: '#78909C',
+    color: '#B5ABA1',
     borderTopWidth: 0.5,
-    borderTopColor: '#ECEFF1',
+    borderTopColor: '#DCDCDC',
     paddingTop: 4,
   },
 })
@@ -316,7 +316,7 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props
         <View style={styles.rameContainer}>
           {vehicules.map((v, i) => {
             const svgElement = getMaterielSVGPDF(v.type, v.designation)
-            const bgColor = TYPE_COLORS[v.type] || '#78909C'
+            const bgColor = TYPE_COLORS[v.type] || '#B5ABA1'
             const nombre = v.nombre || 1
             const label =
               v.designation && v.designation.length > 16
@@ -420,7 +420,7 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props
             <View
               style={{
                 borderTopWidth: 1,
-                borderTopColor: '#ECEFF1',
+                borderTopColor: '#DCDCDC',
                 paddingTop: 4,
                 marginTop: 4,
               }}

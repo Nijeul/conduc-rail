@@ -59,7 +59,7 @@ export function RapportPDFButton({ projetName, getData }: RapportPDFButtonProps)
       type="button"
       onClick={handleClick}
       disabled={isExporting}
-      className="bg-[#37474F] hover:bg-[#455A64] text-[#ECEFF1]"
+      className="bg-[#F0F0F0] border border-[#DCDCDC] hover:bg-[#E0E0E0] text-[#000000]"
     >
       <FileText className="h-4 w-4 mr-1" />
       {isExporting ? 'Generation...' : 'Export PDF'}

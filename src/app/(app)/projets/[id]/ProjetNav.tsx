@@ -73,7 +73,7 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
           <div className="flex items-center gap-2 text-sm">
             <Link
               href="/projets"
-              className="text-text-secondary hover:text-primary transition-colors"
+              className="text-text-secondary hover:text-[#004489] transition-colors"
             >
               Projets
             </Link>
@@ -84,7 +84,7 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
       </div>
 
       {/* N1: Main tabs */}
-      <div className="flex items-center gap-0 px-6 border-b" style={{ borderColor: '#ECEFF1' }}>
+      <div className="flex items-center gap-0 px-6 border-b" style={{ borderColor: '#DCDCDC' }}>
         {ONGLETS.map((onglet) => {
           const isActive = onglet.id === activeOnglet.id;
           return (
@@ -94,10 +94,10 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
               className={cn(
                 "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                 isActive
-                  ? "border-[#1A237E] text-[#1A237E]"
-                  : "border-transparent text-[#546E7A] hover:text-[#1A237E]"
+                  ? "border-[#004489] text-[#004489]"
+                  : "border-transparent text-[#5A5A5A] hover:text-[#004489]"
               )}
-              style={isActive ? { backgroundColor: '#F5F7FA' } : undefined}
+              style={isActive ? { backgroundColor: '#E5EFF8' } : undefined}
             >
               {onglet.label}
             </button>
@@ -106,7 +106,7 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
       </div>
 
       {/* N2: Sub-menu of active tab */}
-      <div className="flex items-center gap-1 px-6" style={{ backgroundColor: '#F5F7FA' }}>
+      <div className="flex items-center gap-1 px-6" style={{ backgroundColor: '#F0F0F0' }}>
         {activeOnglet.sousMenus.map((item) => {
           const href = `${base}/${item.href}`;
           const isActive = pathname.startsWith(href);
@@ -117,8 +117,8 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
               className={cn(
                 "px-4 py-2 text-sm border-b-2 transition-colors",
                 isActive
-                  ? "border-[#F9A825] text-[#1A237E] font-bold"
-                  : "border-transparent text-[#546E7A] hover:text-[#1A237E]"
+                  ? "border-[#E20025] text-[#004489] font-bold"
+                  : "border-transparent text-[#5A5A5A] hover:text-[#004489]"
               )}
             >
               {item.label}

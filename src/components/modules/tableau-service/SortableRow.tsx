@@ -34,7 +34,7 @@ export function SortableRow({ ligne, colonnes, cellules, personnelMap, onCellDou
     <tr ref={setNodeRef} style={style}>
       {/* Drag handle + Libelle */}
       <td
-        className="border border-[#ECEFF1] px-2 py-1.5 text-[12px] font-medium whitespace-nowrap cursor-context-menu select-none"
+        className="border border-[#DCDCDC] px-2 py-1.5 text-[12px] font-medium whitespace-nowrap cursor-context-menu select-none"
         style={{ backgroundColor: ligne.bg, color: ligne.fg, width: 180, minWidth: 180, maxWidth: 180 }}
         onContextMenu={(e) => onLigneContextMenu(e, ligne.id)}
       >
@@ -71,7 +71,7 @@ export function SortableRow({ ligne, colonnes, cellules, personnelMap, onCellDou
         return (
           <td
             key={col.id}
-            className="border border-[#ECEFF1] cursor-pointer hover:bg-blue-50/50 transition-colors"
+            className="border border-[#DCDCDC] cursor-pointer hover:bg-blue-50/50 transition-colors"
             style={{ minWidth: 150 }}
             onDoubleClick={() => onCellDoubleClick(ligne.id, col.id)}
           >
@@ -80,7 +80,7 @@ export function SortableRow({ ligne, colonnes, cellules, personnelMap, onCellDou
                 <div className="font-medium text-[13px] leading-tight">{displayName}</div>
               )}
               {telephone && (
-                <div className="text-[11px] text-[#546E7A] mt-0.5">{'\u{1F4DE}'} {telephone}</div>
+                <div className="text-[11px] text-[#5A5A5A] mt-0.5">{'\u{1F4DE}'} {telephone}</div>
               )}
               {cell?.texte && !displayName && (
                 <div className="text-slate-500 text-[11px]">{cell.texte}</div>

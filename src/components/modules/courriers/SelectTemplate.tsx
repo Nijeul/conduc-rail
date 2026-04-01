@@ -41,7 +41,7 @@ export function SelectTemplate({ projetInfos, onSelect }: SelectTemplateProps) {
         variant="outline"
         size="sm"
         onClick={() => setOpen(!open)}
-        className="border-[#37474F] text-[#37474F]"
+        className="border-[#004489] text-[#004489]"
       >
         <FileText className="h-4 w-4 mr-2" />
         Utiliser un modele
@@ -53,7 +53,7 @@ export function SelectTemplate({ projetInfos, onSelect }: SelectTemplateProps) {
             <button
               key={key}
               type="button"
-              className="block w-full text-left px-4 py-2 text-sm text-text-main hover:bg-[#F5F7FA] transition-colors"
+              className="block w-full text-left px-4 py-2 text-sm text-text-main hover:bg-[#F0F0F0] transition-colors"
               onClick={() => {
                 onSelect(
                   substituteVars(tpl.objet, projetInfos),

@@ -28,7 +28,7 @@ export default async function InfosProjetPage({ params }: Props) {
 
   return (
     <div className="p-6">
-      <h1 className="text-lg font-semibold text-[#263238] mb-6">
+      <h1 className="text-lg font-semibold text-[#004489] mb-6">
         Informations du projet
       </h1>
       <InfosProjetForm

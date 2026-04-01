@@ -68,7 +68,7 @@ export function FicheEcartPDFButton({ evenements, projetName }: Props) {
       size="sm"
       onClick={handleExport}
       disabled={isExporting}
-      style={{ backgroundColor: '#37474F', color: 'white' }}
+      style={{ backgroundColor: '#F0F0F0', color: '#000000', border: '1px solid #DCDCDC' }}
       className="hover:opacity-90"
     >
       <Download className="h-3.5 w-3.5 mr-1.5" />

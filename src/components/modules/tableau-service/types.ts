@@ -1,9 +1,9 @@
 export const TYPES_LIGNES = [
-  { type: "Conducteur de travaux",        bg: "#1A237E", fg: "#FFFFFF" },
+  { type: "Conducteur de travaux",        bg: "#004489", fg: "#FFFFFF" },
   { type: "Conducteur de travaux princ.", bg: "#0D1B6B", fg: "#FFFFFF" },
-  { type: "Responsable chantier / RCE",  bg: "#B71C1C", fg: "#FFFFFF" },
+  { type: "Responsable chantier / RCE",  bg: "#E20025", fg: "#FFFFFF" },
   { type: "Chef d'\u00e9quipe",               bg: "#E65100", fg: "#FFFFFF" },
-  { type: "Responsable qualit\u00e9",         bg: "#F9A825", fg: "#000000" },
+  { type: "Responsable qualit\u00e9",         bg: "#E20025", fg: "#000000" },
   { type: "Contr\u00f4leur qualit\u00e9",          bg: "#00695C", fg: "#FFFFFF" },
   { type: "Poseur",                       bg: "#FFFFFF", fg: "#000000" },
   { type: "Soudeur",                      bg: "#01579B", fg: "#FFFFFF" },
@@ -64,10 +64,10 @@ export interface TableauServiceData {
 }
 
 export const COULEURS_COLONNES = [
-  "#263238", "#37474F", "#455A64",
-  "#1565C0", "#0D47A1", "#1B5E20",
-  "#E65100", "#B71C1C", "#4A148C",
+  "#004489", "#003370", "#0D1B6B",
+  "#004489", "#003370", "#1B5E20",
+  "#E65100", "#E20025", "#4A148C",
   "#00695C",
 ] as const
 
-export const DEFAULT_COL_COULEUR = "#263238"
+export const DEFAULT_COL_COULEUR = "#004489"

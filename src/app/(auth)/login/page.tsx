@@ -37,19 +37,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-light">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg border border-border overflow-hidden">
-          {/* Header */}
-          <div className="bg-primary px-8 py-6">
-            <h1 className="text-2xl font-bold text-white">Conduc Rail</h1>
-            <p className="text-blue-200 text-sm mt-1">
-              Gestion de chantiers ferroviaires
-            </p>
-          </div>
+    <div className="min-h-screen flex flex-col items-center justify-center"
+         style={{ backgroundColor: '#004489' }}>
+      {/* Title above card */}
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-white">CONDUC RAIL</h1>
+        <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.70)' }}>
+          Gestion de chantiers ferroviaires
+        </p>
+      </div>
 
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ borderRadius: '8px' }}>
           {/* Form */}
-          <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
+          <form onSubmit={handleSubmit} className="px-8 py-8 space-y-5">
             {error && (
               <div className="bg-red-50 border border-red-200 text-danger rounded-md px-4 py-3 text-sm">
                 {error}
@@ -71,8 +72,9 @@ export default function LoginPage() {
                 placeholder="admin@conducrail.fr"
                 required
                 className="w-full px-3 py-2 border border-border rounded-md text-sm
-                           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
+                           focus:outline-none focus:ring-2 focus:border-[#004489]
                            placeholder:text-text-secondary/50"
+                style={{ '--tw-ring-color': 'rgba(0,68,137,0.3)' } as React.CSSProperties}
               />
             </div>
 
@@ -91,16 +93,20 @@ export default function LoginPage() {
                 placeholder="demo1234"
                 required
                 className="w-full px-3 py-2 border border-border rounded-md text-sm
-                           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
+                           focus:outline-none focus:ring-2 focus:border-[#004489]
                            placeholder:text-text-secondary/50"
+                style={{ '--tw-ring-color': 'rgba(0,68,137,0.3)' } as React.CSSProperties}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-action text-white py-2.5 rounded-md text-sm font-medium
-                         hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-white py-2.5 rounded-md text-sm font-medium
+                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#004489' }}
+              onMouseEnter={(e) => { if (!loading) (e.currentTarget.style.backgroundColor = '#003370'); }}
+              onMouseLeave={(e) => { if (!loading) (e.currentTarget.style.backgroundColor = '#004489'); }}
             >
               {loading ? "Connexion..." : "Se connecter"}
             </button>

@@ -6,12 +6,12 @@ export default function Loading() {
         <div className="h-4 w-72 bg-gray-100 rounded mt-2" />
       </div>
       <div className="border border-gray-200 rounded">
-        <div className="h-10 bg-[#263238] rounded-t" />
+        <div className="h-10 bg-[#004489] rounded-t" />
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
             className="h-10"
-            style={{ backgroundColor: i % 2 === 0 ? '#F5F7FA' : '#FFFFFF' }}
+            style={{ backgroundColor: i % 2 === 0 ? '#F0F0F0' : '#FFFFFF' }}
           />
         ))}
       </div>

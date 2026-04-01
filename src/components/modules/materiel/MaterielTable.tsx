@@ -102,7 +102,7 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
       {/* Toolbar */}
       <div
         className="flex items-center justify-between gap-4 px-6 py-3 border-b"
-        style={{ borderColor: '#ECEFF1' }}
+        style={{ borderColor: '#DCDCDC' }}
       >
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -117,7 +117,7 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
         <button
           onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90"
-          style={{ backgroundColor: '#1565C0' }}
+          style={{ backgroundColor: '#004489' }}
         >
           <Plus className="h-4 w-4" />
           Ajouter un materiel
@@ -128,7 +128,7 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-left" style={{ fontSize: '13px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#263238' }}>
+            <tr style={{ backgroundColor: '#004489' }}>
               <th className="px-4 py-3 text-white font-semibold">Type</th>
               <th className="px-4 py-3 text-white font-semibold">Designation</th>
               <th className="px-4 py-3 text-white font-semibold text-right">Essieux</th>
@@ -155,14 +155,14 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
                 <tr
                   key={m.id}
                   onDoubleClick={() => openEdit(m)}
-                  className="cursor-pointer hover:!bg-[#BBDEFB] hover:!text-[#0D47A1] transition-colors"
+                  className="cursor-pointer hover:!bg-[#E5EFF8] hover:!text-[#003370] transition-colors"
                   style={{
-                    backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F5F7FA',
-                    borderBottom: '1px solid #ECEFF1',
+                    backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F0F0F0',
+                    borderBottom: '1px solid #DCDCDC',
                   }}
                 >
                   <td className="px-4 py-2.5">
-                    <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: COULEURS_TYPE_MATERIEL[m.type] ?? '#ECEFF1' }}>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: COULEURS_TYPE_MATERIEL[m.type] ?? '#DCDCDC' }}>
                       {TYPES_MATERIEL.find(t => t.value === m.type)?.label ?? m.type}
                     </span>
                   </td>
@@ -186,7 +186,7 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
                     {m.estSysteme && (
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"
-                        style={{ backgroundColor: '#1565C0' }}
+                        style={{ backgroundColor: '#004489' }}
                       >
                         Systeme
                       </span>
@@ -217,7 +217,7 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
       {/* Footer count */}
       <div
         className="px-6 py-2 border-t text-xs text-slate-500"
-        style={{ borderColor: '#ECEFF1' }}
+        style={{ borderColor: '#DCDCDC' }}
       >
         {filtered.length} materiel{filtered.length > 1 ? 's' : ''}{' '}
         {search &&

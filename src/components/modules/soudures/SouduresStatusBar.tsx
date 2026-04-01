@@ -18,7 +18,7 @@ export function SouduresStatusBar({ soudures }: SouduresStatusBarProps) {
   return (
     <div
       className="flex items-center gap-6 px-4 py-2 mt-1 rounded text-xs font-medium"
-      style={{ backgroundColor: '#263238', color: '#FFFFFF' }}
+      style={{ backgroundColor: '#004489', color: '#FFFFFF' }}
     >
       <span>{stats.total} soudures</span>
       <span>{stats.ok} OK</span>

@@ -174,7 +174,7 @@ export function SouduresTable({
     if (soudure.couleurLigne && ROW_COLORS[soudure.couleurLigne]) {
       return ROW_COLORS[soudure.couleurLigne]
     }
-    return index % 2 === 0 ? '#FFFFFF' : '#F5F7FA'
+    return index % 2 === 0 ? '#FFFFFF' : '#F0F0F0'
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ export function SouduresTable({
         isPending={isPending}
       />
 
-      <div className="flex-1 overflow-hidden border border-[#ECEFF1] rounded">
+      <div className="flex-1 overflow-hidden border border-[#DCDCDC] rounded">
         {/* Fixed double-header */}
         <div
           style={{ minWidth: TOTAL_WIDTH }}
@@ -206,7 +206,7 @@ export function SouduresTable({
               return (
                 <div
                   key={group.label}
-                  className="text-center text-xs font-bold border-r border-[#ECEFF1] last:border-r-0"
+                  className="text-center text-xs font-bold border-r border-[#DCDCDC] last:border-r-0"
                   style={{
                     width: totalW,
                     minWidth: totalW,
@@ -221,11 +221,11 @@ export function SouduresTable({
             })}
           </div>
           {/* Row 2: Column headers */}
-          <div className="flex" style={{ backgroundColor: '#263238' }}>
+          <div className="flex" style={{ backgroundColor: '#004489' }}>
             {ALL_COLUMNS.map((col) => (
               <div
                 key={col.key}
-                className="text-center text-[11px] font-semibold text-white border-r border-[#ECEFF1] last:border-r-0 truncate"
+                className="text-center text-[11px] font-semibold text-white border-r border-[#DCDCDC] last:border-r-0 truncate"
                 style={{
                   width: col.width,
                   minWidth: col.width,
@@ -268,7 +268,7 @@ export function SouduresTable({
                   onDelete={() => handleDelete(soudure.id)}
                 >
                   <div
-                    className="flex items-center border-b border-[#ECEFF1] cursor-pointer"
+                    className="flex items-center border-b border-[#DCDCDC] cursor-pointer"
                     style={{
                       position: 'absolute',
                       top: 0,
@@ -278,7 +278,7 @@ export function SouduresTable({
                       transform: `translateY(${virtualRow.start}px)`,
                       backgroundColor: getRowBg(soudure, virtualRow.index),
                       outline: isSelected
-                        ? '2px solid #1565C0'
+                        ? '2px solid #004489'
                         : 'none',
                       outlineOffset: '-2px',
                     }}
@@ -300,7 +300,7 @@ export function SouduresTable({
                       return (
                         <div
                           key={col.key}
-                          className="border-r border-[#ECEFF1] last:border-r-0"
+                          className="border-r border-[#DCDCDC] last:border-r-0"
                           style={{
                             width: col.width,
                             minWidth: col.width,

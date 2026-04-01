@@ -18,7 +18,7 @@ export interface ColumnGroup {
 export const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: 'LOCALISATION',
-    color: '#1565C0',
+    color: '#004489',
     textColor: '#FFFFFF',
     columns: [
       { key: 'ordre', label: 'N\u00B0', width: 40, type: 'text' },
@@ -53,7 +53,7 @@ export const COLUMN_GROUPS: ColumnGroup[] = [
   },
   {
     label: 'TRACE',
-    color: '#BF360C',
+    color: '#B24E25',
     textColor: '#FFFFFF',
     columns: [
       { key: 'tracePointu', label: 'Pointu <1mm', width: 80, type: 'text' },
@@ -76,13 +76,13 @@ export const ALL_COLUMNS = COLUMN_GROUPS.flatMap((g) => g.columns)
 export const TOTAL_WIDTH = ALL_COLUMNS.reduce((s, c) => s + c.width, 0)
 
 export const RECEPTION_COLORS: Record<string, string> = {
-  OK: '#E8F5E9',
-  HS: '#FFEBEE',
-  Dir: '#E3F2FD',
-  Dev: '#FFF3E0',
+  OK: '#E8EFDA',
+  HS: '#FDEAED',
+  Dir: '#E5EFF8',
+  Dev: '#FFF7D1',
 }
 
 export const ROW_COLORS: Record<string, string> = {
-  yellow: '#FFFDE7',
-  red: '#FFEBEE',
+  yellow: '#FFF7D1',
+  red: '#FDEAED',
 }

@@ -22,22 +22,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: '#263238',
+    borderBottomColor: '#004489',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerSub: {
     fontSize: 10,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#263238',
-    backgroundColor: '#F5F7FA',
+    color: '#004489',
+    backgroundColor: '#F0F0F0',
     padding: 6,
     marginTop: 12,
     marginBottom: 6,
@@ -48,20 +48,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   rowAlt: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
   },
   label: {
     width: 140,
     fontWeight: 'bold',
-    color: '#37474F',
+    color: '#5A5A5A',
   },
   value: {
     flex: 1,
-    color: '#263238',
+    color: '#004489',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     paddingVertical: 5,
     paddingHorizontal: 4,
   },
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   colCode: { width: 60 },
   colDesignation: { flex: 1 },
@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: '#78909C',
+    color: '#B5ABA1',
     borderTopWidth: 0.5,
-    borderTopColor: '#ECEFF1',
+    borderTopColor: '#DCDCDC',
     paddingTop: 5,
   },
   signature: {
     marginTop: 30,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#ECEFF1',
+    borderTopColor: '#DCDCDC',
   },
 })
 
@@ -244,10 +244,10 @@ export function RapportPDF({ projetName, data, userLogo, nomSociete }: Props) {
 
         {/* Signature */}
         <View style={styles.signature}>
-          <Text style={{ fontWeight: 'bold', color: '#263238' }}>
+          <Text style={{ fontWeight: 'bold', color: '#004489' }}>
             Redacteur : {data.redacteurName || '-'}
           </Text>
-          <Text style={{ color: '#546E7A', marginTop: 2 }}>
+          <Text style={{ color: '#5A5A5A', marginTop: 2 }}>
             Date de redaction : {formatDateDisplay(data.dateRedaction)}
           </Text>
         </View>

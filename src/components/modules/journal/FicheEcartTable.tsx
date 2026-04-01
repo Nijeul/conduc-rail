@@ -330,7 +330,7 @@ export function FicheEcartTable({
           onClick={handleAddChapitre}
           size="sm"
           disabled={isPending}
-          style={{ backgroundColor: '#1565C0' }}
+          style={{ backgroundColor: '#004489' }}
           className="text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4 mr-1.5" />
@@ -357,7 +357,7 @@ export function FicheEcartTable({
       <div className="border rounded-lg overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: '900px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#263238' }}>
+            <tr style={{ backgroundColor: '#004489' }}>
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
@@ -390,7 +390,7 @@ export function FicheEcartTable({
                   <tr key={ligne.id}>
                     <td
                       colSpan={TOTAL_COLS}
-                      style={{ backgroundColor: '#1A237E' }}
+                      style={{ backgroundColor: '#004489' }}
                       className="text-white px-3 py-2"
                     >
                       <div className="flex items-center justify-between">
@@ -434,7 +434,7 @@ export function FicheEcartTable({
                   key={ligne.id}
                   style={
                     rowIdx % 2 !== 0
-                      ? { backgroundColor: '#F5F7FA' }
+                      ? { backgroundColor: '#F0F0F0' }
                       : undefined
                   }
                 >
@@ -558,7 +558,7 @@ export function FicheEcartTable({
               size="sm"
               onClick={handleImport}
               disabled={selectedEventIds.length === 0 || isPending}
-              style={{ backgroundColor: '#1565C0' }}
+              style={{ backgroundColor: '#004489' }}
               className="text-white hover:opacity-90"
             >
               Importer ({selectedEventIds.length})

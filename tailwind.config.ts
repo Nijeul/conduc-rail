@@ -11,31 +11,40 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#1A237E",
-          light: "#283593",
+          DEFAULT: "#004489",
+          light: "#0056B3",
         },
         accent: {
-          DEFAULT: "#F9A825",
+          DEFAULT: "#E20025",
         },
         danger: {
-          DEFAULT: "#B71C1C",
+          DEFAULT: "#E20025",
         },
         success: {
           DEFAULT: "#2E7D32",
         },
         surface: {
-          dark: "#263238",
-          dark2: "#37474F",
+          dark: "#004489",
           light: "#F5F7FA",
-          light2: "#ECEFF1",
         },
-        "text-main": "#212121",
-        "text-secondary": "#546E7A",
-        border: "#CFD8DC",
-        action: "#1565C0",
+        "text-main": "#000000",
+        "text-secondary": "#B5ABA1",
+        border: "#DCDCDC",
+        vinci: {
+          bleu: "#004489",
+          "bleu-dark": "#003370",
+          "bleu-light": "#0056B3",
+          "bleu-xlight": "#E5EFF8",
+          rouge: "#E20025",
+          "rouge-dark": "#B8001E",
+          "rouge-xlight": "#FDEAED",
+          gris: "#B5ABA1",
+          "gris-light": "#F0F0F0",
+          noir: "#000000",
+        },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "IBM Plex Sans", "sans-serif"],
+        sans: ["Arial", "Helvetica Neue", "Helvetica", "sans-serif"],
       },
       fontSize: {
         table: ["13px", { lineHeight: "1.4" }],

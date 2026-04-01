@@ -154,7 +154,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#263238]">
+        <h2 className="text-lg font-semibold text-[#004489]">
           {isNew ? 'Nouveau courrier' : `Courrier : ${reference}`}
         </h2>
         <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
               variant="outline"
               size="sm"
               onClick={() => setShowPdf(true)}
-              className="border-[#1A237E] text-[#1A237E]"
+              className="border-[#004489] text-[#004489]"
             >
               <Download className="h-4 w-4 mr-2" />
               PDF
@@ -174,7 +174,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
           <Button
             onClick={handleSave}
             disabled={saving || isEnvoye}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Enregistrement...' : 'Enregistrer'}
@@ -212,7 +212,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
           className={
             message.type === 'success'
               ? 'text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2'
-              : 'text-sm text-[#B71C1C] bg-red-50 border border-red-200 rounded px-3 py-2'
+              : 'text-sm text-[#E20025] bg-red-50 border border-red-200 rounded px-3 py-2'
           }
         >
           {message.text}

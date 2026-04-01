@@ -188,7 +188,7 @@ export function CompositionForm({
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#263238]">
+        <h1 className="text-xl font-bold text-[#004489]">
           {isNew ? 'Nouvelle composition TTx' : 'Modifier la composition'}
         </h1>
         <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export function CompositionForm({
           <Button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             <Save className="h-4 w-4 mr-1" />
             {isPending ? 'Enregistrement...' : 'Enregistrer'}
@@ -211,7 +211,7 @@ export function CompositionForm({
       )}
 
       {/* En-tete form */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label className="text-sm font-medium">Titre</Label>
@@ -246,56 +246,56 @@ export function CompositionForm({
       </div>
 
       {/* Rame visuelle */}
-      <div className="bg-white border border-[#ECEFF1] rounded-lg p-5">
-        <h2 className="text-sm font-bold text-[#263238] mb-3">Visuel de la rame</h2>
+      <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+        <h2 className="text-sm font-bold text-[#004489] mb-3">Visuel de la rame</h2>
         <RameVisual vehicules={vehicules} selectedIdx={selectedVehiculeIdx} onSelect={setSelectedVehiculeIdx} />
       </div>
 
       {/* Main content: Summary sidebar + Transposed table */}
       <div className="flex gap-6">
         {/* Summary sidebar */}
-        <div className="w-64 shrink-0 bg-[#F5F7FA] border border-[#ECEFF1] rounded-lg p-4 space-y-3 self-start">
-          <h3 className="text-sm font-bold text-[#263238] border-b border-[#ECEFF1] pb-2">Resume</h3>
+        <div className="w-64 shrink-0 bg-[#F0F0F0] border border-[#DCDCDC] rounded-lg p-4 space-y-3 self-start">
+          <h3 className="text-sm font-bold text-[#004489] border-b border-[#DCDCDC] pb-2">Resume</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Cap. essieux freines :</span>
+              <span className="text-[#5A5A5A]">Cap. essieux freines :</span>
               <span className="font-medium">{formatNombreFR(summary.capEssieux, 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Nb essieux rame :</span>
+              <span className="text-[#5A5A5A]">Nb essieux rame :</span>
               <span className="font-medium">{formatNombreFR(summary.nbEssieux, 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Cap. traction (T) :</span>
+              <span className="text-[#5A5A5A]">Cap. traction (T) :</span>
               <span className="font-medium">{formatNombreFR(summary.capTraction, 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Poids Entrant (T) :</span>
+              <span className="text-[#5A5A5A]">Poids Entrant (T) :</span>
               <span className="font-medium">{formatNombreFR(summary.poidsEntrant, 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Poids Sortant (T) :</span>
+              <span className="text-[#5A5A5A]">Poids Sortant (T) :</span>
               <span className="font-medium">{formatNombreFR(summary.poidsSortant, 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#546E7A]">Longueur rame (m) :</span>
+              <span className="text-[#5A5A5A]">Longueur rame (m) :</span>
               <span className="font-medium">{formatNombreFR(summary.longueur, 0)}</span>
             </div>
-            <div className="border-t border-[#ECEFF1] pt-2 mt-2 space-y-1.5">
+            <div className="border-t border-[#DCDCDC] pt-2 mt-2 space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-[#546E7A]">Freinage :</span>
+                <span className="text-[#5A5A5A]">Freinage :</span>
                 {summary.freinageOk ? (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">assure</span>
+                  <span className="px-2 py-0.5 bg-[#E8EFDA] text-[#5E8019] text-xs font-medium rounded-full">assure</span>
                 ) : (
-                  <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full">insuffisant</span>
+                  <span className="px-2 py-0.5 bg-[#FDEAED] text-[#E20025] text-xs font-medium rounded-full">insuffisant</span>
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[#546E7A]">Traction :</span>
+                <span className="text-[#5A5A5A]">Traction :</span>
                 {summary.tractionOk ? (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">suffisante</span>
+                  <span className="px-2 py-0.5 bg-[#E8EFDA] text-[#5E8019] text-xs font-medium rounded-full">suffisante</span>
                 ) : (
-                  <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full">insuffisante</span>
+                  <span className="px-2 py-0.5 bg-[#FDEAED] text-[#E20025] text-xs font-medium rounded-full">insuffisante</span>
                 )}
               </div>
             </div>
@@ -303,12 +303,12 @@ export function CompositionForm({
         </div>
 
         {/* Transposed table */}
-        <div className="flex-1 bg-white border border-[#ECEFF1] rounded-lg overflow-hidden">
+        <div className="flex-1 bg-white border border-[#DCDCDC] rounded-lg overflow-hidden">
           {/* Toolbar */}
-          <div className="flex items-center gap-2 p-3 bg-[#37474F]">
+          <div className="flex items-center gap-2 p-3 bg-[#F0F0F0] border border-[#DCDCDC]">
             <Button
               onClick={() => setAddDialogOpen(true)}
-              className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+              className="bg-[#004489] hover:bg-[#004489]/90 text-white"
               size="sm"
             >
               <Plus className="h-4 w-4 mr-1" />
@@ -317,7 +317,7 @@ export function CompositionForm({
             <Button
               onClick={removeVehicule}
               disabled={selectedVehiculeIdx === null || vehicules.length <= 1}
-              className="bg-[#B71C1C] hover:bg-[#B71C1C]/90 text-white"
+              className="bg-[#E20025] hover:bg-[#E20025]/90 text-white"
               size="sm"
             >
               <Trash2 className="h-4 w-4 mr-1" />
@@ -328,16 +328,16 @@ export function CompositionForm({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#263238]">
-                  <th className="text-left px-3 py-2.5 text-white font-bold border-r border-[#ECEFF1]/20 min-w-[160px]">
+                <tr className="bg-[#004489]">
+                  <th className="text-left px-3 py-2.5 text-white font-bold border-r border-[#DCDCDC]/20 min-w-[160px]">
                     Propriete
                   </th>
                   {vehicules.map((v, i) => (
                     <th
                       key={v.id}
-                      className={`text-center px-2 py-2.5 font-bold border-r border-[#ECEFF1]/20 min-w-[130px] cursor-pointer ${
+                      className={`text-center px-2 py-2.5 font-bold border-r border-[#DCDCDC]/20 min-w-[130px] cursor-pointer ${
                         selectedVehiculeIdx === i
-                          ? 'bg-[#BBDEFB] text-[#0D47A1]'
+                          ? 'bg-[#E5EFF8] text-[#003370]'
                           : 'text-white'
                       }`}
                       onClick={() =>
@@ -353,18 +353,18 @@ export function CompositionForm({
                 {PROPERTIES.map((prop, rowIdx) => (
                   <tr
                     key={prop.key}
-                    className={`border-t border-[#ECEFF1] ${
-                      rowIdx % 2 !== 0 ? 'bg-[#F5F7FA]' : 'bg-white'
+                    className={`border-t border-[#DCDCDC] ${
+                      rowIdx % 2 !== 0 ? 'bg-[#F0F0F0]' : 'bg-white'
                     }`}
                   >
-                    <td className="px-3 py-2 font-medium text-[#37474F] bg-gray-50 border-r border-[#ECEFF1]">
+                    <td className="px-3 py-2 font-medium text-[#5A5A5A] bg-gray-50 border-r border-[#DCDCDC]">
                       {prop.label}
                     </td>
                     {vehicules.map((v, colIdx) => (
                       <td
                         key={v.id}
-                        className={`px-1.5 py-1 border-r border-[#ECEFF1] ${
-                          selectedVehiculeIdx === colIdx ? 'bg-[#BBDEFB]/30' : ''
+                        className={`px-1.5 py-1 border-r border-[#DCDCDC] ${
+                          selectedVehiculeIdx === colIdx ? 'bg-[#E5EFF8]/30' : ''
                         }`}
                       >
                         {prop.inputType === 'select' ? (

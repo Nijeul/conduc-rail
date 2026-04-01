@@ -139,8 +139,8 @@ export function ProjetsList({ mesProjets, projetsPartages, currentUserId }: Proj
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <FolderOpen className="h-5 w-5 text-[#263238]" />
-            <h2 className="text-base font-semibold text-[#263238]">Mes projets</h2>
+            <FolderOpen className="h-5 w-5 text-[#004489]" />
+            <h2 className="text-base font-semibold text-[#004489]">Mes projets</h2>
             <span className="text-sm text-text-secondary ml-1">
               ({mesProjets.length})
             </span>
@@ -171,8 +171,8 @@ export function ProjetsList({ mesProjets, projetsPartages, currentUserId }: Proj
       {/* ── Section : Partages avec moi ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-[#263238]" />
-          <h2 className="text-base font-semibold text-[#263238]">Partages avec moi</h2>
+          <Users className="h-5 w-5 text-[#004489]" />
+          <h2 className="text-base font-semibold text-[#004489]">Partages avec moi</h2>
           <span className="text-sm text-text-secondary ml-1">
             ({projetsPartages.length})
           </span>
@@ -188,7 +188,7 @@ export function ProjetsList({ mesProjets, projetsPartages, currentUserId }: Proj
               <div key={projet.id} className="relative">
                 <ProjetCard projet={projet} showMenu={false} />
                 <div className="absolute top-3 right-3 z-10">
-                  <span className="inline-flex items-center gap-1 text-xs bg-[#ECEFF1] text-[#37474F] px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-xs bg-[#F0F0F0] text-[#5A5A5A] px-2 py-0.5 rounded-full">
                     <Users className="h-3 w-3" />
                     {projet.ownerName}
                   </span>

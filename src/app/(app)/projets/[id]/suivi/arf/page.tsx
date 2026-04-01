@@ -15,7 +15,7 @@ export default async function ARFPage({ params }: Props) {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-[#263238]">Suivi ARF</h2>
+        <h2 className="text-xl font-bold text-[#004489]">Suivi ARF</h2>
         <p className="text-sm text-gray-500">
           Suivi des horaires prevus et reels par rapport journalier
         </p>

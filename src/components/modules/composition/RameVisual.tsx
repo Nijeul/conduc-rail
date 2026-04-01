@@ -28,7 +28,7 @@ export function RameVisual({ vehicules, selectedIdx, onSelect }: RameVisualProps
   return (
     <div className="flex items-end gap-1 overflow-x-auto pb-1" style={{ minHeight: '100px' }}>
       {vehicules.map((v, i) => {
-        const bgColor = COULEURS_TYPE_MATERIEL[v.type] || '#546E7A'
+        const bgColor = COULEURS_TYPE_MATERIEL[v.type] || '#5A5A5A'
         const nombre = v.nombre || 1
         const isSelected = selectedIdx === i
         const svgContent = getSVGMateriel(v.type, v.designation)
@@ -38,7 +38,7 @@ export function RameVisual({ vehicules, selectedIdx, onSelect }: RameVisualProps
             key={v.id}
             onClick={() => onSelect(selectedIdx === i ? null : i)}
             className={`relative flex flex-col items-center cursor-pointer transition-all shrink-0 ${
-              isSelected ? 'ring-2 ring-[#0D47A1] ring-offset-1 rounded' : ''
+              isSelected ? 'ring-2 ring-[#003370] ring-offset-1 rounded' : ''
             }`}
             style={{ width: '130px' }}
           >
@@ -68,7 +68,7 @@ export function RameVisual({ vehicules, selectedIdx, onSelect }: RameVisualProps
                 <div
                   className="absolute top-1 right-1 flex items-center justify-center rounded-full text-white text-[10px] font-bold"
                   style={{
-                    backgroundColor: '#263238',
+                    backgroundColor: '#004489',
                     minWidth: '22px',
                     height: '22px',
                     padding: '0 4px',

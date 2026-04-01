@@ -163,7 +163,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
   return (
     <div className="flex flex-col flex-1">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-[#ECEFF1]">
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-[#DCDCDC]">
         <div className="flex items-center gap-2">
           {exportPdfButton}
         </div>
@@ -193,13 +193,13 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
             <thead>
               <tr>
                 {/* Poste column header */}
-                <th className="border border-[#ECEFF1] bg-[#263238] text-white text-[12px] font-bold px-3 py-2 text-left" style={{ width: 180, minWidth: 180, maxWidth: 180 }}>
+                <th className="border border-[#DCDCDC] bg-[#004489] text-white text-[12px] font-bold px-3 py-2 text-left" style={{ width: 180, minWidth: 180, maxWidth: 180 }}>
                   Poste
                 </th>
                 {colonnes.map((col) => (
                   <th
                     key={col.id}
-                    className="border border-[#ECEFF1] text-white text-[12px] font-bold px-3 py-2 text-center cursor-context-menu select-none"
+                    className="border border-[#DCDCDC] text-white text-[12px] font-bold px-3 py-2 text-center cursor-context-menu select-none"
                     style={{ minWidth: 150, backgroundColor: col.couleur }}
                     onContextMenu={(e) => handleColContextMenu(e, col)}
                   >
@@ -228,7 +228,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
                   </th>
                 ))}
                 {/* Add column button header */}
-                <th className="border border-[#ECEFF1] bg-slate-50 px-2 py-2 w-10">
+                <th className="border border-[#DCDCDC] bg-slate-50 px-2 py-2 w-10">
                   <button
                     onClick={() => setShowAddCol(true)}
                     className="flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors mx-auto"
@@ -304,7 +304,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
           </button>
           <div className="h-px bg-slate-200 my-1" />
           <button
-            className="w-full text-left px-3 py-1.5 text-sm text-[#B71C1C] hover:bg-red-50"
+            className="w-full text-left px-3 py-1.5 text-sm text-[#E20025] hover:bg-red-50"
             onClick={() => {
               removeColonne(colMenu.col.id)
               setColMenu(null)
@@ -386,7 +386,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
           </button>
           <div className="h-px bg-slate-200 my-1" />
           <button
-            className="w-full text-left px-3 py-1.5 text-sm text-[#B71C1C] hover:bg-red-50"
+            className="w-full text-left px-3 py-1.5 text-sm text-[#E20025] hover:bg-red-50"
             onClick={() => {
               removeLigne(ligneMenu.ligneId)
               setLigneMenu(null)
@@ -420,7 +420,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
               </Button>
               <Button
                 size="sm"
-                className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+                className="bg-[#004489] hover:bg-[#004489]/90 text-white"
                 onClick={() => {
                   if (ligneRenameValue.trim()) renameLigne(ligneRenaming, ligneRenameValue.trim())
                   setLigneRenaming(null)
@@ -486,7 +486,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
               </Button>
               <Button
                 size="sm"
-                className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+                className="bg-[#004489] hover:bg-[#004489]/90 text-white"
                 onClick={handleAddColonne}
                 disabled={!newColNom.trim()}
               >
@@ -529,7 +529,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
               </Button>
               <Button
                 size="sm"
-                className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+                className="bg-[#004489] hover:bg-[#004489]/90 text-white"
                 onClick={handleAddLigne}
               >
                 Ajouter

@@ -14,10 +14,10 @@ interface Props {
   projetName: string
 }
 
-function getAvancementBg(avancement: number): string {
-  if (avancement >= 100) return 'bg-[#E8F5E9]'
-  if (avancement >= 50) return 'bg-[#FFF8E1]'
-  return 'bg-[#FFEBEE]'
+function getAvancementStyle(avancement: number): string {
+  if (avancement >= 100) return 'bg-[#E8EFDA] text-[#5E8019]'
+  if (avancement >= 50) return 'bg-[#FFF7D1] text-[#DD9412]'
+  return 'bg-[#FDEAED] text-[#E20025]'
 }
 
 export function SituationTable({ projetId, projetName }: Props) {
@@ -76,7 +76,7 @@ export function SituationTable({ projetId, projetName }: Props) {
         <Button
           onClick={handleCalculer}
           disabled={loading}
-          className="bg-[#1565C0] hover:bg-[#1256A1] text-white"
+          className="bg-[#004489] hover:bg-[#003370] text-white"
         >
           <Calculator className="h-4 w-4 mr-1" />
           {loading ? 'Calcul...' : 'Calculer'}
@@ -95,7 +95,7 @@ export function SituationTable({ projetId, projetName }: Props) {
               })
             }}
             disabled={isExporting}
-            className="bg-[#37474F] hover:bg-[#455A64] text-[#ECEFF1]"
+            className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
           >
             <FileText className="h-4 w-4 mr-1" />
             {isExporting ? 'Generation...' : 'Export PDF'}
@@ -112,10 +112,10 @@ export function SituationTable({ projetId, projetName }: Props) {
       {/* Table */}
       {result && (
         <>
-          <div className="overflow-x-auto rounded-lg border border-[#ECEFF1]">
+          <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="bg-[#263238] text-white font-bold">
+                <tr className="bg-[#004489] text-white font-bold">
                   <th className="px-3 py-2 text-left">N° prix</th>
                   <th className="px-3 py-2 text-left">Intitule</th>
                   <th className="px-3 py-2 text-center">Unite</th>
@@ -128,8 +128,8 @@ export function SituationTable({ projetId, projetName }: Props) {
                 {result.lignes.map((l, i) => (
                   <tr
                     key={l.id}
-                    className={`border-b border-[#ECEFF1] ${
-                      i % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'
+                    className={`border-b border-[#DCDCDC] ${
+                      i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
                     }`}
                   >
                     <td className="px-3 py-2 font-mono">{l.code}</td>
@@ -142,7 +142,7 @@ export function SituationTable({ projetId, projetName }: Props) {
                       {formatNombreFR(l.quantiteRealisee)}
                     </td>
                     <td
-                      className={`px-3 py-2 text-right font-semibold ${getAvancementBg(
+                      className={`px-3 py-2 text-right font-semibold ${getAvancementStyle(
                         l.avancement
                       )}`}
                     >
@@ -162,11 +162,11 @@ export function SituationTable({ projetId, projetName }: Props) {
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-[#F5F7FA] font-bold border-t-2 border-[#263238]">
-                  <td colSpan={5} className="px-3 py-3 text-right">
+                <tr className="bg-[#003370] font-bold border-t-2 border-[#004489]">
+                  <td colSpan={5} className="px-3 py-3 text-right text-white">
                     Montant realise HT :
                   </td>
-                  <td className="px-3 py-3 text-right text-[#1565C0]">
+                  <td className="px-3 py-3 text-right text-white">
                     {formatMontant(result.totalMontantRealise)}
                   </td>
                 </tr>

@@ -58,7 +58,7 @@ export function FicheEcart({ evenements, projetId, projetName }: FicheEcartProps
         <Button
           onClick={() => setDialogOpen(true)}
           size="sm"
-          style={{ backgroundColor: '#1565C0' }}
+          style={{ backgroundColor: '#004489' }}
           className="text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4 mr-1.5" />
@@ -75,7 +75,7 @@ export function FicheEcart({ evenements, projetId, projetName }: FicheEcartProps
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ backgroundColor: '#263238' }}>
+            <tr style={{ backgroundColor: '#004489' }}>
               <th className="text-left text-white font-medium px-4 py-2.5 w-[100px]">
                 Date
               </th>
@@ -107,7 +107,7 @@ export function FicheEcart({ evenements, projetId, projetName }: FicheEcartProps
                     rowBg
                       ? { backgroundColor: rowBg }
                       : i % 2 !== 0
-                      ? { backgroundColor: '#F5F7FA' }
+                      ? { backgroundColor: '#F0F0F0' }
                       : undefined
                   }
                 >

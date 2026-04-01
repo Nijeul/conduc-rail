@@ -51,7 +51,7 @@ export function JournalPageClient({
           onClick={() => setVue('liste')}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${
             vue === 'liste'
-              ? 'bg-[#37474F] text-white'
+              ? 'bg-[#004489] text-white'
               : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -62,7 +62,7 @@ export function JournalPageClient({
           onClick={() => setVue('frise')}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border-l ${
             vue === 'frise'
-              ? 'bg-[#37474F] text-white'
+              ? 'bg-[#004489] text-white'
               : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -73,7 +73,7 @@ export function JournalPageClient({
           onClick={() => setVue('fiche-ecart')}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border-l ${
             vue === 'fiche-ecart'
-              ? 'bg-[#37474F] text-white'
+              ? 'bg-[#004489] text-white'
               : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
         >

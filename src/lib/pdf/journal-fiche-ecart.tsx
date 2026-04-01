@@ -21,20 +21,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: '#263238',
+    borderBottomColor: '#004489',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerSub: {
     fontSize: 10,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     paddingVertical: 5,
     paddingHorizontal: 4,
   },
@@ -48,10 +48,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   rowAlt: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
   },
   rowAlerte: {
     backgroundColor: '#FFEBEE',
@@ -68,9 +68,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: '#78909C',
+    color: '#B5ABA1',
     borderTopWidth: 0.5,
-    borderTopColor: '#ECEFF1',
+    borderTopColor: '#DCDCDC',
     paddingTop: 5,
   },
 })
@@ -161,7 +161,7 @@ export function FicheEcartPDF({ projetName, evenements }: Props) {
               <View style={styles.colDescription}>
                 <Text style={{ fontWeight: 'bold' }}>{ev.titre}</Text>
                 {ev.description ? (
-                  <Text style={{ marginTop: 2, color: '#546E7A' }}>
+                  <Text style={{ marginTop: 2, color: '#5A5A5A' }}>
                     {ev.description}
                   </Text>
                 ) : null}

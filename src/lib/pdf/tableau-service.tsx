@@ -45,18 +45,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
     paddingBottom: 10,
   },
   headerLeft: {},
   headerBrand: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerProjet: {
     fontSize: 10,
-    color: '#455A64',
+    color: '#5A5A5A',
     marginTop: 2,
   },
   headerRight: {
@@ -65,11 +65,11 @@ const styles = StyleSheet.create({
   headerTitre: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#1565C0',
+    color: '#004489',
   },
   headerMeta: {
     fontSize: 9,
-    color: '#607D8B',
+    color: '#5A5A5A',
     marginTop: 2,
   },
 
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   table: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ECEFF1',
+    borderColor: '#DCDCDC',
   },
   tableRow: {
     flexDirection: 'row',
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   thCell: {
     padding: 4,
     borderRightWidth: 1,
-    borderRightColor: '#ECEFF1',
+    borderRightColor: '#DCDCDC',
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 22,
@@ -103,9 +103,9 @@ const styles = StyleSheet.create({
   tdCell: {
     padding: 4,
     borderRightWidth: 1,
-    borderRightColor: '#ECEFF1',
+    borderRightColor: '#DCDCDC',
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
     justifyContent: 'center',
     minHeight: 36,
   },
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   celluleTel: {
     fontSize: 7,
-    color: '#546E7A',
+    color: '#5A5A5A',
     textAlign: 'center' as const,
     marginTop: 1,
   },
@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
   libCell: {
     padding: 4,
     borderRightWidth: 1,
-    borderRightColor: '#ECEFF1',
+    borderRightColor: '#DCDCDC',
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
     justifyContent: 'center',
     minHeight: 36,
   },
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     right: 30,
     textAlign: 'center',
     fontSize: 8,
-    color: '#90A4AE',
+    color: '#B5ABA1',
   },
 })
 
@@ -216,7 +216,7 @@ export function TableauServicePdf({
             <View
               style={[
                 styles.thCell,
-                { width: posteWidth, backgroundColor: '#263238' },
+                { width: posteWidth, backgroundColor: '#004489' },
               ]}
             >
               <Text style={styles.thText}>Poste</Text>
@@ -236,7 +236,7 @@ export function TableauServicePdf({
 
           {/* Rows */}
           {lignes.map((ligne, idx) => {
-            const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA'
+            const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0F0F0'
             return (
               <View key={ligne.id} style={styles.tableRow}>
                 {/* Libelle */}

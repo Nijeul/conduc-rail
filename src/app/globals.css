@@ -3,19 +3,42 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #1A237E;
-  --color-primary-light: #283593;
-  --color-accent: #F9A825;
-  --color-danger: #B71C1C;
+  --color-primary: #004489;
+  --color-primary-light: #0056B3;
+  --color-accent: #E20025;
+  --color-danger: #E20025;
   --color-success: #2E7D32;
-  --color-surface-dark: #263238;
-  --color-surface-dark2: #37474F;
-  --color-surface-light: #F5F7FA;
-  --color-surface-light2: #ECEFF1;
-  --color-text-main: #212121;
-  --color-text-secondary: #546E7A;
-  --color-border: #CFD8DC;
-  --color-action: #1565C0;
+  --color-surface-dark: #002D5C;
+  --color-surface-light: #F0F0F0;
+  --color-text-main: #000000;
+  --color-text-secondary: #B5ABA1;
+  --color-border: #DCDCDC;
+  --color-table-header-bg: #004489;
+  --color-table-row-alt: #F0F0F0;
+
+  /* shadcn/ui overrides */
+  --primary: 211 100% 27%;
+  --primary-foreground: 0 0% 100%;
+  --destructive: 349 100% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 211 100% 27%;
+  --accent: 211 60% 94%;
+  --accent-foreground: 211 100% 27%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 45%;
+  --border: 0 0% 86%;
+  --input: 0 0% 86%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --secondary: 211 60% 94%;
+  --secondary-foreground: 211 100% 27%;
+  --radius: 0.5rem;
+
+  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
 }
 
 @layer base {
@@ -27,7 +50,7 @@
 @layer components {
   /* Table styles */
   .table-header {
-    @apply bg-surface-dark text-white font-bold text-table;
+    @apply bg-vinci-bleu text-white font-bold text-table;
   }
 
   .table-row-even {
@@ -35,24 +58,24 @@
   }
 
   .table-row-odd {
-    @apply bg-surface-light;
+    @apply bg-vinci-gris-light;
   }
 
   /* Toolbar button */
   .btn-toolbar {
-    @apply bg-surface-dark2 text-surface-light2 px-3 py-1.5 rounded text-sm font-medium
-           hover:bg-surface-dark transition-colors;
+    @apply bg-vinci-bleu-dark text-white px-3 py-1.5 rounded text-sm font-medium
+           hover:bg-vinci-bleu transition-colors;
   }
 
   /* Action button */
   .btn-action {
-    @apply bg-action text-white px-4 py-2 rounded-md text-sm font-medium
-           hover:bg-blue-700 transition-colors;
+    @apply bg-vinci-bleu text-white px-4 py-2 rounded-md text-sm font-medium
+           hover:bg-vinci-bleu-dark transition-colors;
   }
 
   /* Danger button */
   .btn-danger {
-    @apply bg-danger text-white px-4 py-2 rounded-md text-sm font-medium
-           hover:bg-red-900 transition-colors;
+    @apply bg-vinci-rouge text-white px-4 py-2 rounded-md text-sm font-medium
+           hover:bg-vinci-rouge-dark transition-colors;
   }
 }

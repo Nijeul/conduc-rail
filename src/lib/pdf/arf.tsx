@@ -23,20 +23,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: '#263238',
+    borderBottomColor: '#004489',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#263238',
+    color: '#004489',
   },
   headerSub: {
     fontSize: 10,
-    color: '#546E7A',
+    color: '#5A5A5A',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#263238',
+    backgroundColor: '#004489',
     paddingVertical: 5,
     paddingHorizontal: 3,
   },
@@ -50,10 +50,10 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 3,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#DCDCDC',
   },
   rowAlt: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F0F0',
   },
   colJour: { width: 70 },
   colPoste: { width: 40, textAlign: 'center' },
@@ -65,8 +65,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 3,
     borderTopWidth: 2,
-    borderTopColor: '#263238',
-    backgroundColor: '#F5F7FA',
+    borderTopColor: '#004489',
+    backgroundColor: '#003370',
+    color: '#FFFFFF',
   },
   footer: {
     position: 'absolute',
@@ -76,9 +77,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 7,
-    color: '#78909C',
+    color: '#B5ABA1',
     borderTopWidth: 0.5,
-    borderTopColor: '#ECEFF1',
+    borderTopColor: '#DCDCDC',
     paddingTop: 5,
   },
 })
@@ -140,10 +141,10 @@ function computeRow(row: ARFRow) {
 }
 
 function getPourcentColor(pct: number | null): string {
-  if (pct === null) return '#263238'
+  if (pct === null) return '#004489'
   if (pct >= 95) return '#2E7D32'
   if (pct >= 90) return '#F57F17'
-  return '#B71C1C'
+  return '#E20025'
 }
 
 function getDureeBg(minutes: number | null): string | undefined {

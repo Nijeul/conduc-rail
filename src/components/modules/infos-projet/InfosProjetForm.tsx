@@ -65,7 +65,7 @@ export function InfosProjetForm({ projetId, infos }: InfosProjetFormProps) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-8">
       {/* Maitrise d'Ouvrage */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold text-[#263238] border-b border-[#263238]/20 pb-2 w-full">
+        <legend className="text-sm font-semibold text-[#004489] border-b border-[#004489]/20 pb-2 w-full">
           Maitrise d&apos;Ouvrage
         </legend>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -92,7 +92,7 @@ export function InfosProjetForm({ projetId, infos }: InfosProjetFormProps) {
 
       {/* References administratives */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold text-[#263238] border-b border-[#263238]/20 pb-2 w-full">
+        <legend className="text-sm font-semibold text-[#004489] border-b border-[#004489]/20 pb-2 w-full">
           References administratives
         </legend>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -113,7 +113,7 @@ export function InfosProjetForm({ projetId, infos }: InfosProjetFormProps) {
 
       {/* Chantier */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold text-[#263238] border-b border-[#263238]/20 pb-2 w-full">
+        <legend className="text-sm font-semibold text-[#004489] border-b border-[#004489]/20 pb-2 w-full">
           Chantier
         </legend>
         <div className="space-y-1.5">
@@ -153,7 +153,7 @@ export function InfosProjetForm({ projetId, infos }: InfosProjetFormProps) {
         <Button
           type="submit"
           disabled={saving}
-          className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+          className="bg-[#004489] hover:bg-[#004489]/90 text-white"
         >
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Enregistrement...' : 'Enregistrer'}
@@ -164,7 +164,7 @@ export function InfosProjetForm({ projetId, infos }: InfosProjetFormProps) {
             className={
               message.type === 'success'
                 ? 'text-sm text-green-700'
-                : 'text-sm text-[#B71C1C]'
+                : 'text-sm text-[#E20025]'
             }
           >
             {message.text}

@@ -62,7 +62,7 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
 
   return (
     <fieldset className="space-y-4">
-      <legend className="text-sm font-semibold text-[#263238] border-b border-[#263238]/20 pb-2 w-full">
+      <legend className="text-sm font-semibold text-[#004489] border-b border-[#004489]/20 pb-2 w-full">
         Membres du projet
       </legend>
 
@@ -70,7 +70,7 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#263238] text-white">
+            <tr className="bg-[#004489] text-white">
               <th className="text-left px-4 py-2.5 font-medium">Nom</th>
               <th className="text-left px-4 py-2.5 font-medium">Email</th>
               <th className="text-left px-4 py-2.5 font-medium">Role</th>
@@ -81,17 +81,17 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
             {members.map((member, index) => (
               <tr
                 key={member.id}
-                className={index % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'}
+                className={index % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'}
               >
                 <td className="px-4 py-2.5">{member.user.name}</td>
                 <td className="px-4 py-2.5 text-text-secondary">{member.user.email}</td>
                 <td className="px-4 py-2.5">
                   {member.role === 'owner' ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1565C0] text-white">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#E5EFF8] text-[#004489]">
                       Owner
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#ECEFF1] text-[#37474F]">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#F0F0F0] text-[#5A5A5A]">
                       Membre
                     </span>
                   )}
@@ -120,7 +120,7 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
       {/* Share form (owner only) */}
       {isOwner && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#263238]">Inviter un membre</p>
+          <p className="text-sm font-medium text-[#004489]">Inviter un membre</p>
           <form onSubmit={handleShare} className="flex items-center gap-3">
             <div className="flex-1">
               <input
@@ -130,14 +130,14 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
                 placeholder="email@exemple.fr"
                 required
                 className="w-full px-3 py-2 border border-border rounded-md text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#1565C0]/50"
+                           focus:outline-none focus:ring-2 focus:ring-[#004489]/50"
               />
             </div>
             <button
               type="submit"
               disabled={sharing}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1565C0] text-white text-sm
-                         font-medium rounded-md hover:bg-[#1565C0]/90 transition-colors
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004489] text-white text-sm
+                         font-medium rounded-md hover:bg-[#004489]/90 transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UserPlus className="h-4 w-4" />
@@ -150,7 +150,7 @@ export function ProjetMembers({ projetId, members, isOwner }: ProjetMembersProps
               className={
                 message.type === 'success'
                   ? 'text-sm text-green-700'
-                  : 'text-sm text-[#B71C1C]'
+                  : 'text-sm text-[#E20025]'
               }
             >
               {message.text}

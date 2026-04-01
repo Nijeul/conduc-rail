@@ -89,7 +89,7 @@ export function PdfDownloadButton({
       size="sm"
       onClick={handleExport}
       disabled={isExporting}
-      className="bg-[#37474F] hover:bg-[#37474F]/90 text-[#ECEFF1] gap-1.5"
+      className="bg-[#F0F0F0] border border-[#DCDCDC] hover:bg-[#F0F0F0] border border-[#DCDCDC]/90 text-[#000000] gap-1.5"
     >
       <FileDown className="h-3.5 w-3.5" />
       {isExporting ? 'Generation...' : 'Export PDF'}

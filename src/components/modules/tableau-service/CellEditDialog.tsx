@@ -179,7 +179,7 @@ export function CellEditDialog({ open, onOpenChange, ligneId, colId, current, pe
                     </span>
                   </div>
                   {p.telephone && (
-                    <div className="text-xs text-[#546E7A] mt-0.5">
+                    <div className="text-xs text-[#5A5A5A] mt-0.5">
                       {'\u{1F4DE}'} {p.telephone}
                     </div>
                   )}
@@ -213,7 +213,7 @@ export function CellEditDialog({ open, onOpenChange, ligneId, colId, current, pe
           <Button
             type="button"
             onClick={handleSave}
-            className="bg-[#1565C0] hover:bg-[#1565C0]/90 text-white"
+            className="bg-[#004489] hover:bg-[#004489]/90 text-white"
           >
             Valider
           </Button>

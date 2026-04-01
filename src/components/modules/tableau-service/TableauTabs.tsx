@@ -61,7 +61,7 @@ export function TableauTabs({ projetId, tableaux, activeId, onSelect, onAdd, onD
   }
 
   return (
-    <div className="flex items-center gap-1 px-4 pt-3 pb-0 overflow-x-auto border-b border-[#ECEFF1] bg-white">
+    <div className="flex items-center gap-1 px-4 pt-3 pb-0 overflow-x-auto border-b border-[#DCDCDC] bg-white">
       {tableaux.map((t) => (
         <div
           key={t.id}
@@ -70,7 +70,7 @@ export function TableauTabs({ projetId, tableaux, activeId, onSelect, onAdd, onD
           className={cn(
             'relative flex items-center gap-2 px-4 py-2 text-[13px] font-medium cursor-pointer rounded-t-md border border-b-0 transition-colors select-none',
             t.id === activeId
-              ? 'bg-white text-slate-900 border-[#ECEFF1]'
+              ? 'bg-white text-slate-900 border-[#DCDCDC]'
               : 'bg-slate-50 text-slate-500 border-transparent hover:bg-slate-100 hover:text-slate-700'
           )}
         >
@@ -121,7 +121,7 @@ export function TableauTabs({ projetId, tableaux, activeId, onSelect, onAdd, onD
             Renommer
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-sm text-[#B71C1C] hover:bg-red-50 transition-colors"
+            className="w-full text-left px-3 py-1.5 text-sm text-[#E20025] hover:bg-red-50 transition-colors"
             onClick={() => handleDelete(contextMenu.id)}
           >
             Supprimer

@@ -207,7 +207,7 @@ export function PersonnelDialog({
               type="submit"
               disabled={saving}
               className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#1565C0' }}
+              style={{ backgroundColor: '#004489' }}
             >
               {saving ? 'Enregistrement...' : isEdit ? 'Modifier' : 'Ajouter'}
             </button>

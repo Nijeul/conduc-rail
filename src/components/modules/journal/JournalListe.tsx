@@ -88,7 +88,7 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
         <Button
           onClick={handleNew}
           size="sm"
-          style={{ backgroundColor: '#1565C0' }}
+          style={{ backgroundColor: '#004489' }}
           className="text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4 mr-1.5" />
@@ -104,7 +104,7 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
                 const ev = evenements.find((e) => e.id === selectedId)
                 if (ev) openEdit(ev)
               }}
-              style={{ backgroundColor: '#37474F', color: 'white' }}
+              style={{ backgroundColor: '#F0F0F0', color: '#000000', border: '1px solid #DCDCDC' }}
               className="hover:opacity-90"
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -127,7 +127,7 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ backgroundColor: '#263238' }}>
+            <tr style={{ backgroundColor: '#004489' }}>
               <th className="text-left text-white font-medium px-4 py-2.5 w-[100px]">Date</th>
               <th className="text-left text-white font-medium px-4 py-2.5 w-[140px]">Categorie</th>
               <th className="text-left text-white font-medium px-4 py-2.5">Titre</th>
@@ -160,7 +160,7 @@ export function JournalListe({ evenements, projetId }: JournalListeProps) {
                   }`}
                   style={
                     !isSelected && i % 2 !== 0
-                      ? { backgroundColor: '#F5F7FA' }
+                      ? { backgroundColor: '#F0F0F0' }
                       : undefined
                   }
                 >
