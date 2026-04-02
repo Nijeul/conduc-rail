@@ -3,9 +3,9 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from '@react-pdf/renderer'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -134,6 +134,7 @@ interface Props {
   data: RapportPDFData
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
 function formatDateDisplay(dateStr: string): string {
@@ -150,25 +151,21 @@ function formatDateDisplay(dateStr: string): string {
   }
 }
 
-export function RapportPDF({ projetName, data, userLogo, nomSociete }: Props) {
+export function RapportPDF({ projetName, data, userLogo, nomSociete, user }: Props) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
+
   return (
     <Document>
       <Page size="A4" orientation="portrait" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerTitle}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.headerSub}>{projetName}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Rapport Journalier</Text>
-            <Text style={styles.headerSub}>{formatDateDisplay(data.date)}</Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="RAPPORT JOURNALIER"
+          projetName={projetName}
+          date={formatDateDisplay(data.date)}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Section Contexte Administratif */}
         <Text style={styles.sectionTitle}>Contexte Administratif</Text>
@@ -253,10 +250,7 @@ export function RapportPDF({ projetName, data, userLogo, nomSociete }: Props) {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text>{nomSociete ?? 'CONDUC RAIL'} - {projetName}</Text>
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
-        </View>
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
       </Page>
     </Document>
   )

@@ -3,10 +3,10 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { LigneDE } from '@prisma/client'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -130,6 +130,7 @@ interface DetailEstimatifPDFProps {
   totalHT: number
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
 export function DetailEstimatifPDF({
@@ -138,7 +139,10 @@ export function DetailEstimatifPDF({
   totalHT,
   userLogo,
   nomSociete,
+  user,
 }: DetailEstimatifPDFProps) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
   const dateStr = formatDateFR()
 
   // Split lignes into pages of 30
@@ -156,16 +160,13 @@ export function DetailEstimatifPDF({
       {pages.map((pageLignes, pageIndex) => (
         <Page key={pageIndex} size="A4" style={styles.page}>
           {/* Header */}
-          <View style={styles.header}>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain', marginBottom: 4 }} />
-            ) : (
-              <Text style={styles.headerTitle}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.mainTitle}>DETAIL ESTIMATIF</Text>
-            <Text style={styles.projectName}>{projetName}</Text>
-            <Text style={styles.date}>Date : {dateStr}</Text>
-          </View>
+          <EntetePDF
+            titrePDF="DETAIL ESTIMATIF"
+            projetName={projetName}
+            date={dateStr}
+            logoSociete={logo}
+            nomSociete={societe}
+          />
 
           {/* Table */}
           <View style={styles.table}>
@@ -227,13 +228,7 @@ export function DetailEstimatifPDF({
           )}
 
           {/* Page footer */}
-          <Text
-            style={styles.footer}
-            render={({ pageNumber, totalPages: tp }) =>
-              `Page ${pageNumber} / ${tp}`
-            }
-            fixed
-          />
+          <PiedPagePDF nomSociete={societe} projetName={projetName} />
         </Page>
       ))}
     </Document>

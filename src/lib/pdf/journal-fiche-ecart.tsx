@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
 } from '@react-pdf/renderer'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -86,6 +87,7 @@ interface EvenementPDF {
 interface Props {
   projetName: string
   evenements: EvenementPDF[]
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
 function formatDateDisplay(dateStr: string): string {
@@ -102,7 +104,7 @@ function formatDateDisplay(dateStr: string): string {
   }
 }
 
-export function FicheEcartPDF({ projetName, evenements }: Props) {
+export function FicheEcartPDF({ projetName, evenements, user }: Props) {
   const today = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
@@ -113,16 +115,13 @@ export function FicheEcartPDF({ projetName, evenements }: Props) {
     <Document>
       <Page size="A4" orientation="portrait" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>CONDUC RAIL</Text>
-            <Text style={styles.headerSub}>{projetName}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Fiche Ecart - Journal de Chantier</Text>
-            <Text style={styles.headerSub}>{today}</Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="FICHE ECART"
+          projetName={projetName}
+          date={today}
+          logoSociete={user?.logoSociete}
+          nomSociete={user?.nomSociete}
+        />
 
         {/* Table header */}
         <View style={styles.tableHeader}>
@@ -174,14 +173,7 @@ export function FicheEcartPDF({ projetName, evenements }: Props) {
         })}
 
         {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text>CONDUC RAIL - {projetName}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={user?.nomSociete} projetName={projetName} />
       </Page>
     </Document>
   )

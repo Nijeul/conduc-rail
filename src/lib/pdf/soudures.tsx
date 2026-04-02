@@ -4,12 +4,11 @@ import {
   Page,
   View,
   Text,
-  Image,
   StyleSheet,
-  Font,
 } from '@react-pdf/renderer'
 import type { SoudureAluminothermique } from '@prisma/client'
 import { COLUMN_GROUPS, ALL_COLUMNS, RECEPTION_COLORS, ROW_COLORS } from '@/components/modules/soudures/columns'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -138,9 +137,12 @@ interface SouduresPDFProps {
   soudures: SoudureAluminothermique[]
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
-export function SouduresPDF({ projetName, soudures, userLogo, nomSociete }: SouduresPDFProps) {
+export function SouduresPDF({ projetName, soudures, userLogo, nomSociete, user }: SouduresPDFProps) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
   const totalCount = soudures.length
   const okCount = soudures.filter((s) => s.reception === 'OK').length
   const hsCount = soudures.filter((s) => s.reception === 'HS').length
@@ -150,19 +152,13 @@ export function SouduresPDF({ projetName, soudures, userLogo, nomSociete }: Soud
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerLeft}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.projectName}>{projetName}</Text>
-          </View>
-          <Text style={styles.headerRight}>
-            Soudures Aluminothermiques - {today}
-          </Text>
-        </View>
+        <EntetePDF
+          titrePDF="SOUDURES ALUMINOTHERMIQUES"
+          projetName={projetName}
+          date={today}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Table */}
         <View style={styles.table}>
@@ -261,14 +257,8 @@ export function SouduresPDF({ projetName, soudures, userLogo, nomSociete }: Soud
           <Text style={styles.statusText}>{hsCount} HS</Text>
         </View>
 
-        {/* Page number */}
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `Page ${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
+        {/* Page footer */}
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
       </Page>
     </Document>
   )

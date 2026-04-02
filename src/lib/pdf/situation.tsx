@@ -3,10 +3,10 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { SituationResult } from '@/actions/situation'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -127,30 +127,24 @@ interface Props {
   data: SituationResult
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
-export function SituationPDF({ projetName, data, userLogo, nomSociete }: Props) {
+export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: Props) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
+
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerTitle}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.headerSub}>{projetName}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Situation de Travaux</Text>
-            <Text style={styles.headerSub}>
-              Du {formatDateDisplay(data.dateDebut)} au{' '}
-              {formatDateDisplay(data.dateFin)}
-            </Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="SITUATION DE TRAVAUX"
+          projetName={projetName}
+          date={`Du ${formatDateDisplay(data.dateDebut)} au ${formatDateDisplay(data.dateFin)}`}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Table Header */}
         <View style={styles.tableHeader}>
@@ -212,14 +206,7 @@ export function SituationPDF({ projetName, data, userLogo, nomSociete }: Props) 
         </View>
 
         {/* Page footer */}
-        <View style={styles.footer} fixed>
-          <Text>{nomSociete ?? 'CONDUC RAIL'} - {projetName}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
       </Page>
     </Document>
   )

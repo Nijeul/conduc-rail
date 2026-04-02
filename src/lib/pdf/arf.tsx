@@ -3,10 +3,10 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { ARFRow } from '@/actions/arf'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -160,9 +160,12 @@ interface Props {
   totalMinutes: number
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
-export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete }: Props) {
+export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete, user }: Props) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
   const today = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
@@ -173,20 +176,13 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete }:
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerTitle}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.headerSub}>{projetName}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Suivi ARF</Text>
-            <Text style={styles.headerSub}>{today}</Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="SUIVI ARF"
+          projetName={projetName}
+          date={today}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Table Header */}
         <View style={styles.tableHeader}>
@@ -288,14 +284,7 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete }:
         </View>
 
         {/* Page footer */}
-        <View style={styles.footer} fixed>
-          <Text>{nomSociete ?? 'CONDUC RAIL'} - {projetName}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
       </Page>
     </Document>
   )

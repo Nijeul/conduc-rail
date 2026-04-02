@@ -5,6 +5,7 @@ import { Download } from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
 import { FicheEcartPDF } from '@/lib/pdf/journal-fiche-ecart'
 import { useExportPDF } from '@/hooks/useExportPDF'
+import { useProfilStore } from '@/stores/profil'
 
 interface FichierRow {
   id: string
@@ -29,6 +30,8 @@ interface Props {
 
 export function FicheEcartPDFButton({ evenements, projetName }: Props) {
   const { exportAvecGuard, isExporting } = useExportPDF()
+  const logoSociete = useProfilStore((s) => s.logoSociete)
+  const nomSociete = useProfilStore((s) => s.nomSociete)
 
   const handleExport = () => {
     exportAvecGuard(async () => {
@@ -42,7 +45,7 @@ export function FicheEcartPDFButton({ evenements, projetName }: Props) {
         }))
 
         const blob = await pdf(
-          <FicheEcartPDF projetName={projetName} evenements={data} />
+          <FicheEcartPDF projetName={projetName} evenements={data} user={{ logoSociete, nomSociete }} />
         ).toBlob()
 
         const url = URL.createObjectURL(blob)

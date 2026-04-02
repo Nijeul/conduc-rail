@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
 } from '@react-pdf/renderer'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
   page: {
@@ -109,9 +110,10 @@ interface LignePDF {
 interface Props {
   projetName: string
   lignes: LignePDF[]
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
-export function FicheEcartTablePDF({ projetName, lignes }: Props) {
+export function FicheEcartTablePDF({ projetName, lignes, user }: Props) {
   const today = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
@@ -124,17 +126,13 @@ export function FicheEcartTablePDF({ projetName, lignes }: Props) {
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>CONDUC RAIL</Text>
-            <Text style={styles.headerSub}>
-              FICHE ECART — {projetName}
-            </Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Date : {today}</Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="FICHE ECART"
+          projetName={projetName}
+          date={today}
+          logoSociete={user?.logoSociete}
+          nomSociete={user?.nomSociete}
+        />
 
         {/* Table header */}
         <View style={styles.tableHeader}>
@@ -196,14 +194,7 @@ export function FicheEcartTablePDF({ projetName, lignes }: Props) {
         })}
 
         {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text>CONDUC RAIL - {projetName}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={user?.nomSociete} projetName={projetName} />
       </Page>
     </Document>
   )

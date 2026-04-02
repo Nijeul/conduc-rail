@@ -3,10 +3,10 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
 } from '@react-pdf/renderer'
 import { getMaterielSVGPDF } from './materiel-svg-pdf'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const TYPE_COLORS: Record<string, string> = {
   Loco: '#FF8F00',
@@ -243,6 +243,7 @@ interface Props {
   data: CompositionPDFData
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
 function formatDateDisplay(dateStr: string): string {
@@ -276,7 +277,9 @@ const PROPERTIES = [
   { key: 'commentaires', label: 'Commentaires' },
 ]
 
-export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props) {
+export function CompositionPDF({ projetName, data, userLogo, nomSociete, user }: Props) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
   const { vehicules, summary } = data
   const totalNombre = vehicules.reduce((s, v) => s + (v.nombre || 1), 0)
   const colWidth = vehicules.length > 0 ? Math.max(50, Math.floor(500 / vehicules.length)) : 80
@@ -285,20 +288,13 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerTitle}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.headerSub}>{projetName}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.headerSub}>Composition TTx</Text>
-            <Text style={styles.headerSub}>{formatDateDisplay(data.date)}</Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="COMPOSITION TTx"
+          projetName={projetName}
+          date={formatDateDisplay(data.date)}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Info */}
         <View style={styles.infoRow}>
@@ -442,14 +438,7 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete }: Props
         </View>
 
         {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text>{nomSociete ?? 'CONDUC RAIL'} - {projetName}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
       </Page>
     </Document>
   )

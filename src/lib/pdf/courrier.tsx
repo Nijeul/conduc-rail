@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
 } from '@react-pdf/renderer'
+import { PiedPagePDF } from './pdf-entete'
 
 const BLEU = '#004489'
 const GRIS_FONCE = '#004489'
@@ -285,7 +286,7 @@ export function CourrierPDF({
               <Image src={logoSociete} style={styles.headerLogo} />
             )}
             <Text style={styles.societeName}>
-              {nomSociete || 'CONDUC RAIL'}
+              {nomSociete || ''}
             </Text>
             {adresseSociete && (
               <Text style={styles.societeAdresse}>{adresseSociete}</Text>
@@ -361,15 +362,7 @@ export function CourrierPDF({
         )}
 
         {/* ==================== PIED DE PAGE ==================== */}
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerRef}>Ref. {reference}</Text>
-          <Text
-            style={styles.footerPage}
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
-        </View>
+        <PiedPagePDF nomSociete={nomSociete} projetName={`Ref. ${reference}`} />
       </Page>
     </Document>
   )

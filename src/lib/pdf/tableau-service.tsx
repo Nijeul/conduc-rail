@@ -3,11 +3,10 @@ import {
   Page,
   Text,
   View,
-  Image,
   StyleSheet,
-  Font,
 } from '@react-pdf/renderer'
 import type { ColonneTS, LigneTS, CellulesTS, PersonnelMap } from '@/components/modules/tableau-service/types'
+import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +24,7 @@ interface TableauServicePdfProps {
   personnelMap?: PersonnelMap
   userLogo?: string
   nomSociete?: string
+  user?: { logoSociete?: string | null; nomSociete?: string | null }
 }
 
 // ---------------------------------------------------------------------------
@@ -167,7 +167,10 @@ export function TableauServicePdf({
   personnelMap,
   userLogo,
   nomSociete,
+  user,
 }: TableauServicePdfProps) {
+  const logo = user?.logoSociete ?? userLogo
+  const societe = user?.nomSociete ?? nomSociete
   // Colonne "Poste" = 120pt fixe, le reste réparti également
   const posteWidth = 120
   // Page A4 landscape = 842pt - 2*30pt padding = 782pt usable
@@ -188,26 +191,13 @@ export function TableauServicePdf({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            {userLogo ? (
-              <Image src={userLogo} style={{ width: 55, height: 35, objectFit: 'contain' }} />
-            ) : (
-              <Text style={styles.headerBrand}>{nomSociete ?? 'CONDUC RAIL'}</Text>
-            )}
-            <Text style={styles.headerProjet}>{projetNom}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.headerTitre}>{titre}</Text>
-            <Text style={styles.headerMeta}>
-              Semaine {semaine} / {annee}
-              {entreprise ? ` - ${entreprise}` : ''}
-            </Text>
-            <Text style={styles.headerMeta}>
-              Genere le {dateGeneration}
-            </Text>
-          </View>
-        </View>
+        <EntetePDF
+          titrePDF="TABLEAU DE SERVICE"
+          projetName={projetNom}
+          date={`Semaine ${semaine} / ${annee}${entreprise ? ` - ${entreprise}` : ''} - ${dateGeneration}`}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
         {/* Table */}
         <View style={styles.table}>
@@ -293,13 +283,7 @@ export function TableauServicePdf({
         </View>
 
         {/* Footer */}
-        <Text
-          style={styles.footer}
-          render={({ pageNumber, totalPages }) =>
-            `Page ${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
+        <PiedPagePDF nomSociete={societe} projetName={projetNom} />
       </Page>
     </Document>
   )

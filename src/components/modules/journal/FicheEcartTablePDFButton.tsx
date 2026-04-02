@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
 import { FicheEcartTablePDF } from '@/lib/pdf/fiche-ecart'
+import { useProfilStore } from '@/stores/profil'
 
 interface LigneData {
   etude: string
@@ -25,12 +26,14 @@ interface Props {
 
 export function FicheEcartTablePDFButton({ lignes, projetName }: Props) {
   const [loading, setLoading] = useState(false)
+  const logoSociete = useProfilStore((s) => s.logoSociete)
+  const nomSociete = useProfilStore((s) => s.nomSociete)
 
   const handleExport = useCallback(async () => {
     setLoading(true)
     try {
       const blob = await pdf(
-        <FicheEcartTablePDF projetName={projetName} lignes={lignes} />
+        <FicheEcartTablePDF projetName={projetName} lignes={lignes} user={{ logoSociete, nomSociete }} />
       ).toBlob()
 
       const url = URL.createObjectURL(blob)
