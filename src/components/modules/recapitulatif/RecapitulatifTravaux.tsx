@@ -6,6 +6,7 @@ import { Search, Download, FileText, BarChart3, FileCheck, CheckCircle2, Trendin
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { updateQuantiteDE } from '@/actions/rapports'
+import { useProfilStore } from '@/stores/profil'
 
 interface LigneDEData {
   id: string
@@ -326,12 +327,25 @@ export function RecapitulatifTravaux({
     const pageHeight = pdf.internal.pageSize.getHeight()
 
     // Header band
+    const logoSociete = useProfilStore.getState().logoSociete
+    const nomSociete = useProfilStore.getState().nomSociete
+
     pdf.setFillColor(0, 68, 137) // #004489
     pdf.rect(0, 0, pageWidth, 18, 'F')
+
+    // Logo ou nom société (jamais "CONDUC RAIL")
+    if (logoSociete && logoSociete.startsWith('data:image')) {
+      try {
+        pdf.addImage(logoSociete, 'PNG', 10, 3, 22, 12, undefined, 'FAST')
+      } catch { /* logo invalide, on continue */ }
+    } else if (nomSociete) {
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(nomSociete, 10, 12)
+    }
+
     pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('CONDUC RAIL', 10, 12)
     pdf.setFontSize(10)
     pdf.setFont('helvetica', 'normal')
     pdf.text(
@@ -383,6 +397,7 @@ export function RecapitulatifTravaux({
     }
 
     // Footer
+    const piedGauche = [nomSociete, projetName].filter(Boolean).join(' — ')
     const totalPages = pdf.getNumberOfPages()
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i)
@@ -390,6 +405,7 @@ export function RecapitulatifTravaux({
       pdf.line(margin, pageHeight - footerH, pageWidth - margin, pageHeight - footerH)
       pdf.setTextColor(181, 171, 161)
       pdf.setFontSize(8)
+      pdf.text(piedGauche, margin, pageHeight - 4)
       pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 4, {
         align: 'right',
       })
