@@ -98,18 +98,51 @@ export function RecapitulatifTravaux({
     return { totalLignes, rapportsLies, terminees, avancementGlobal }
   }, [lignesDE, rapports, ligneTotals])
 
-  // Grand total row
-  const grandTotalByRapport = useMemo(() => {
-    const result: Record<string, number> = {}
+  // Group rapports by date
+  const colonnesParDate = useMemo(() => {
+    const dateMap = new Map<string, { dateStr: string; dateISO: string; rapportIds: string[]; titres: string[] }>()
     for (const r of rapports) {
+      const dateKey = r.date.slice(0, 10) // "YYYY-MM-DD"
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, {
+          dateStr: formatShortDate(r.date),
+          dateISO: dateKey,
+          rapportIds: [],
+          titres: [],
+        })
+      }
+      const entry = dateMap.get(dateKey)!
+      entry.rapportIds.push(r.id)
+      if (r.titre) entry.titres.push(r.titre)
+    }
+    // Sort by date
+    return Array.from(dateMap.values()).sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+  }, [rapports])
+
+  // Compute cumulated value per ligne per date
+  function valeurParDate(ligneId: string, col: { rapportIds: string[] }): number {
+    let total = 0
+    for (const rId of col.rapportIds) {
+      total += (matrice[ligneId]?.[rId] || 0)
+    }
+    return total
+  }
+
+  // Grand total row by date column
+  const grandTotalByDate = useMemo(() => {
+    const result: Record<string, number> = {}
+    for (const col of colonnesParDate) {
       let total = 0
       for (const ligne of filteredLignes) {
-        total += (matrice[ligne.id]?.[r.id] || 0)
+        total += valeurParDate(ligne.id, col)
       }
-      result[r.id] = total
+      result[col.dateISO] = total
     }
     return result
-  }, [rapports, filteredLignes, matrice])
+  }, [colonnesParDate, filteredLignes, matrice])
+
+  // Keep old name for compatibility
+  const grandTotalByRapport = grandTotalByDate
 
   const grandTotal = useMemo(() => {
     return filteredLignes.reduce((s, l) => s + (ligneTotals[l.id] || 0), 0)
@@ -128,7 +161,7 @@ export function RecapitulatifTravaux({
       'D\u00E9signation',
       'Unit\u00E9',
       'Pr\u00E9vu',
-      ...rapports.map(r => `RJ ${formatShortDate(r.date)}`),
+      ...colonnesParDate.map(col => `${col.dateStr} (${col.titres.join(', ')})`),
       'Total',
       '% Avancement',
     ]
@@ -141,8 +174,8 @@ export function RecapitulatifTravaux({
         `"${l.designation.replace(/"/g, '""')}"`,
         l.unite,
         formatNombreFR(l.quantite),
-        ...rapports.map(r => {
-          const val = matrice[l.id]?.[r.id] || 0
+        ...colonnesParDate.map(col => {
+          const val = valeurParDate(l.id, col)
           return val > 0 ? formatNombreFR(val) : ''
         }),
         formatNombreFR(total),
@@ -158,7 +191,7 @@ export function RecapitulatifTravaux({
     a.download = `recapitulatif_${projetName.replace(/\s+/g, '_')}.csv`
     a.click()
     URL.revokeObjectURL(url)
-  }, [filteredLignes, rapports, matrice, ligneTotals, projetName])
+  }, [filteredLignes, colonnesParDate, matrice, ligneTotals, projetName])
 
   // PDF Export
   const exportPDF = useCallback(async () => {
@@ -341,14 +374,16 @@ export function RecapitulatifTravaux({
               <th className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 70 }}>
                 Prevu
               </th>
-              {rapports.map(r => (
+              {colonnesParDate.map(col => (
                 <th
-                  key={r.id}
-                  className="text-center px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap"
+                  key={col.dateISO}
+                  className="text-center px-1 py-1 text-white font-bold border-r border-white/20 whitespace-nowrap"
                   style={{ minWidth: 70 }}
-                  title={r.titre || undefined}
                 >
-                  RJ {formatShortDate(r.date)}
+                  <div style={{ fontSize: 10, lineHeight: 1.3 }}>{col.dateStr}</div>
+                  <div style={{ fontSize: 8, fontWeight: 400, opacity: 0.75, lineHeight: 1.2, marginTop: 1 }}>
+                    {col.titres.length > 0 ? col.titres.join(' · ') : '—'}
+                  </div>
                 </th>
               ))}
               <th className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 70 }}>
@@ -363,7 +398,7 @@ export function RecapitulatifTravaux({
             {filteredLignes.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4 + rapports.length + 2}
+                  colSpan={4 + colonnesParDate.length + 2}
                   className="text-center py-8 text-[#5A5A5A]"
                 >
                   Aucune ligne trouvee
@@ -393,11 +428,11 @@ export function RecapitulatifTravaux({
                     <td className="px-2 py-1.5 border-r border-[#DCDCDC] text-right">
                       {formatNombreFR(ligne.quantite)}
                     </td>
-                    {rapports.map(r => {
-                      const val = matrice[ligne.id]?.[r.id] || 0
+                    {colonnesParDate.map(col => {
+                      const val = valeurParDate(ligne.id, col)
                       return (
                         <td
-                          key={r.id}
+                          key={col.dateISO}
                           className="px-2 py-1.5 border-r border-[#DCDCDC] text-center"
                           style={
                             val > 0
@@ -437,12 +472,12 @@ export function RecapitulatifTravaux({
                 <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">
                   {formatNombreFR(grandTotalPrevu)}
                 </td>
-                {rapports.map(r => (
+                {colonnesParDate.map(col => (
                   <td
-                    key={r.id}
+                    key={col.dateISO}
                     className="px-2 py-2 text-white font-bold text-center border-r border-white/20"
                   >
-                    {grandTotalByRapport[r.id] > 0 ? formatNombreFR(grandTotalByRapport[r.id]) : ''}
+                    {grandTotalByDate[col.dateISO] > 0 ? formatNombreFR(grandTotalByDate[col.dateISO]) : ''}
                   </td>
                 ))}
                 <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">
