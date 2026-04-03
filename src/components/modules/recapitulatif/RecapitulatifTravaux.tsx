@@ -5,6 +5,7 @@ import { formatNombreFR, formatDateFR } from '@/lib/utils'
 import { Search, Download, FileText, BarChart3, FileCheck, CheckCircle2, TrendingUp } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { updateQuantiteDE } from '@/actions/rapports'
 
 interface LigneDEData {
   id: string
@@ -30,6 +31,13 @@ interface RecapitulatifTravauxProps {
 
 type FilterType = 'tous' | 'en_cours' | 'termines'
 
+interface ColonneDate {
+  dateStr: string
+  dateISO: string
+  rapportIds: string[]
+  titres: string[]
+}
+
 function getAvancementStyle(pct: number): { bg: string; text: string } {
   if (pct >= 100) return { bg: '#E8EFDA', text: '#5E8019' }
   if (pct >= 75) return { bg: '#FFF7D1', text: '#DD9412' }
@@ -40,6 +48,89 @@ function getAvancementStyle(pct: number): { bg: string; text: string } {
 function formatShortDate(iso: string): string {
   const d = new Date(iso)
   return formatDateFR(d)
+}
+
+function CelluleEditable({
+  ligneId,
+  col,
+  valeur,
+  matriceLocale,
+  projetId,
+  onUpdate,
+}: {
+  ligneId: string
+  col: ColonneDate
+  valeur: number
+  matriceLocale: Record<string, Record<string, number>>
+  projetId: string
+  onUpdate: (ligneId: string, rapportId: string, newVal: number) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [localVal, setLocalVal] = useState('')
+
+  const handleClick = () => {
+    setLocalVal(valeur > 0 ? String(valeur) : '')
+    setEditing(true)
+  }
+
+  const handleSave = async () => {
+    setEditing(false)
+    const newVal = parseFloat(localVal) || 0
+    if (newVal === valeur) return
+
+    // Trouver le bon rapport :
+    // - Si une valeur existait deja dans un rapport -> modifier ce rapport
+    // - Sinon -> utiliser le premier rapport de cette date
+    let targetRapportId = col.rapportIds[0]
+    for (const rId of col.rapportIds) {
+      if ((matriceLocale[ligneId]?.[rId] || 0) > 0) {
+        targetRapportId = rId
+        break
+      }
+    }
+
+    // Mise a jour optimiste
+    onUpdate(ligneId, targetRapportId, newVal)
+
+    // Sauvegarder cote serveur
+    await updateQuantiteDE(projetId, targetRapportId, ligneId, newVal)
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="number"
+        min="0"
+        step="0.5"
+        autoFocus
+        value={localVal}
+        onChange={(e) => setLocalVal(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSave()
+          if (e.key === 'Escape') setEditing(false)
+        }}
+        className="w-full text-center outline-none"
+        style={{
+          border: '2px solid #004489',
+          borderRadius: 3,
+          padding: '2px 4px',
+          fontSize: 12,
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      onClick={handleClick}
+      className="cursor-pointer w-full"
+      style={{ minHeight: 20 }}
+      title="Cliquer pour modifier"
+    >
+      {valeur > 0 ? formatNombreFR(valeur) : ''}
+    </div>
+  )
 }
 
 export function RecapitulatifTravaux({
@@ -53,19 +144,41 @@ export function RecapitulatifTravaux({
   const [filter, setFilter] = useState<FilterType>('tous')
   const tableRef = useRef<HTMLDivElement>(null)
 
+  // State local pour mise a jour optimiste
+  const [matriceLocale, setMatriceLocale] = useState(matrice)
+
+  const handleCellUpdate = useCallback(
+    (ligneId: string, rapportId: string, newVal: number) => {
+      setMatriceLocale((prev) => {
+        const next = { ...prev }
+        if (!next[ligneId]) next[ligneId] = {}
+        next[ligneId] = { ...next[ligneId] }
+        if (newVal > 0) {
+          next[ligneId][rapportId] = newVal
+        } else {
+          const copy = { ...next[ligneId] }
+          delete copy[rapportId]
+          next[ligneId] = copy
+        }
+        return next
+      })
+    },
+    []
+  )
+
   // Compute totals per ligne
   const ligneTotals = useMemo(() => {
     const result: Record<string, number> = {}
     for (const ligne of lignesDE) {
       let total = 0
-      const rapportMap = matrice[ligne.id] || {}
+      const rapportMap = matriceLocale[ligne.id] || {}
       for (const qty of Object.values(rapportMap)) {
         total += qty
       }
       result[ligne.id] = total
     }
     return result
-  }, [lignesDE, matrice])
+  }, [lignesDE, matriceLocale])
 
   // Filter lignes
   const filteredLignes = useMemo(() => {
@@ -74,14 +187,14 @@ export function RecapitulatifTravaux({
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
-        l => l.code.toLowerCase().includes(q) || l.designation.toLowerCase().includes(q)
+        (l) => l.code.toLowerCase().includes(q) || l.designation.toLowerCase().includes(q)
       )
     }
 
     if (filter === 'termines') {
-      result = result.filter(l => l.quantite > 0 && ligneTotals[l.id] >= l.quantite)
+      result = result.filter((l) => l.quantite > 0 && ligneTotals[l.id] >= l.quantite)
     } else if (filter === 'en_cours') {
-      result = result.filter(l => l.quantite <= 0 || ligneTotals[l.id] < l.quantite)
+      result = result.filter((l) => l.quantite <= 0 || ligneTotals[l.id] < l.quantite)
     }
 
     return result
@@ -91,7 +204,9 @@ export function RecapitulatifTravaux({
   const stats = useMemo(() => {
     const totalLignes = lignesDE.length
     const rapportsLies = rapports.length
-    const terminees = lignesDE.filter(l => l.quantite > 0 && ligneTotals[l.id] >= l.quantite).length
+    const terminees = lignesDE.filter(
+      (l) => l.quantite > 0 && ligneTotals[l.id] >= l.quantite
+    ).length
     const totalPrevu = lignesDE.reduce((s, l) => s + l.quantite, 0)
     const totalRealise = Object.values(ligneTotals).reduce((s, v) => s + v, 0)
     const avancementGlobal = totalPrevu > 0 ? (totalRealise / totalPrevu) * 100 : 0
@@ -100,7 +215,7 @@ export function RecapitulatifTravaux({
 
   // Group rapports by date
   const colonnesParDate = useMemo(() => {
-    const dateMap = new Map<string, { dateStr: string; dateISO: string; rapportIds: string[]; titres: string[] }>()
+    const dateMap = new Map<string, ColonneDate>()
     for (const r of rapports) {
       const dateKey = r.date.slice(0, 10) // "YYYY-MM-DD"
       if (!dateMap.has(dateKey)) {
@@ -123,7 +238,7 @@ export function RecapitulatifTravaux({
   function valeurParDate(ligneId: string, col: { rapportIds: string[] }): number {
     let total = 0
     for (const rId of col.rapportIds) {
-      total += (matrice[ligneId]?.[rId] || 0)
+      total += matriceLocale[ligneId]?.[rId] || 0
     }
     return total
   }
@@ -139,10 +254,8 @@ export function RecapitulatifTravaux({
       result[col.dateISO] = total
     }
     return result
-  }, [colonnesParDate, filteredLignes, matrice])
-
-  // Keep old name for compatibility
-  const grandTotalByRapport = grandTotalByDate
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colonnesParDate, filteredLignes, matriceLocale])
 
   const grandTotal = useMemo(() => {
     return filteredLignes.reduce((s, l) => s + (ligneTotals[l.id] || 0), 0)
@@ -161,12 +274,12 @@ export function RecapitulatifTravaux({
       'D\u00E9signation',
       'Unit\u00E9',
       'Pr\u00E9vu',
-      ...colonnesParDate.map(col => `${col.dateStr} (${col.titres.join(', ')})`),
+      ...colonnesParDate.map((col) => `${col.dateStr} (${col.titres.join(', ')})`),
       'Total',
       '% Avancement',
     ]
 
-    const rows = filteredLignes.map(l => {
+    const rows = filteredLignes.map((l) => {
       const total = ligneTotals[l.id] || 0
       const pct = l.quantite > 0 ? (total / l.quantite) * 100 : 0
       return [
@@ -174,7 +287,7 @@ export function RecapitulatifTravaux({
         `"${l.designation.replace(/"/g, '""')}"`,
         l.unite,
         formatNombreFR(l.quantite),
-        ...colonnesParDate.map(col => {
+        ...colonnesParDate.map((col) => {
           const val = valeurParDate(l.id, col)
           return val > 0 ? formatNombreFR(val) : ''
         }),
@@ -183,7 +296,7 @@ export function RecapitulatifTravaux({
       ]
     })
 
-    const csv = BOM + [headers.join(sep), ...rows.map(r => r.join(sep))].join('\n')
+    const csv = BOM + [headers.join(sep), ...rows.map((r) => r.join(sep))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -191,7 +304,8 @@ export function RecapitulatifTravaux({
     a.download = `recapitulatif_${projetName.replace(/\s+/g, '_')}.csv`
     a.click()
     URL.revokeObjectURL(url)
-  }, [filteredLignes, colonnesParDate, matrice, ligneTotals, projetName])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLignes, colonnesParDate, matriceLocale, ligneTotals, projetName])
 
   // PDF Export
   const exportPDF = useCallback(async () => {
@@ -220,7 +334,12 @@ export function RecapitulatifTravaux({
     pdf.text('CONDUC RAIL', 10, 12)
     pdf.setFontSize(10)
     pdf.setFont('helvetica', 'normal')
-    pdf.text(`${projetName} - R\u00E9capitulatif Travaux`, pageWidth - 10, 12, { align: 'right' })
+    pdf.text(
+      `${projetName} - R\u00E9capitulatif Travaux`,
+      pageWidth - 10,
+      12,
+      { align: 'right' }
+    )
 
     // Image
     const margin = 10
@@ -250,7 +369,12 @@ export function RecapitulatifTravaux({
           pdf.setTextColor(255, 255, 255)
           pdf.setFontSize(10)
           pdf.setFont('helvetica', 'normal')
-          pdf.text(`${projetName} - R\u00E9capitulatif Travaux (suite)`, pageWidth - 10, 12, { align: 'right' })
+          pdf.text(
+            `${projetName} - R\u00E9capitulatif Travaux (suite)`,
+            pageWidth - 10,
+            12,
+            { align: 'right' }
+          )
         }
         pdf.addImage(imgData, 'PNG', margin, headerH - yOffset, availW, fullDrawH)
         yOffset += availH
@@ -266,7 +390,9 @@ export function RecapitulatifTravaux({
       pdf.line(margin, pageHeight - footerH, pageWidth - margin, pageHeight - footerH)
       pdf.setTextColor(181, 171, 161)
       pdf.setFontSize(8)
-      pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 4, { align: 'right' })
+      pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 4, {
+        align: 'right',
+      })
     }
 
     pdf.save(`recapitulatif_${projetName.replace(/\s+/g, '_')}.pdf`)
@@ -300,7 +426,10 @@ export function RecapitulatifTravaux({
           <TrendingUp className="h-5 w-5" style={{ color: avancementGlobalStyle.text }} />
           <div>
             <div className="text-xs text-[#5A5A5A]">Avancement global</div>
-            <div className="text-lg font-bold" style={{ color: avancementGlobalStyle.text }}>
+            <div
+              className="text-lg font-bold"
+              style={{ color: avancementGlobalStyle.text }}
+            >
               {formatNombreFR(stats.avancementGlobal, 1)}%
             </div>
           </div>
@@ -314,16 +443,18 @@ export function RecapitulatifTravaux({
           <Input
             placeholder="Rechercher une ligne..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
           />
         </div>
         <div className="flex gap-1">
-          {([
-            ['tous', 'Tous'],
-            ['en_cours', 'En cours'],
-            ['termines', 'Termin\u00E9s'],
-          ] as const).map(([key, label]) => (
+          {(
+            [
+              ['tous', 'Tous'],
+              ['en_cours', 'En cours'],
+              ['termines', 'Termin\u00E9s'],
+            ] as const
+          ).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
@@ -358,38 +489,69 @@ export function RecapitulatifTravaux({
       </div>
 
       {/* Table */}
+      <style>{`
+        .recap-table td.editable-cell:hover {
+          background-color: #E5EFF8 !important;
+        }
+      `}</style>
       <div ref={tableRef} className="overflow-x-auto border border-[#DCDCDC] rounded-lg">
-        <table className="w-full text-xs border-collapse">
+        <table className="w-full text-xs border-collapse recap-table">
           <thead>
             <tr style={{ backgroundColor: '#004489' }}>
-              <th className="text-left px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap sticky left-0 z-10" style={{ backgroundColor: '#004489', minWidth: 50 }}>
+              <th
+                className="text-left px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap sticky left-0 z-10"
+                style={{ backgroundColor: '#004489', minWidth: 50 }}
+              >
                 N°
               </th>
-              <th className="text-left px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 200 }}>
+              <th
+                className="text-left px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap"
+                style={{ minWidth: 200 }}
+              >
                 Designation
               </th>
-              <th className="text-center px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 50 }}>
+              <th
+                className="text-center px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap"
+                style={{ minWidth: 50 }}
+              >
                 Unite
               </th>
-              <th className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 70 }}>
+              <th
+                className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap"
+                style={{ minWidth: 70 }}
+              >
                 Prevu
               </th>
-              {colonnesParDate.map(col => (
+              {colonnesParDate.map((col) => (
                 <th
                   key={col.dateISO}
                   className="text-center px-1 py-1 text-white font-bold border-r border-white/20 whitespace-nowrap"
                   style={{ minWidth: 70 }}
                 >
                   <div style={{ fontSize: 10, lineHeight: 1.3 }}>{col.dateStr}</div>
-                  <div style={{ fontSize: 8, fontWeight: 400, opacity: 0.75, lineHeight: 1.2, marginTop: 1 }}>
-                    {col.titres.length > 0 ? col.titres.join(' · ') : '—'}
+                  <div
+                    style={{
+                      fontSize: 8,
+                      fontWeight: 400,
+                      opacity: 0.75,
+                      lineHeight: 1.2,
+                      marginTop: 1,
+                    }}
+                  >
+                    {col.titres.length > 0 ? col.titres.join(' · ') : '\u2014'}
                   </div>
                 </th>
               ))}
-              <th className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap" style={{ minWidth: 70 }}>
+              <th
+                className="text-right px-2 py-2 text-white font-bold border-r border-white/20 whitespace-nowrap"
+                style={{ minWidth: 70 }}
+              >
                 Total
               </th>
-              <th className="text-center px-2 py-2 text-white font-bold whitespace-nowrap" style={{ minWidth: 80 }}>
+              <th
+                className="text-center px-2 py-2 text-white font-bold whitespace-nowrap"
+                style={{ minWidth: 80 }}
+              >
                 % Avancement
               </th>
             </tr>
@@ -428,19 +590,30 @@ export function RecapitulatifTravaux({
                     <td className="px-2 py-1.5 border-r border-[#DCDCDC] text-right">
                       {formatNombreFR(ligne.quantite)}
                     </td>
-                    {colonnesParDate.map(col => {
+                    {colonnesParDate.map((col) => {
                       const val = valeurParDate(ligne.id, col)
                       return (
                         <td
                           key={col.dateISO}
-                          className="px-2 py-1.5 border-r border-[#DCDCDC] text-center"
+                          className="px-1 py-0.5 border-r border-[#DCDCDC] text-center editable-cell"
                           style={
                             val > 0
-                              ? { backgroundColor: '#E5EFF8', color: '#004489', fontWeight: 700 }
+                              ? {
+                                  backgroundColor: '#E5EFF8',
+                                  color: '#004489',
+                                  fontWeight: 700,
+                                }
                               : undefined
                           }
                         >
-                          {val > 0 ? formatNombreFR(val) : ''}
+                          <CelluleEditable
+                            ligneId={ligne.id}
+                            col={col}
+                            valeur={val}
+                            matriceLocale={matriceLocale}
+                            projetId={projetId}
+                            onUpdate={handleCellUpdate}
+                          />
                         </td>
                       )
                     })}
@@ -472,12 +645,14 @@ export function RecapitulatifTravaux({
                 <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">
                   {formatNombreFR(grandTotalPrevu)}
                 </td>
-                {colonnesParDate.map(col => (
+                {colonnesParDate.map((col) => (
                   <td
                     key={col.dateISO}
                     className="px-2 py-2 text-white font-bold text-center border-r border-white/20"
                   >
-                    {grandTotalByDate[col.dateISO] > 0 ? formatNombreFR(grandTotalByDate[col.dateISO]) : ''}
+                    {grandTotalByDate[col.dateISO] > 0
+                      ? formatNombreFR(grandTotalByDate[col.dateISO])
+                      : ''}
                   </td>
                 ))}
                 <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">

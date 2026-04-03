@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import type { ActionResult } from '@/types'
 
@@ -177,6 +178,57 @@ export async function deleteRapport(
   } catch (error) {
     console.error('deleteRapport error:', error)
     return { success: false, error: 'Erreur lors de la suppression du rapport' }
+  }
+}
+
+export async function updateQuantiteDE(
+  projetId: string,
+  rapportId: string,
+  ligneDEId: string,
+  quantite: number
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser()
+    await checkMembership(projetId, user.id)
+
+    // Lire le rapport
+    const rapport = await prisma.rapportJournalier.findUnique({
+      where: { id: rapportId },
+      select: { travaux: true },
+    })
+    if (!rapport) return { success: false, error: 'Rapport introuvable' }
+
+    // Modifier le JSON travaux
+    const travaux = Array.isArray(rapport.travaux)
+      ? [...(rapport.travaux as Array<Record<string, unknown>>)]
+      : []
+    const existant = travaux.findIndex(
+      (t) => t.ligneDeId === ligneDEId
+    )
+
+    if (quantite > 0) {
+      if (existant >= 0) {
+        travaux[existant] = { ...travaux[existant], quantiteRealisee: quantite }
+      } else {
+        travaux.push({ ligneDeId: ligneDEId, quantiteRealisee: quantite })
+      }
+    } else {
+      // Supprimer si 0
+      if (existant >= 0) travaux.splice(existant, 1)
+    }
+
+    // Sauvegarder
+    await prisma.rapportJournalier.update({
+      where: { id: rapportId },
+      data: { travaux: travaux as unknown as Prisma.InputJsonValue },
+    })
+
+    revalidatePath(`/projets/${projetId}/suivi/recapitulatif`)
+    revalidatePath(`/projets/${projetId}/suivi/situation`)
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('updateQuantiteDE error:', error)
+    return { success: false, error: 'Erreur lors de la mise a jour de la quantite' }
   }
 }
 
