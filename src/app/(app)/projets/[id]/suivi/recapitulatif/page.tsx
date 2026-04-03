@@ -16,7 +16,7 @@ export default async function RecapitulatifPage({ params }: PageProps) {
   })
   if (!member) redirect('/projets')
 
-  const [lignesDE, rapports, avancements, projet] = await Promise.all([
+  const [lignesDE, rapports, projet] = await Promise.all([
     prisma.ligneDE.findMany({
       where: { projetId: params.id },
       orderBy: { ordre: 'asc' },
@@ -24,10 +24,7 @@ export default async function RecapitulatifPage({ params }: PageProps) {
     prisma.rapportJournalier.findMany({
       where: { projetId: params.id },
       orderBy: { date: 'asc' },
-      select: { id: true, date: true, titre: true },
-    }),
-    prisma.ligneAvancement.findMany({
-      where: { rapport: { projetId: params.id } },
+      select: { id: true, date: true, titre: true, posteNuit: true, travaux: true },
     }),
     prisma.projet.findUnique({
       where: { id: params.id },
@@ -35,16 +32,26 @@ export default async function RecapitulatifPage({ params }: PageProps) {
     }),
   ])
 
-  // Build matrix: ligneDEId -> rapportId -> quantite
+  // Build matrix from travaux JSON: ligneDEId -> rapportId -> quantite
   const matrice: Record<string, Record<string, number>> = {}
-  for (const av of avancements) {
-    if (!matrice[av.ligneDEId]) matrice[av.ligneDEId] = {}
-    matrice[av.ligneDEId][av.rapportId] = av.quantiteRealisee
+  for (const rapport of rapports) {
+    const travauxArray = Array.isArray(rapport.travaux) ? rapport.travaux : []
+    for (const item of travauxArray as Array<{ ligneDeId?: string; quantiteRealisee?: number }>) {
+      if (item.ligneDeId && item.quantiteRealisee && item.quantiteRealisee > 0) {
+        if (!matrice[item.ligneDeId]) matrice[item.ligneDeId] = {}
+        matrice[item.ligneDeId][rapport.id] = item.quantiteRealisee
+      }
+    }
   }
 
-  // Only include rapports that have at least one avancement
-  const rapportIdsAvecAvancements = new Set(avancements.map(a => a.rapportId))
-  const rapportsFiltres = rapports.filter(r => rapportIdsAvecAvancements.has(r.id))
+  // Only include rapports that have at least one travail entry
+  const rapportIdsAvecTravaux = new Set<string>()
+  for (const rapportMap of Object.values(matrice)) {
+    for (const rapportId of Object.keys(rapportMap)) {
+      rapportIdsAvecTravaux.add(rapportId)
+    }
+  }
+  const rapportsFiltres = rapports.filter(r => rapportIdsAvecTravaux.has(r.id))
 
   return (
     <RecapitulatifTravaux
