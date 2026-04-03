@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { parseHeure, formatDateFR } from '@/lib/utils'
-import { createRapport, updateRapport } from '@/actions/rapports'
+import { createRapport, updateRapport, saveAvancements } from '@/actions/rapports'
 import { Save, FileText } from 'lucide-react'
 import { RapportPDFButton } from './RapportPDFButton'
 
@@ -55,6 +55,11 @@ interface RapportData {
   redacteur?: { id: string; name: string } | null
 }
 
+interface AvancementExistant {
+  ligneDEId: string
+  quantiteRealisee: number
+}
+
 interface RapportFormProps {
   projetId: string
   projetName: string
@@ -62,6 +67,8 @@ interface RapportFormProps {
   lignesDE: LigneDE[]
   users: User[]
   isNew: boolean
+  avancementsExistants?: AvancementExistant[]
+  totalDejaRealise?: Record<string, number>
 }
 
 function toDateInputValue(d: Date | null | undefined): string {
@@ -76,6 +83,8 @@ export function RapportForm({
   lignesDE,
   users,
   isNew,
+  avancementsExistants = [],
+  totalDejaRealise = {},
 }: RapportFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -107,6 +116,15 @@ export function RapportForm({
     const map: Record<string, number> = {}
     existingTravaux.forEach(t => {
       map[t.ligneDeId] = t.quantiteRealisee
+    })
+    return map
+  })
+
+  // Avancements DE state
+  const [avancementValues, setAvancementValues] = useState<Record<string, number>>(() => {
+    const map: Record<string, number> = {}
+    avancementsExistants.forEach(a => {
+      map[a.ligneDEId] = a.quantiteRealisee
     })
     return map
   })
@@ -201,6 +219,9 @@ export function RapportForm({
         result = await updateRapport(rapport!.id!, projetId, formData)
       }
       if (result.success) {
+        // Save avancements
+        const rapportId = isNew ? (result as { success: true; data: { id: string } }).data.id : rapport!.id!
+        await saveAvancements(rapportId, projetId, avancementValues)
         router.push(`/projets/${projetId}/suivi/rapports`)
       } else {
         setError(result.error)
@@ -477,6 +498,67 @@ export function RapportForm({
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: Avancement Detail Estimatif */}
+      {lignesDE.length > 0 && (
+        <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+          <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
+            Avancement Detail Estimatif
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#004489] text-white font-bold">
+                  <th className="text-left px-3 py-2 border-r border-[#DCDCDC]/20">Designation</th>
+                  <th className="text-center px-3 py-2 border-r border-[#DCDCDC]/20">Unite</th>
+                  <th className="text-right px-3 py-2 border-r border-[#DCDCDC]/20">Prevu total</th>
+                  <th className="text-center px-3 py-2 border-r border-[#DCDCDC]/20">Realise aujourd&apos;hui</th>
+                  <th className="text-right px-3 py-2">Deja realise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lignesDE.map((l, i) => {
+                  const dejaRealise = totalDejaRealise[l.id] || 0
+                  return (
+                    <tr
+                      key={l.id}
+                      className={`border-t border-[#DCDCDC] ${
+                        i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
+                      }`}
+                    >
+                      <td className="px-3 py-2 border-r border-[#DCDCDC]">
+                        {l.designation}
+                      </td>
+                      <td className="px-3 py-2 border-r border-[#DCDCDC] text-center">
+                        {l.unite}
+                      </td>
+                      <td className="px-3 py-2 border-r border-[#DCDCDC] text-right">
+                        {l.quantite}
+                      </td>
+                      <td className="px-3 py-1.5 text-center border-r border-[#DCDCDC]">
+                        <Input
+                          type="number"
+                          min={0}
+                          step="any"
+                          value={avancementValues[l.id] || ''}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value) || 0
+                            setAvancementValues(prev => ({ ...prev, [l.id]: val }))
+                          }}
+                          className="w-24 mx-auto text-center h-8"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right text-[#5A5A5A]">
+                        {dejaRealise > 0 ? dejaRealise.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : '-'}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

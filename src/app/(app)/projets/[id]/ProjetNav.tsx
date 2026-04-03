@@ -34,12 +34,13 @@ const ONGLETS = [
   {
     id: 'chantier',
     label: 'Gestion de Chantier',
-    routes: ['/tableau-service', '/suivi/rapports', '/composition', '/suivi/sa'],
+    routes: ['/tableau-service', '/suivi/rapports', '/composition', '/suivi/sa', '/suivi/recapitulatif'],
     sousMenus: [
       { label: 'Tableau de Service', href: 'tableau-service' },
       { label: 'Rapports', href: 'suivi/rapports' },
       { label: 'Composition TTx', href: 'composition' },
       { label: 'SA', href: 'suivi/sa' },
+      { label: 'Récapitulatif', href: 'suivi/recapitulatif' },
     ],
   },
 ];

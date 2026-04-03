@@ -256,10 +256,21 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
       // 7. Lignes ARF manuelles
       await tx.ligneARFManuelle.deleteMany({ where: { projetId: id } });
 
+      // 7b. Lignes avancement (avant rapports et lignesDE)
+      const rapportIds = await tx.rapportJournalier.findMany({
+        where: { projetId: id },
+        select: { id: true },
+      });
+      if (rapportIds.length > 0) {
+        await tx.ligneAvancement.deleteMany({
+          where: { rapportId: { in: rapportIds.map(r => r.id) } },
+        });
+      }
+
       // 8. Rapports journaliers
       await tx.rapportJournalier.deleteMany({ where: { projetId: id } });
 
-      // 8. Lignes DE
+      // 8b. Lignes DE
       await tx.ligneDE.deleteMany({ where: { projetId: id } });
 
       // 9. Tableaux de service

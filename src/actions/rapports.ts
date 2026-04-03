@@ -180,6 +180,72 @@ export async function deleteRapport(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Avancements (LigneAvancement)
+// ---------------------------------------------------------------------------
+
+export async function saveAvancements(
+  rapportId: string,
+  projetId: string,
+  avancements: Record<string, number>
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser()
+    await checkMembership(projetId, user.id)
+
+    // Verify rapport belongs to this project
+    const rapport = await prisma.rapportJournalier.findUnique({
+      where: { id: rapportId },
+      select: { projetId: true },
+    })
+    if (!rapport || rapport.projetId !== projetId) {
+      return { success: false, error: 'Rapport introuvable' }
+    }
+
+    // Process each ligne
+    for (const [ligneDEId, quantite] of Object.entries(avancements)) {
+      if (quantite > 0) {
+        await prisma.ligneAvancement.upsert({
+          where: { ligneDEId_rapportId: { ligneDEId, rapportId } },
+          update: { quantiteRealisee: quantite },
+          create: { ligneDEId, rapportId, quantiteRealisee: quantite },
+        })
+      } else {
+        await prisma.ligneAvancement.deleteMany({
+          where: { ligneDEId, rapportId },
+        })
+      }
+    }
+
+    revalidatePath(`/projets/${projetId}/suivi/rapports`)
+    revalidatePath(`/projets/${projetId}/suivi/recapitulatif`)
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('saveAvancements error:', error)
+    return { success: false, error: 'Erreur lors de la sauvegarde des avancements' }
+  }
+}
+
+export async function getAvancements(rapportId: string, projetId: string) {
+  const user = await getAuthUser()
+  await checkMembership(projetId, user.id)
+
+  return prisma.ligneAvancement.findMany({
+    where: { rapportId },
+  })
+}
+
+export async function getAllAvancements(projetId: string) {
+  const user = await getAuthUser()
+  await checkMembership(projetId, user.id)
+
+  return prisma.ligneAvancement.findMany({
+    where: {
+      rapport: { projetId },
+    },
+  })
+}
+
 export async function searchPersonnel(query: string) {
   await getAuthUser()
 

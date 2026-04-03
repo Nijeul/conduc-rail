@@ -99,6 +99,7 @@ model LigneDE {
   ordre        Int      @default(0)
   createdAt    DateTime @default(now())
   projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  avancements  LigneAvancement[]
 }
 
 model RapportJournalier {
@@ -123,6 +124,7 @@ model RapportJournalier {
   updatedAt        DateTime  @updatedAt
   projet           Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
   redacteur        User?     @relation("redacteur", fields: [redacteurId], references: [id])
+  avancements      LigneAvancement[]
 }
 
 model SoudureAluminothermique {
@@ -276,4 +278,14 @@ model LigneARFManuelle {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model LigneAvancement {
+  id               String            @id @default(cuid())
+  ligneDEId        String
+  rapportId        String
+  quantiteRealisee Float
+  ligneDE          LigneDE           @relation(fields: [ligneDEId], references: [id], onDelete: Cascade)
+  rapport          RapportJournalier @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  @@unique([ligneDEId, rapportId])
 }

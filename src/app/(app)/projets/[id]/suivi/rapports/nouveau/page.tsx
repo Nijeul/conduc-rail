@@ -1,6 +1,6 @@
 import { getProjet } from '@/actions/projets'
 import { getLignesDE } from '@/actions/detail-estimatif'
-import { getUsers } from '@/actions/rapports'
+import { getUsers, getAllAvancements } from '@/actions/rapports'
 import { RapportForm } from '@/components/modules/rapports/RapportForm'
 import { notFound } from 'next/navigation'
 
@@ -12,10 +12,17 @@ export default async function NouveauRapportPage({ params }: Props) {
   const projet = await getProjet(params.id)
   if (!projet) notFound()
 
-  const [lignesDE, users] = await Promise.all([
+  const [lignesDE, users, tousAvancements] = await Promise.all([
     getLignesDE(params.id),
     getUsers(),
+    getAllAvancements(params.id),
   ])
+
+  // Build total deja realise
+  const totalDejaRealise: Record<string, number> = {}
+  for (const av of tousAvancements) {
+    totalDejaRealise[av.ligneDEId] = (totalDejaRealise[av.ligneDEId] || 0) + av.quantiteRealisee
+  }
 
   return (
     <RapportForm
@@ -24,6 +31,7 @@ export default async function NouveauRapportPage({ params }: Props) {
       lignesDE={lignesDE}
       users={users}
       isNew={true}
+      totalDejaRealise={totalDejaRealise}
     />
   )
 }

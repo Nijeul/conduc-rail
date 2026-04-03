@@ -1,5 +1,5 @@
 import { getProjet } from '@/actions/projets'
-import { getRapport, getUsers } from '@/actions/rapports'
+import { getRapport, getUsers, getAvancements, getAllAvancements } from '@/actions/rapports'
 import { getLignesDE } from '@/actions/detail-estimatif'
 import { RapportForm } from '@/components/modules/rapports/RapportForm'
 import { notFound } from 'next/navigation'
@@ -12,10 +12,12 @@ export default async function EditRapportPage({ params }: Props) {
   const projet = await getProjet(params.id)
   if (!projet) notFound()
 
-  const [rapport, lignesDE, users] = await Promise.all([
+  const [rapport, lignesDE, users, avancementsCeRapport, tousAvancements] = await Promise.all([
     getRapport(params.rapportId, params.id),
     getLignesDE(params.id),
     getUsers(),
+    getAvancements(params.rapportId, params.id),
+    getAllAvancements(params.id),
   ])
 
   if (!rapport) notFound()
@@ -32,6 +34,13 @@ export default async function EditRapportPage({ params }: Props) {
     }>) || [],
   }
 
+  // Build total deja realise (excluding current rapport)
+  const totalDejaRealise: Record<string, number> = {}
+  for (const av of tousAvancements) {
+    if (av.rapportId === params.rapportId) continue
+    totalDejaRealise[av.ligneDEId] = (totalDejaRealise[av.ligneDEId] || 0) + av.quantiteRealisee
+  }
+
   return (
     <RapportForm
       projetId={params.id}
@@ -40,6 +49,11 @@ export default async function EditRapportPage({ params }: Props) {
       lignesDE={lignesDE}
       users={users}
       isNew={false}
+      avancementsExistants={avancementsCeRapport.map(a => ({
+        ligneDEId: a.ligneDEId,
+        quantiteRealisee: a.quantiteRealisee,
+      }))}
+      totalDejaRealise={totalDejaRealise}
     />
   )
 }
