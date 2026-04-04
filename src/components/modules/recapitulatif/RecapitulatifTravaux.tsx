@@ -647,41 +647,6 @@ export function RecapitulatifTravaux({
               })
             )}
           </tbody>
-          {/* Total row */}
-          {filteredLignes.length > 0 && (
-            <tfoot>
-              <tr style={{ backgroundColor: '#003370' }}>
-                <td
-                  colSpan={3}
-                  className="px-2 py-2 text-white font-bold text-right sticky left-0 z-10"
-                  style={{ backgroundColor: '#003370' }}
-                >
-                  TOTAL
-                </td>
-                <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">
-                  {formatNombreFR(grandTotalPrevu)}
-                </td>
-                {colonnesParDate.map((col) => (
-                  <td
-                    key={col.dateISO}
-                    className="px-2 py-2 text-white font-bold text-center border-r border-white/20"
-                  >
-                    {grandTotalByDate[col.dateISO] > 0
-                      ? formatNombreFR(grandTotalByDate[col.dateISO])
-                      : ''}
-                  </td>
-                ))}
-                <td className="px-2 py-2 text-white font-bold text-right border-r border-white/20">
-                  {formatNombreFR(grandTotal)}
-                </td>
-                <td className="px-2 py-2 text-white font-bold text-center">
-                  {grandTotalPrevu > 0
-                    ? formatNombreFR((grandTotal / grandTotalPrevu) * 100, 1) + '%'
-                    : '-'}
-                </td>
-              </tr>
-            </tfoot>
-          )}
         </table>
       </div>
     </div>
