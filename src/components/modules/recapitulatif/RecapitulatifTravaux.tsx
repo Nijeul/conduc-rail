@@ -420,18 +420,24 @@ export function RecapitulatifTravaux({
       pdf.setFontSize(7)
       pdf.text(`Édité le ${new Date().toLocaleDateString('fr-FR')}`, PW - M, 9, { align: 'right' })
 
-      // Dimensions colonnes
+      // Dimensions colonnes — ajustées dynamiquement selon le nombre de dates
       const nbColsDates = colsDuMois.length
-      const COL_W_NO = 12
-      const COL_W_DESIG = 50
-      const COL_W_UNITE = 12
-      const COL_W_PREVU = 16
-      const COL_W_TOTAL = 16
-      const COL_W_PCT = 14
-      const fixedW = COL_W_NO + COL_W_DESIG + COL_W_UNITE + COL_W_PREVU + COL_W_TOTAL + COL_W_PCT
+      const COL_W_UNITE = 10
+      const COL_W_PREVU = 14
+      const COL_W_TOTAL = 14
+      const COL_W_PCT = 12
+      const synthW = COL_W_UNITE + COL_W_PREVU + COL_W_TOTAL + COL_W_PCT
+      // Espace restant pour N° + Désignation + colonnes dates
+      const availForDynamic = PW - 2 * M - synthW
+      // Colonnes dates : entre 8 et 14mm selon le nombre
       const dateColW = nbColsDates > 0
-        ? Math.max(10, Math.min(18, (PW - 2 * M - fixedW) / nbColsDates))
+        ? Math.max(8, Math.min(14, (availForDynamic * 0.6) / nbColsDates))
         : 0
+      const datesW = dateColW * nbColsDates
+      // Espace restant pour N° + Désignation
+      const codeDesigW = availForDynamic - datesW
+      const COL_W_NO = Math.min(22, Math.max(14, codeDesigW * 0.3))
+      const COL_W_DESIG = codeDesigW - COL_W_NO
 
       const startY = HEADER_H + 2
       const rowH = 5.5
@@ -459,11 +465,22 @@ export function RecapitulatifTravaux({
         pdf.setFillColor(0, 68, 137)
         pdf.rect(x, y, dateColW, rowH, 'F')
         pdf.setTextColor(255, 255, 255)
-        pdf.text(col.dateStr.slice(0, 5), x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+        // Date format: juste jour/mois (ex: "23/03")
+        const dateLabel = col.dateStr.slice(0, 5)
+        pdf.setFontSize(5)
+        pdf.text(dateLabel, x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+        // Sous-ligne: noms RJ très courts
         pdf.setFillColor(0, 51, 112)
         pdf.rect(x, y + rowH, dateColW, rowH, 'F')
-        pdf.setFontSize(4.5)
-        const rjLabel = col.titres.join(' ').slice(0, 12)
+        pdf.setFontSize(3.5)
+        // Extraire juste les numéros (ex: "RJ N°17" → "17", "RJ N°34 bis" → "34b")
+        const rjNums = col.titres.map(t => {
+          const m = t.match(/N°?\s*(\d+)\s*(bis)?/i)
+          return m ? m[1] + (m[2] ? 'b' : '') : t.slice(0, 4)
+        })
+        const maxChars = Math.floor(dateColW / 1.3)
+        let rjLabel = rjNums.join(' ')
+        if (rjLabel.length > maxChars) rjLabel = rjLabel.slice(0, maxChars)
         pdf.text(rjLabel, x + dateColW / 2, y + rowH * 2 - 1.5, { align: 'center' })
         pdf.setFontSize(6)
         x += dateColW
@@ -496,10 +513,17 @@ export function RecapitulatifTravaux({
         x = M
         pdf.setTextColor(0, 0, 0)
 
-        pdf.text(ligne.code, x + 1, y + rowH - 1.5)
+        // N° — tronquer selon la largeur dispo
+        const maxCodeChars = Math.floor(COL_W_NO / 1.8)
+        const codeTrunc = ligne.code.length > maxCodeChars ? ligne.code.slice(0, maxCodeChars - 1) + '.' : ligne.code
+        pdf.setFontSize(5)
+        pdf.text(codeTrunc, x + 1, y + rowH - 1.5)
+        pdf.setFontSize(6)
         x += COL_W_NO
 
-        const desig = ligne.designation.length > 40 ? ligne.designation.slice(0, 38) + '...' : ligne.designation
+        // Désignation — tronquer selon la largeur dispo
+        const maxDesigChars = Math.floor(COL_W_DESIG / 1.6)
+        const desig = ligne.designation.length > maxDesigChars ? ligne.designation.slice(0, maxDesigChars - 1) + '…' : ligne.designation
         pdf.text(desig, x + 1, y + rowH - 1.5)
         x += COL_W_DESIG
 
