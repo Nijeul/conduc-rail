@@ -115,13 +115,15 @@ export function SituationTable({ projetId, projetName }: Props) {
           <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="bg-[#004489] text-white font-bold">
-                  <th className="px-3 py-2 text-left">N° prix</th>
-                  <th className="px-3 py-2 text-left">Intitule</th>
-                  <th className="px-3 py-2 text-center">Unite</th>
-                  <th className="px-3 py-2 text-right">Qte marche</th>
-                  <th className="px-3 py-2 text-right">Qte realisee</th>
-                  <th className="px-3 py-2 text-right">Avancement %</th>
+                <tr className="bg-[#004489] text-white font-bold text-[12px]">
+                  <th className="px-2 py-2 text-left">N° prix</th>
+                  <th className="px-2 py-2 text-left">Intitulé</th>
+                  <th className="px-2 py-2 text-center">Unité</th>
+                  <th className="px-2 py-2 text-right">PU HT</th>
+                  <th className="px-2 py-2 text-right">Qté marché</th>
+                  <th className="px-2 py-2 text-right">Qté réalisée</th>
+                  <th className="px-2 py-2 text-right">Montant réalisé</th>
+                  <th className="px-2 py-2 text-right">Avancement %</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,17 +134,23 @@ export function SituationTable({ projetId, projetName }: Props) {
                       i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
                     }`}
                   >
-                    <td className="px-3 py-2 font-mono">{l.code}</td>
-                    <td className="px-3 py-2">{l.designation}</td>
-                    <td className="px-3 py-2 text-center">{l.unite}</td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-2 py-2 font-mono text-[12px]">{l.code}</td>
+                    <td className="px-2 py-2 text-[12px]">{l.designation}</td>
+                    <td className="px-2 py-2 text-center text-[12px]">{l.unite}</td>
+                    <td className="px-2 py-2 text-right text-[12px]">
+                      {formatMontant(l.prixUnitaire)}
+                    </td>
+                    <td className="px-2 py-2 text-right text-[12px]">
                       {formatNombreFR(l.quantiteMarche)}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-2 py-2 text-right text-[12px]">
                       {formatNombreFR(l.quantiteRealisee)}
                     </td>
+                    <td className="px-2 py-2 text-right text-[12px] font-medium">
+                      {formatMontant(l.montantRealise)}
+                    </td>
                     <td
-                      className={`px-3 py-2 text-right font-semibold ${getAvancementStyle(
+                      className={`px-2 py-2 text-right font-semibold text-[12px] ${getAvancementStyle(
                         l.avancement
                       )}`}
                     >
@@ -153,22 +161,23 @@ export function SituationTable({ projetId, projetName }: Props) {
                 {result.lignes.length === 0 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={8}
                       className="px-3 py-8 text-center text-gray-400"
                     >
-                      Aucune ligne dans le Detail Estimatif
+                      Aucune ligne dans le Détail Estimatif
                     </td>
                   </tr>
                 )}
               </tbody>
               <tfoot>
                 <tr className="bg-[#003370] font-bold border-t-2 border-[#004489]">
-                  <td colSpan={5} className="px-3 py-3 text-right text-white">
-                    Montant realise HT :
+                  <td colSpan={6} className="px-2 py-3 text-right text-white text-[12px]">
+                    MONTANT RÉALISÉ HT :
                   </td>
-                  <td className="px-3 py-3 text-right text-white">
+                  <td className="px-2 py-3 text-right text-white text-[14px]">
                     {formatMontant(result.totalMontantRealise)}
                   </td>
+                  <td className="px-2 py-3 text-white" />
                 </tr>
               </tfoot>
             </table>

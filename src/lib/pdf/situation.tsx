@@ -56,12 +56,14 @@ const styles = StyleSheet.create({
   rowAlt: {
     backgroundColor: '#F0F0F0',
   },
-  colCode: { width: 70 },
+  colCode: { width: 60 },
   colDesignation: { flex: 1 },
-  colUnite: { width: 50, textAlign: 'center' },
-  colQteMarche: { width: 80, textAlign: 'right' },
-  colQteReal: { width: 80, textAlign: 'right' },
-  colAvancement: { width: 90, textAlign: 'right' },
+  colUnite: { width: 40, textAlign: 'center' },
+  colPU: { width: 60, textAlign: 'right' },
+  colQteMarche: { width: 60, textAlign: 'right' },
+  colQteReal: { width: 60, textAlign: 'right' },
+  colMontant: { width: 70, textAlign: 'right' },
+  colAvancement: { width: 65, textAlign: 'right' },
   footerRow: {
     flexDirection: 'row',
     paddingVertical: 6,
@@ -158,19 +160,13 @@ export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: P
         {/* Table Header */}
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, styles.colCode]}>N° prix</Text>
-          <Text style={[styles.tableHeaderText, styles.colDesignation]}>
-            Intitule
-          </Text>
-          <Text style={[styles.tableHeaderText, styles.colUnite]}>Unite</Text>
-          <Text style={[styles.tableHeaderText, styles.colQteMarche]}>
-            Qte marche
-          </Text>
-          <Text style={[styles.tableHeaderText, styles.colQteReal]}>
-            Qte realisee
-          </Text>
-          <Text style={[styles.tableHeaderText, styles.colAvancement]}>
-            Avancement %
-          </Text>
+          <Text style={[styles.tableHeaderText, styles.colDesignation]}>Intitulé</Text>
+          <Text style={[styles.tableHeaderText, styles.colUnite]}>Unité</Text>
+          <Text style={[styles.tableHeaderText, styles.colPU]}>PU HT</Text>
+          <Text style={[styles.tableHeaderText, styles.colQteMarche]}>Qté marché</Text>
+          <Text style={[styles.tableHeaderText, styles.colQteReal]}>Qté réalisée</Text>
+          <Text style={[styles.tableHeaderText, styles.colMontant]}>Montant réalisé</Text>
+          <Text style={[styles.tableHeaderText, styles.colAvancement]}>Avmt. %</Text>
         </View>
 
         {/* Table Body */}
@@ -182,11 +178,13 @@ export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: P
               i % 2 !== 0 ? styles.rowAlt : {},
             ]}
           >
-            <Text style={styles.colCode}>{l.code}</Text>
-            <Text style={styles.colDesignation}>{l.designation}</Text>
+            <Text style={[styles.colCode, { fontSize: 7 }]}>{l.code}</Text>
+            <Text style={[styles.colDesignation, { fontSize: 7 }]}>{l.designation}</Text>
             <Text style={styles.colUnite}>{l.unite}</Text>
+            <Text style={styles.colPU}>{formatMontantFR(l.prixUnitaire)}</Text>
             <Text style={styles.colQteMarche}>{formatFR(l.quantiteMarche)}</Text>
             <Text style={styles.colQteReal}>{formatFR(l.quantiteRealisee)}</Text>
+            <Text style={[styles.colMontant, { fontWeight: 'bold' }]}>{formatMontantFR(l.montantRealise)}</Text>
             <View
               style={[
                 styles.colAvancement,
