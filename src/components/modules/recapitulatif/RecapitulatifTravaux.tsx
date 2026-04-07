@@ -494,12 +494,78 @@ export function RecapitulatifTravaux({
 
       y += headerTotalH
 
+      // Fonction pour redessiner l'en-tête de tableau sur une nouvelle page
+      const drawTableHeader = () => {
+        pdf.setFillColor(0, 68, 137)
+        pdf.setTextColor(255, 255, 255)
+        pdf.setFontSize(6)
+        pdf.setFont('helvetica', 'bold')
+
+        let hx = M
+        const dh = (text: string, w: number) => {
+          pdf.rect(hx, y, w, headerTotalH, 'F')
+          pdf.text(text, hx + w / 2, y + headerTotalH / 2 + 1, { align: 'center' })
+          hx += w
+        }
+        dh('N°', COL_W_NO)
+        dh('Désignation', COL_W_DESIG)
+        dh('Unité', COL_W_UNITE)
+        dh('Prévu', COL_W_PREVU)
+
+        colsDuMois.forEach(col => {
+          pdf.setFillColor(0, 68, 137)
+          pdf.rect(hx, y, dateColW, rowH, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(5)
+          pdf.text(col.dateStr.slice(0, 5), hx + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+          pdf.setFillColor(0, 51, 112)
+          pdf.rect(hx, y + rowH, dateColW, subRowH, 'F')
+          pdf.setFontSize(3.5)
+          col.titres.forEach((titre, ti) => {
+            pdf.text(titre, hx + dateColW / 2, y + rowH + 3 + ti * 3.5, { align: 'center', maxWidth: dateColW - 1 })
+          })
+          pdf.setFontSize(6)
+          hx += dateColW
+        })
+
+        pdf.setFillColor(0, 68, 137)
+        pdf.setTextColor(255, 255, 255)
+        dh('Total', COL_W_TOTAL)
+        dh('%', COL_W_PCT)
+
+        y += headerTotalH
+      }
+
       // Lignes de données
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(6)
 
       for (let i = 0; i < filteredLignes.length; i++) {
-        if (y + rowH > PH - FOOTER_H - 2) break
+        // Nouvelle page si on dépasse
+        if (y + rowH > PH - FOOTER_H - 2) {
+          pdf.addPage()
+          // Ré-imprimer en-tête page
+          pdf.setFillColor(0, 68, 137)
+          pdf.rect(0, 0, PW, HEADER_H, 'F')
+          if (logoSociete && logoSociete.startsWith('data:image')) {
+            try { pdf.addImage(logoSociete, 'PNG', M, 2, 18, 10, undefined, 'FAST') } catch {}
+          } else if (nomSociete) {
+            pdf.setTextColor(255, 255, 255)
+            pdf.setFontSize(11)
+            pdf.setFont('helvetica', 'bold')
+            pdf.text(nomSociete, M, 10)
+          }
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(9)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text(`Récapitulatif Travaux — ${moisLabel} (suite)`, PW / 2, 9, { align: 'center' })
+          pdf.text(projetName, PW / 2, 13, { align: 'center' })
+
+          y = HEADER_H + 2
+          drawTableHeader()
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(6)
+        }
 
         const ligne = filteredLignes[i]
         const total = ligneTotals[ligne.id] || 0
