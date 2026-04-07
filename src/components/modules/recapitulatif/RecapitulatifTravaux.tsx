@@ -244,175 +244,321 @@ export function RecapitulatifTravaux({
     return total
   }
 
-  // Grand total row by date column
-  const grandTotalByDate = useMemo(() => {
-    const result: Record<string, number> = {}
-    for (const col of colonnesParDate) {
-      let total = 0
-      for (const ligne of filteredLignes) {
-        total += valeurParDate(ligne.id, col)
-      }
-      result[col.dateISO] = total
-    }
-    return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colonnesParDate, filteredLignes, matriceLocale])
+  // Excel Export (remplace CSV)
+  const exportExcel = useCallback(async () => {
+    const ExcelJS = (await import('exceljs')).default
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet('Récapitulatif Travaux')
 
-  const grandTotal = useMemo(() => {
-    return filteredLignes.reduce((s, l) => s + (ligneTotals[l.id] || 0), 0)
-  }, [filteredLignes, ligneTotals])
+    const logoSociete = useProfilStore.getState().logoSociete
+    const nomSociete = useProfilStore.getState().nomSociete
 
-  const grandTotalPrevu = useMemo(() => {
-    return filteredLignes.reduce((s, l) => s + l.quantite, 0)
-  }, [filteredLignes])
+    const totalCols = 4 + colonnesParDate.length + 2
 
-  // CSV Export
-  const exportCSV = useCallback(() => {
-    const BOM = '\uFEFF'
-    const sep = ';'
-    const headers = [
-      'N\u00B0',
-      'D\u00E9signation',
-      'Unit\u00E9',
-      'Pr\u00E9vu',
-      ...colonnesParDate.map((col) => `${col.dateStr} (${col.titres.join(', ')})`),
-      'Total',
-      '% Avancement',
-    ]
+    // Titre en-tête
+    ws.mergeCells('A1', `${colLetter(totalCols)}1`)
+    const titleCell = ws.getCell('A1')
+    titleCell.value = `${nomSociete || ''} — ${projetName} — Récapitulatif Travaux`
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004489' } }
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.getRow(1).height = 30
 
-    const rows = filteredLignes.map((l) => {
-      const total = ligneTotals[l.id] || 0
-      const pct = l.quantite > 0 ? (total / l.quantite) * 100 : 0
-      return [
-        l.code,
-        `"${l.designation.replace(/"/g, '""')}"`,
-        l.unite,
-        formatNombreFR(l.quantite),
-        ...colonnesParDate.map((col) => {
-          const val = valeurParDate(l.id, col)
-          return val > 0 ? formatNombreFR(val) : ''
-        }),
-        formatNombreFR(total),
-        formatNombreFR(pct, 1) + '%',
-      ]
+    // Date
+    ws.mergeCells('A2', `${colLetter(totalCols)}2`)
+    const dateCell = ws.getCell('A2')
+    dateCell.value = `Édité le ${new Date().toLocaleDateString('fr-FR')}`
+    dateCell.font = { size: 9, color: { argb: 'FF5A5A5A' } }
+    dateCell.alignment = { horizontal: 'right' }
+
+    // En-têtes (ligne 4)
+    const headerRow = ws.getRow(4)
+    const headers = ['N°', 'Désignation', 'Unité', 'Prévu',
+      ...colonnesParDate.map(c => c.dateStr),
+      'Total', '% Avmt.']
+
+    headers.forEach((h, i) => {
+      const cell = headerRow.getCell(i + 1)
+      cell.value = h
+      cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004489' } }
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      cell.border = thinBorder()
+    })
+    headerRow.height = 28
+
+    // Sous-en-tête (ligne 5) — noms RJ
+    const subHeaderRow = ws.getRow(5)
+    subHeaderRow.getCell(1).value = ''
+    subHeaderRow.getCell(2).value = ''
+    subHeaderRow.getCell(3).value = ''
+    subHeaderRow.getCell(4).value = ''
+    colonnesParDate.forEach((col, i) => {
+      const cell = subHeaderRow.getCell(5 + i)
+      cell.value = col.titres.join('\n')
+      cell.font = { size: 8, color: { argb: 'FF5A5A5A' } }
+      cell.alignment = { horizontal: 'center', wrapText: true }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } }
     })
 
-    const csv = BOM + [headers.join(sep), ...rows.map((r) => r.join(sep))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    // Données (à partir de la ligne 6)
+    filteredLignes.forEach((ligne, idx) => {
+      const row = ws.getRow(6 + idx)
+      const total = ligneTotals[ligne.id] || 0
+      const pct = ligne.quantite > 0 ? (total / ligne.quantite) * 100 : 0
+
+      row.getCell(1).value = ligne.code
+      row.getCell(2).value = ligne.designation
+      row.getCell(3).value = ligne.unite
+      row.getCell(4).value = ligne.quantite
+
+      colonnesParDate.forEach((col, i) => {
+        const val = valeurParDate(ligne.id, col)
+        const cell = row.getCell(5 + i)
+        if (val > 0) {
+          cell.value = val
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5EFF8' } }
+          cell.font = { bold: true, color: { argb: 'FF004489' } }
+        }
+        cell.alignment = { horizontal: 'center' }
+        cell.border = thinBorder()
+      })
+
+      // Total
+      const totalCell = row.getCell(5 + colonnesParDate.length)
+      totalCell.value = total
+      totalCell.font = { bold: true }
+      totalCell.border = thinBorder()
+
+      // % avancement avec couleur
+      const pctCell = row.getCell(6 + colonnesParDate.length)
+      pctCell.value = pct > 0 ? pct / 100 : 0
+      pctCell.numFmt = '0.0%'
+      pctCell.font = { bold: true, color: { argb: pctColorArgb(pct) } }
+      pctCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: pctBgArgb(pct) } }
+      pctCell.border = thinBorder()
+
+      // Alternance couleur lignes
+      const bgColor = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF0F0F0'
+      for (let c = 1; c <= 4; c++) {
+        const cell = row.getCell(c)
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } }
+        cell.border = thinBorder()
+      }
+    })
+
+    // Largeurs de colonnes
+    ws.getColumn(1).width = 10
+    ws.getColumn(2).width = 35
+    ws.getColumn(3).width = 8
+    ws.getColumn(4).width = 12
+    colonnesParDate.forEach((_, i) => { ws.getColumn(5 + i).width = 10 })
+    ws.getColumn(5 + colonnesParDate.length).width = 12
+    ws.getColumn(6 + colonnesParDate.length).width = 10
+
+    // Figer les 4 premières colonnes + en-tête
+    ws.views = [{ state: 'frozen' as const, xSplit: 4, ySplit: 5 }]
+
+    // Télécharger
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `recapitulatif_${projetName.replace(/\s+/g, '_')}.csv`
+    a.download = `recapitulatif_${projetName.replace(/\s+/g, '_')}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredLignes, colonnesParDate, matriceLocale, ligneTotals, projetName])
 
-  // PDF Export
+  // PDF Export — rendu direct jsPDF (sans html2canvas)
   const exportPDF = useCallback(async () => {
-    const html2canvas = (await import('html2canvas')).default
     const { jsPDF } = await import('jspdf')
-
-    if (!tableRef.current) return
-
-    const canvas = await html2canvas(tableRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#FFFFFF',
-    })
-
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF('landscape', 'mm', 'a4')
-    const pageWidth = pdf.internal.pageSize.getWidth()
-    const pageHeight = pdf.internal.pageSize.getHeight()
-
-    // Header band
     const logoSociete = useProfilStore.getState().logoSociete
     const nomSociete = useProfilStore.getState().nomSociete
 
-    pdf.setFillColor(0, 68, 137) // #004489
-    pdf.rect(0, 0, pageWidth, 18, 'F')
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+    const PW = 297, PH = 210, M = 8
+    const HEADER_H = 16, FOOTER_H = 8
 
-    // Logo ou nom société (jamais "CONDUC RAIL")
-    if (logoSociete && logoSociete.startsWith('data:image')) {
-      try {
-        pdf.addImage(logoSociete, 'PNG', 10, 3, 22, 12, undefined, 'FAST')
-      } catch { /* logo invalide, on continue */ }
-    } else if (nomSociete) {
-      pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(14)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(nomSociete, 10, 12)
+    // Regrouper les colonnes par mois
+    const moisMap = new Map<string, ColonneDate[]>()
+    for (const col of colonnesParDate) {
+      const moisKey = col.dateISO.slice(0, 7)
+      if (!moisMap.has(moisKey)) moisMap.set(moisKey, [])
+      moisMap.get(moisKey)!.push(col)
     }
 
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(10)
-    pdf.setFont('helvetica', 'normal')
-    pdf.text(
-      `${projetName} - R\u00E9capitulatif Travaux`,
-      pageWidth - 10,
-      12,
-      { align: 'right' }
-    )
+    const moisList = Array.from(moisMap.entries())
+    // Si aucun mois, on fait quand même 1 page vide
+    if (moisList.length === 0) moisList.push(['', []])
 
-    // Image
-    const margin = 10
-    const headerH = 22
-    const footerH = 12
-    const availW = pageWidth - 2 * margin
-    const availH = pageHeight - headerH - footerH
-    const imgW = canvas.width
-    const imgH = canvas.height
-    const ratio = Math.min(availW / imgW, availH / imgH)
-    const drawW = imgW * ratio
-    const drawH = imgH * ratio
+    for (let moisIdx = 0; moisIdx < moisList.length; moisIdx++) {
+      const [moisKey, colsDuMois] = moisList[moisIdx]
+      if (moisIdx > 0) pdf.addPage()
 
-    if (drawH <= availH) {
-      pdf.addImage(imgData, 'PNG', margin, headerH, drawW, drawH)
-    } else {
-      // Multi-page: scale to fit width, split vertically
-      const scaleW = availW / imgW
-      const fullDrawH = imgH * scaleW
-      let yOffset = 0
-      let page = 0
-      while (yOffset < fullDrawH) {
-        if (page > 0) {
-          pdf.addPage()
-          pdf.setFillColor(0, 68, 137)
-          pdf.rect(0, 0, pageWidth, 18, 'F')
-          pdf.setTextColor(255, 255, 255)
-          pdf.setFontSize(10)
-          pdf.setFont('helvetica', 'normal')
-          pdf.text(
-            `${projetName} - R\u00E9capitulatif Travaux (suite)`,
-            pageWidth - 10,
-            12,
-            { align: 'right' }
-          )
-        }
-        pdf.addImage(imgData, 'PNG', margin, headerH - yOffset, availW, fullDrawH)
-        yOffset += availH
-        page++
+      // En-tête VINCI
+      pdf.setFillColor(0, 68, 137)
+      pdf.rect(0, 0, PW, HEADER_H, 'F')
+      if (logoSociete && logoSociete.startsWith('data:image')) {
+        try { pdf.addImage(logoSociete, 'PNG', M, 2, 18, 10, undefined, 'FAST') } catch { /* logo invalide */ }
+      } else if (nomSociete) {
+        pdf.setTextColor(255, 255, 255)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(nomSociete, M, 10)
       }
-    }
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
 
-    // Footer
-    const piedGauche = [nomSociete, projetName].filter(Boolean).join(' — ')
-    const totalPages = pdf.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i)
-      pdf.setDrawColor(220, 220, 220)
-      pdf.line(margin, pageHeight - footerH, pageWidth - margin, pageHeight - footerH)
-      pdf.setTextColor(181, 171, 161)
-      pdf.setFontSize(8)
-      pdf.text(piedGauche, margin, pageHeight - 4)
-      pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 4, {
-        align: 'right',
+      const moisLabel = moisKey
+        ? new Date(moisKey + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+        : ''
+      pdf.text(`Récapitulatif Travaux — ${moisLabel}`, PW / 2, 9, { align: 'center' })
+      pdf.text(projetName, PW / 2, 13, { align: 'center' })
+      pdf.setFontSize(7)
+      pdf.text(`Édité le ${new Date().toLocaleDateString('fr-FR')}`, PW - M, 9, { align: 'right' })
+
+      // Dimensions colonnes
+      const nbColsDates = colsDuMois.length
+      const COL_W_NO = 12
+      const COL_W_DESIG = 50
+      const COL_W_UNITE = 12
+      const COL_W_PREVU = 16
+      const COL_W_TOTAL = 16
+      const COL_W_PCT = 14
+      const fixedW = COL_W_NO + COL_W_DESIG + COL_W_UNITE + COL_W_PREVU + COL_W_TOTAL + COL_W_PCT
+      const dateColW = nbColsDates > 0
+        ? Math.max(10, Math.min(18, (PW - 2 * M - fixedW) / nbColsDates))
+        : 0
+
+      const startY = HEADER_H + 2
+      const rowH = 5.5
+      let y = startY
+
+      // En-tête tableau
+      pdf.setFillColor(0, 68, 137)
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(6)
+      pdf.setFont('helvetica', 'bold')
+
+      let x = M
+      const drawHeaderCell = (text: string, w: number) => {
+        pdf.rect(x, y, w, rowH * 2, 'F')
+        pdf.text(text, x + w / 2, y + rowH, { align: 'center' })
+        x += w
+      }
+
+      drawHeaderCell('N°', COL_W_NO)
+      drawHeaderCell('Désignation', COL_W_DESIG)
+      drawHeaderCell('Unité', COL_W_UNITE)
+      drawHeaderCell('Prévu', COL_W_PREVU)
+
+      colsDuMois.forEach(col => {
+        pdf.setFillColor(0, 68, 137)
+        pdf.rect(x, y, dateColW, rowH, 'F')
+        pdf.setTextColor(255, 255, 255)
+        pdf.text(col.dateStr.slice(0, 5), x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+        pdf.setFillColor(0, 51, 112)
+        pdf.rect(x, y + rowH, dateColW, rowH, 'F')
+        pdf.setFontSize(4.5)
+        const rjLabel = col.titres.join(' ').slice(0, 12)
+        pdf.text(rjLabel, x + dateColW / 2, y + rowH * 2 - 1.5, { align: 'center' })
+        pdf.setFontSize(6)
+        x += dateColW
       })
+
+      pdf.setFillColor(0, 68, 137)
+      pdf.setTextColor(255, 255, 255)
+      drawHeaderCell('Total', COL_W_TOTAL)
+      drawHeaderCell('%', COL_W_PCT)
+
+      y += rowH * 2
+
+      // Lignes de données
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(6)
+
+      for (let i = 0; i < filteredLignes.length; i++) {
+        if (y + rowH > PH - FOOTER_H - 2) break
+
+        const ligne = filteredLignes[i]
+        const total = ligneTotals[ligne.id] || 0
+        const pct = ligne.quantite > 0 ? Math.round((total / ligne.quantite) * 100) : 0
+        const isEven = i % 2 === 0
+
+        if (!isEven) {
+          pdf.setFillColor(240, 240, 240)
+          pdf.rect(M, y, PW - 2 * M, rowH, 'F')
+        }
+
+        x = M
+        pdf.setTextColor(0, 0, 0)
+
+        pdf.text(ligne.code, x + 1, y + rowH - 1.5)
+        x += COL_W_NO
+
+        const desig = ligne.designation.length > 40 ? ligne.designation.slice(0, 38) + '...' : ligne.designation
+        pdf.text(desig, x + 1, y + rowH - 1.5)
+        x += COL_W_DESIG
+
+        pdf.text(ligne.unite || '', x + COL_W_UNITE / 2, y + rowH - 1.5, { align: 'center' })
+        x += COL_W_UNITE
+
+        pdf.text(formatNombreFR(ligne.quantite, 0), x + COL_W_PREVU - 1, y + rowH - 1.5, { align: 'right' })
+        x += COL_W_PREVU
+
+        colsDuMois.forEach(col => {
+          const val = valeurParDate(ligne.id, col)
+          if (val > 0) {
+            pdf.setFillColor(229, 239, 248)
+            pdf.rect(x, y, dateColW, rowH, 'F')
+            pdf.setTextColor(0, 68, 137)
+            pdf.setFont('helvetica', 'bold')
+            pdf.text(String(val), x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+            pdf.setFont('helvetica', 'normal')
+            pdf.setTextColor(0, 0, 0)
+          }
+          x += dateColW
+        })
+
+        // Total
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(formatNombreFR(total, 0), x + COL_W_TOTAL - 1, y + rowH - 1.5, { align: 'right' })
+        x += COL_W_TOTAL
+
+        // %
+        const avStyle = getAvancementStyle(pct)
+        const bgRgb = hexToRgbPdf(avStyle.bg)
+        pdf.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b)
+        pdf.rect(x, y, COL_W_PCT, rowH, 'F')
+        const txtRgb = hexToRgbPdf(avStyle.text)
+        pdf.setTextColor(txtRgb.r, txtRgb.g, txtRgb.b)
+        pdf.text(`${pct}%`, x + COL_W_PCT / 2, y + rowH - 1.5, { align: 'center' })
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFont('helvetica', 'normal')
+
+        // Bordure ligne
+        pdf.setDrawColor(220, 220, 220)
+        pdf.line(M, y + rowH, PW - M, y + rowH)
+
+        y += rowH
+      }
+
+      // Pied de page
+      pdf.setFillColor(0, 51, 112)
+      pdf.rect(0, PH - FOOTER_H, PW, FOOTER_H, 'F')
+      pdf.setFontSize(7)
+      pdf.setTextColor(181, 171, 161)
+      const piedGauche = [nomSociete, projetName].filter(Boolean).join(' — ')
+      pdf.text(piedGauche, M, PH - 2)
+      pdf.text(`Page ${moisIdx + 1} / ${moisList.length}`, PW - M, PH - 2, { align: 'right' })
     }
 
     pdf.save(`recapitulatif_${projetName.replace(/\s+/g, '_')}.pdf`)
-  }, [projetName])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLignes, colonnesParDate, matriceLocale, ligneTotals, projetName])
 
   const avancementGlobalStyle = getAvancementStyle(stats.avancementGlobal)
 
@@ -487,12 +633,12 @@ export function RecapitulatifTravaux({
         </div>
         <div className="flex gap-2 ml-auto">
           <Button
-            onClick={exportCSV}
+            onClick={exportExcel}
             variant="outline"
             className="text-sm border-[#004489] text-[#004489]"
           >
             <Download className="h-4 w-4 mr-1" />
-            CSV
+            Excel
           </Button>
           <Button
             onClick={exportPDF}
@@ -651,6 +797,47 @@ export function RecapitulatifTravaux({
       </div>
     </div>
   )
+}
+
+// --- Helpers Excel ---
+
+function thinBorder(): Partial<import('exceljs').Borders> {
+  return {
+    top: { style: 'thin', color: { argb: 'FFDCDCDC' } },
+    bottom: { style: 'thin', color: { argb: 'FFDCDCDC' } },
+    left: { style: 'thin', color: { argb: 'FFDCDCDC' } },
+    right: { style: 'thin', color: { argb: 'FFDCDCDC' } },
+  }
+}
+
+function colLetter(n: number): string {
+  let s = ''
+  let num = n
+  while (num > 0) { num--; s = String.fromCharCode(65 + (num % 26)) + s; num = Math.floor(num / 26) }
+  return s
+}
+
+function pctColorArgb(pct: number): string {
+  if (pct >= 100) return 'FF5E8019'
+  if (pct >= 75) return 'FFDD9412'
+  if (pct >= 50) return 'FFC26A32'
+  return 'FFE20025'
+}
+
+function pctBgArgb(pct: number): string {
+  if (pct >= 100) return 'FFE8EFDA'
+  if (pct >= 75) return 'FFFFF7D1'
+  if (pct >= 50) return 'FFF9E9D9'
+  return 'FFFDEAED'
+}
+
+// --- Helper PDF ---
+
+function hexToRgbPdf(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
 }
 
 function SynthCard({
