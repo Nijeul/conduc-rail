@@ -449,10 +449,14 @@ export function RecapitulatifTravaux({
       pdf.setFontSize(6)
       pdf.setFont('helvetica', 'bold')
 
+      // Pré-calculer la hauteur sous-en-tête pour les RJ empilés
+      const maxRjPreCalc = Math.max(1, ...colsDuMois.map(c => c.titres.length))
+      const headerTotalH = rowH + maxRjPreCalc * 3.5 + 1
+
       let x = M
       const drawHeaderCell = (text: string, w: number) => {
-        pdf.rect(x, y, w, rowH * 2, 'F')
-        pdf.text(text, x + w / 2, y + rowH, { align: 'center' })
+        pdf.rect(x, y, w, headerTotalH, 'F')
+        pdf.text(text, x + w / 2, y + headerTotalH / 2 + 1, { align: 'center' })
         x += w
       }
 
@@ -461,27 +465,24 @@ export function RecapitulatifTravaux({
       drawHeaderCell('Unité', COL_W_UNITE)
       drawHeaderCell('Prévu', COL_W_PREVU)
 
+      // Hauteur sous-en-tête = nombre max de RJ par date pour les empiler en colonne
+      const maxRjParDate = Math.max(1, ...colsDuMois.map(c => c.titres.length))
+      const subRowH = maxRjParDate * 3.5 + 1
+
       colsDuMois.forEach(col => {
+        // Ligne date
         pdf.setFillColor(0, 68, 137)
         pdf.rect(x, y, dateColW, rowH, 'F')
         pdf.setTextColor(255, 255, 255)
-        // Date format: juste jour/mois (ex: "23/03")
-        const dateLabel = col.dateStr.slice(0, 5)
         pdf.setFontSize(5)
-        pdf.text(dateLabel, x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
-        // Sous-ligne: noms RJ très courts
+        pdf.text(col.dateStr.slice(0, 5), x + dateColW / 2, y + rowH - 1.5, { align: 'center' })
+        // Sous-ligne: noms RJ empilés verticalement
         pdf.setFillColor(0, 51, 112)
-        pdf.rect(x, y + rowH, dateColW, rowH, 'F')
+        pdf.rect(x, y + rowH, dateColW, subRowH, 'F')
         pdf.setFontSize(3.5)
-        // Extraire juste les numéros (ex: "RJ N°17" → "17", "RJ N°34 bis" → "34b")
-        const rjNums = col.titres.map(t => {
-          const m = t.match(/N°?\s*(\d+)\s*(bis)?/i)
-          return m ? m[1] + (m[2] ? 'b' : '') : t.slice(0, 4)
+        col.titres.forEach((titre, ti) => {
+          pdf.text(titre, x + dateColW / 2, y + rowH + 3 + ti * 3.5, { align: 'center', maxWidth: dateColW - 1 })
         })
-        const maxChars = Math.floor(dateColW / 1.3)
-        let rjLabel = rjNums.join(' ')
-        if (rjLabel.length > maxChars) rjLabel = rjLabel.slice(0, maxChars)
-        pdf.text(rjLabel, x + dateColW / 2, y + rowH * 2 - 1.5, { align: 'center' })
         pdf.setFontSize(6)
         x += dateColW
       })
@@ -491,7 +492,7 @@ export function RecapitulatifTravaux({
       drawHeaderCell('Total', COL_W_TOTAL)
       drawHeaderCell('%', COL_W_PCT)
 
-      y += rowH * 2
+      y += headerTotalH
 
       // Lignes de données
       pdf.setFont('helvetica', 'normal')
@@ -530,7 +531,7 @@ export function RecapitulatifTravaux({
         pdf.text(ligne.unite || '', x + COL_W_UNITE / 2, y + rowH - 1.5, { align: 'center' })
         x += COL_W_UNITE
 
-        pdf.text(formatNombreFR(ligne.quantite, 0), x + COL_W_PREVU - 1, y + rowH - 1.5, { align: 'right' })
+        pdf.text(fmtPdf(ligne.quantite, 0), x + COL_W_PREVU - 1, y + rowH - 1.5, { align: 'right' })
         x += COL_W_PREVU
 
         colsDuMois.forEach(col => {
@@ -549,7 +550,7 @@ export function RecapitulatifTravaux({
 
         // Total
         pdf.setFont('helvetica', 'bold')
-        pdf.text(formatNombreFR(total, 0), x + COL_W_TOTAL - 1, y + rowH - 1.5, { align: 'right' })
+        pdf.text(fmtPdf(total, 0), x + COL_W_TOTAL - 1, y + rowH - 1.5, { align: 'right' })
         x += COL_W_TOTAL
 
         // %
@@ -856,6 +857,11 @@ function pctBgArgb(pct: number): string {
 }
 
 // --- Helper PDF ---
+
+// Formater un nombre pour jsPDF — remplace les espaces insécables par des espaces normaux
+function fmtPdf(n: number, dec = 0): string {
+  return formatNombreFR(n, dec).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
+}
 
 function hexToRgbPdf(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16)
