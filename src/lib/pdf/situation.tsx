@@ -86,11 +86,12 @@ const styles = StyleSheet.create({
   },
 })
 
+// Formatage compatible react-pdf (pas d'espaces insécables)
 function formatFR(n: number, dec = 2): string {
   return n.toLocaleString('fr-FR', {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
-  })
+  }).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
 }
 
 function formatMontantFR(n: number): string {
@@ -99,7 +100,7 @@ function formatMontantFR(n: number): string {
     currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
+  }).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
 }
 
 function formatDateDisplay(dateStr: string): string {
@@ -117,9 +118,17 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 function getAvancementBg(avancement: number): string {
-  if (avancement >= 100) return '#E8F5E9'
-  if (avancement >= 50) return '#FFF8E1'
-  return '#FFEBEE'
+  if (avancement >= 100) return '#E8EFDA'
+  if (avancement >= 75) return '#FFF7D1'
+  if (avancement >= 50) return '#F9E9D9'
+  return '#FDEAED'
+}
+
+function getAvancementColor(avancement: number): string {
+  if (avancement >= 100) return '#5E8019'
+  if (avancement >= 75) return '#DD9412'
+  if (avancement >= 50) return '#C26A32'
+  return '#E20025'
 }
 
 interface Props {
@@ -181,10 +190,20 @@ export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: P
             <View
               style={[
                 styles.colAvancement,
-                { backgroundColor: getAvancementBg(l.avancement) },
+                {
+                  backgroundColor: getAvancementBg(l.avancement),
+                  borderRadius: 2,
+                  paddingVertical: 2,
+                  paddingHorizontal: 4,
+                },
               ]}
             >
-              <Text style={{ textAlign: 'right' }}>
+              <Text style={{
+                textAlign: 'right',
+                color: getAvancementColor(l.avancement),
+                fontWeight: 'bold',
+                fontSize: 8,
+              }}>
                 {formatFR(l.avancement, 1)} %
               </Text>
             </View>
@@ -192,17 +211,28 @@ export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: P
         ))}
 
         {/* Footer total row */}
-        <View style={styles.footerRow}>
-          <Text
-            style={{
-              flex: 1,
-              textAlign: 'right',
-              fontWeight: 'bold',
-              fontSize: 10,
-            }}
-          >
-            Montant realise HT : {formatMontantFR(data.totalMontantRealise)}
-          </Text>
+        <View style={{
+          flexDirection: 'row',
+          marginTop: 8,
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}>
+          <View style={{
+            flex: 1,
+            backgroundColor: '#003370',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 9, fontWeight: 'bold' }}>
+              MONTANT RÉALISÉ HT
+            </Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' }}>
+              {formatMontantFR(data.totalMontantRealise)}
+            </Text>
+          </View>
         </View>
 
         {/* Page footer */}

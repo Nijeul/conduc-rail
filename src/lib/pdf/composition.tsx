@@ -261,7 +261,7 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+  return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
 }
 
 const PROPERTIES = [
