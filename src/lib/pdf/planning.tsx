@@ -278,6 +278,8 @@ function drawPlanningPages(
   pageContents: { pages: number[] },
   logoBase64?: string | null,
   nomSociete?: string | null,
+  personnelLinks?: PersonnelLink[],
+  tractionLinks?: TractionLink[],
 ) {
   const dateDebut = new Date(ocp.dateDebut)
   const dateFin = new Date(ocp.dateFin)
@@ -490,7 +492,128 @@ function drawPlanningPages(
       y += rowH
     }
 
-    // Légende supprimée (les catégories ne sont plus utilisées)
+    // ── Section Personnel (barres sur la grille) ──
+    if (personnelLinks && personnelLinks.length > 0) {
+      // Titre section
+      if (y + rowH * 2 > CONTENT_BOTTOM) {
+        doc.addPage('a4', 'landscape')
+        pageContents.pages.push(1)
+        drawHeader(doc, `${ocp.nom}`, ocp.version, logoBase64, nomSociete)
+        y = CONTENT_TOP
+      }
+      doc.setFillColor(...VINCI_BLEU)
+      doc.rect(MARGIN, y, labelColW, rowH, 'F')
+      doc.setTextColor(...WHITE)
+      doc.setFontSize(4)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('PERSONNEL', MARGIN + 2, y + rowH - 1.5)
+      doc.rect(gridX, y, actualGridW, rowH, 'F')
+      y += rowH
+
+      for (const pLink of personnelLinks) {
+        if (y + rowH > CONTENT_BOTTOM) {
+          doc.addPage('a4', 'landscape')
+          pageContents.pages.push(1)
+          drawHeader(doc, `${ocp.nom}`, ocp.version, logoBase64, nomSociete)
+          y = CONTENT_TOP
+        }
+
+        const pLabel = pLink.tableauService.titre || `S${pLink.tableauService.semaine}`
+
+        // Label
+        doc.setFillColor(...GREY_LIGHT)
+        doc.rect(MARGIN, y, labelColW, rowH, 'F')
+        doc.setDrawColor(...GREY_BORDER)
+        doc.setLineWidth(0.1)
+        doc.rect(MARGIN, y, labelColW, rowH)
+        doc.setTextColor(...BLACK)
+        doc.setFontSize(3.5)
+        doc.setFont('Helvetica', 'bold')
+        doc.text(pLabel.slice(0, 20), MARGIN + 1, y + rowH - 1.5)
+
+        // Barre sur la grille
+        const pDebutMs = new Date(pLink.debut).getTime()
+        const pFinMs = new Date(pLink.fin).getTime()
+        for (let si = 0; si < slotCount; si++) {
+          const slotMs = slots[si].date.getTime()
+          const slotEndMs = slotMs + 30 * 60000
+          const cx = gridX + si * cellW
+          if (slotMs >= pDebutMs && slotEndMs <= pFinMs) {
+            doc.setFillColor(...VINCI_BLEU)
+            doc.rect(cx, y, cellW, rowH, 'F')
+          }
+        }
+
+        // Heures
+        doc.setFontSize(2.5)
+        doc.setTextColor(90, 90, 90)
+        doc.text(formatHeurePDF(pLink.debut), gridX, y - 0.5)
+        doc.text(formatHeurePDF(pLink.fin), gridX + actualGridW, y - 0.5, { align: 'right' })
+
+        y += rowH
+      }
+    }
+
+    // ── Section Traction (barres sur la grille) ──
+    if (tractionLinks && tractionLinks.length > 0) {
+      if (y + rowH * 2 > CONTENT_BOTTOM) {
+        doc.addPage('a4', 'landscape')
+        pageContents.pages.push(1)
+        drawHeader(doc, `${ocp.nom}`, ocp.version, logoBase64, nomSociete)
+        y = CONTENT_TOP
+      }
+      doc.setFillColor(...ORANGE)
+      doc.rect(MARGIN, y, labelColW, rowH, 'F')
+      doc.setTextColor(...WHITE)
+      doc.setFontSize(4)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('TRACTION', MARGIN + 2, y + rowH - 1.5)
+      doc.rect(gridX, y, actualGridW, rowH, 'F')
+      y += rowH
+
+      for (const tLink of tractionLinks) {
+        if (y + rowH > CONTENT_BOTTOM) {
+          doc.addPage('a4', 'landscape')
+          pageContents.pages.push(1)
+          drawHeader(doc, `${ocp.nom}`, ocp.version, logoBase64, nomSociete)
+          y = CONTENT_TOP
+        }
+
+        const tLabel = tLink.label || tLink.composition.titre || 'Train'
+
+        // Label
+        doc.setFillColor(...GREY_LIGHT)
+        doc.rect(MARGIN, y, labelColW, rowH, 'F')
+        doc.setDrawColor(...GREY_BORDER)
+        doc.setLineWidth(0.1)
+        doc.rect(MARGIN, y, labelColW, rowH)
+        doc.setTextColor(...BLACK)
+        doc.setFontSize(3.5)
+        doc.setFont('Helvetica', 'bold')
+        doc.text(tLabel.slice(0, 20), MARGIN + 1, y + rowH - 1.5)
+
+        // Barre sur la grille
+        const tArrMs = new Date(tLink.heureArrivee).getTime()
+        const tDepMs = new Date(tLink.heureDepart).getTime()
+        for (let si = 0; si < slotCount; si++) {
+          const slotMs = slots[si].date.getTime()
+          const slotEndMs = slotMs + 30 * 60000
+          const cx = gridX + si * cellW
+          if (slotMs >= tArrMs && slotEndMs <= tDepMs) {
+            doc.setFillColor(...ORANGE)
+            doc.rect(cx, y, cellW, rowH, 'F')
+          }
+        }
+
+        // Heures
+        doc.setFontSize(2.5)
+        doc.setTextColor(90, 90, 90)
+        doc.text(formatHeurePDF(tLink.heureArrivee), gridX, y - 0.5)
+        doc.text(formatHeurePDF(tLink.heureDepart), gridX + actualGridW, y - 0.5, { align: 'right' })
+
+        y += rowH
+      }
+    }
   }
 }
 
@@ -555,6 +678,15 @@ function drawPersonnelPages(
     doc.setFont('Helvetica', 'bold')
     const truncLabel = label.length > 35 ? label.slice(0, 32) + '...' : label
     doc.text(truncLabel, MARGIN + 2, y + 5)
+
+    // Heures début/fin au-dessus de la barre (comme traction)
+    const heureDebut = formatHeurePDF(link.debut)
+    const heureFin = formatHeurePDF(link.fin)
+    doc.setFontSize(4)
+    doc.setTextColor(90, 90, 90)
+    doc.setFont('Helvetica', 'normal')
+    doc.text(`Début ${heureDebut}`, barX, y - 1)
+    doc.text(`Fin ${heureFin}`, barX + barAreaW, y - 1, { align: 'right' })
 
     // Timeline bar background
     doc.setFillColor(...GREY_LIGHT)
@@ -1166,8 +1298,8 @@ export async function generatePlanningPDF(data: PlanningPDFData): Promise<void> 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const pageContents: { pages: number[] } = { pages: [] }
 
-  // Page 1+: Planning grid
-  drawPlanningPages(doc, data.ocp, pageContents, data.logoSociete, data.nomSociete)
+  // Page 1+: Planning grid (avec barres personnel et traction en bas)
+  drawPlanningPages(doc, data.ocp, pageContents, data.logoSociete, data.nomSociete, data.personnelLinks, data.tractionLinks)
 
   // Personnel pages
   drawPersonnelPages(doc, data.personnelLinks, data.ocp, pageContents, data.logoSociete, data.nomSociete)
