@@ -224,6 +224,52 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
     }
 
     await prisma.$transaction(async (tx) => {
+      // 0a. Module Planning Minuté (OCP) — cascade manuelle
+      const ocps = await tx.oCP.findMany({
+        where: { projetId: id },
+        select: { id: true },
+      });
+      if (ocps.length > 0) {
+        const ocpIds = ocps.map((o) => o.id);
+        const chantiers = await tx.chantierElementaire.findMany({
+          where: { ocpId: { in: ocpIds } },
+          select: { id: true },
+        });
+        if (chantiers.length > 0) {
+          await tx.creneauActivite.deleteMany({
+            where: { chantierElementaireId: { in: chantiers.map((c) => c.id) } },
+          });
+        }
+        await tx.chantierElementaire.deleteMany({
+          where: { ocpId: { in: ocpIds } },
+        });
+        // Nullify variante references before deleting OCPs
+        await tx.oCP.updateMany({
+          where: { ocpBaseId: { in: ocpIds } },
+          data: { ocpBaseId: null },
+        });
+        await tx.oCP.deleteMany({ where: { projetId: id } });
+      }
+
+      // 0b. Module Matrice Décisionnelle — cascade manuelle
+      const matrices = await tx.matriceDecisionnelle.findMany({
+        where: { projetId: id },
+        select: { id: true },
+      });
+      if (matrices.length > 0) {
+        const matriceIds = matrices.map((m) => m.id);
+        await tx.notationCritere.deleteMany({
+          where: { critere: { matriceId: { in: matriceIds } } },
+        });
+        await tx.critere.deleteMany({
+          where: { matriceId: { in: matriceIds } },
+        });
+        await tx.fournisseurCandidat.deleteMany({
+          where: { matriceId: { in: matriceIds } },
+        });
+        await tx.matriceDecisionnelle.deleteMany({ where: { projetId: id } });
+      }
+
       // 1. Fichiers liés aux événements
       const evenements = await tx.evenementChantier.findMany({
         where: { projetId: id },

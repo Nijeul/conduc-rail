@@ -51,6 +51,8 @@ model Projet {
   courriers        CourrierChantier[]
   lignesFicheEcart LigneFicheEcart[]
   lignesARFManuelles LigneARFManuelle[]
+  ocps              OCP[]
+  matrices          MatriceDecisionnelle[]
 }
 
 model ProjetMember {
@@ -288,4 +290,118 @@ model LigneAvancement {
   ligneDE          LigneDE           @relation(fields: [ligneDEId], references: [id], onDelete: Cascade)
   rapport          RapportJournalier @relation(fields: [rapportId], references: [id], onDelete: Cascade)
   @@unique([ligneDEId, rapportId])
+}
+
+// ──────────────────────────────────────────────
+// Module A — Planning Minuté (OCP)
+// ──────────────────────────────────────────────
+
+model OCP {
+  id                String   @id @default(cuid())
+  projetId          String
+  nom               String
+  dateDebut         DateTime
+  dateFin           DateTime
+  version           String   @default("BASE")
+  indice            String?
+  dfvTotalMinutes   Int      @default(0)
+  statut            String   @default("brouillon")
+  ocpBaseId         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  projet            Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  ocpBase           OCP?     @relation("VarianteDeBase", fields: [ocpBaseId], references: [id])
+  variantes         OCP[]    @relation("VarianteDeBase")
+  chantiersElementaires ChantierElementaire[]
+}
+
+model ChantierElementaire {
+  id                    String   @id @default(cuid())
+  ocpId                 String
+  libelle               String
+  categorie             String?
+  dureePlanifieeMinutes Int      @default(0)
+  ordreAffichage        Int      @default(0)
+  estGroupe             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  ocp                   OCP      @relation(fields: [ocpId], references: [id], onDelete: Cascade)
+  creneaux              CreneauActivite[]
+}
+
+model CreneauActivite {
+  id                     String   @id @default(cuid())
+  chantierElementaireId  String
+  debut                  DateTime
+  fin                    DateTime
+  effectif               Int      @default(1)
+  statut                 String   @default("planifie")
+  createdAt              DateTime @default(now())
+  chantierElementaire    ChantierElementaire @relation(fields: [chantierElementaireId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// Module B — Matrice Décisionnelle
+// ──────────────────────────────────────────────
+
+model MatriceDecisionnelle {
+  id              String   @id @default(cuid())
+  projetId        String
+  titre           String
+  acheteur        String?
+  site            String?
+  familleAchats   String?
+  budgetTheorique Float?
+  devise          String   @default("EUR")
+  seuilGo         Float    @default(60)
+  statut          String   @default("brouillon")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  projet          Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  fournisseurs    FournisseurCandidat[]
+  criteres        Critere[]
+}
+
+model FournisseurCandidat {
+  id              String    @id @default(cuid())
+  matriceId       String
+  nom             String
+  rang            Int       @default(1)
+  refOffre        String?
+  dateOffre       DateTime?
+  paysFabrication String?
+  incoterm        String?
+  decision        String    @default("en_attente")
+  couleurDecision String    @default("jaune")
+  createdAt       DateTime  @default(now())
+  matrice         MatriceDecisionnelle @relation(fields: [matriceId], references: [id], onDelete: Cascade)
+  notations       NotationCritere[]
+}
+
+model Critere {
+  id              String   @id @default(cuid())
+  matriceId       String
+  famille         String
+  libelle         String
+  coefficient     Float    @default(1)
+  ordreAffichage  Int      @default(0)
+  type            String   @default("note_1_3")
+  createdAt       DateTime @default(now())
+  matrice         MatriceDecisionnelle @relation(fields: [matriceId], references: [id], onDelete: Cascade)
+  notations       NotationCritere[]
+}
+
+model NotationCritere {
+  id                          String   @id @default(cuid())
+  critereId                   String
+  fournisseurId               String
+  valeurTexte                 String?
+  note                        Int?
+  valeurBool                  Boolean?
+  commentaire                 String?
+  estNonConformiteMajeure     Boolean  @default(false)
+  estNonConformiteNegociable  Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  critere                     Critere  @relation(fields: [critereId], references: [id], onDelete: Cascade)
+  fournisseur                 FournisseurCandidat @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+  @@unique([critereId, fournisseurId])
 }
