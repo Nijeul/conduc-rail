@@ -91,6 +91,78 @@ export async function updateProfil(data: unknown): Promise<ActionResult> {
   }
 }
 
+export async function exporterMesDonnees() {
+  const sessionUser = await getAuthUser()
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      nomSociete: true,
+      adresseSociete: true,
+      telSociete: true,
+      certifications: true,
+      createdAt: true,
+      projets: {
+        include: {
+          projet: { select: { name: true, description: true } },
+        },
+      },
+      rapports: {
+        select: {
+          date: true,
+          titre: true,
+          nomChantier: true,
+          production: true,
+          heureDebut: true,
+          heureFin: true,
+          posteNuit: true,
+          valide: true,
+        },
+      },
+    },
+  })
+
+  if (!user) throw new Error('Utilisateur introuvable')
+
+  return { success: true as const, data: user }
+}
+
+export async function supprimerMonCompte(confirmEmail: string) {
+  const sessionUser = await getAuthUser()
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+  })
+  if (!user || user.email !== confirmEmail) {
+    return { success: false as const, error: 'Email incorrect' }
+  }
+
+  // Verifier qu'il n'est owner d'aucun projet
+  const projetOwner = await prisma.projetMember.findFirst({
+    where: { userId: sessionUser.id, role: 'owner' },
+  })
+  if (projetOwner) {
+    return {
+      success: false as const,
+      error:
+        'Vous devez transferer ou supprimer vos projets avant de supprimer votre compte.',
+    }
+  }
+
+  // Supprimer les memberships
+  await prisma.projetMember.deleteMany({
+    where: { userId: sessionUser.id },
+  })
+
+  // Supprimer l'utilisateur
+  await prisma.user.delete({ where: { id: sessionUser.id } })
+
+  return { success: true as const }
+}
+
 export async function changePassword(data: unknown): Promise<ActionResult> {
   try {
     const sessionUser = await getAuthUser()

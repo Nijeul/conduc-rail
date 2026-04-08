@@ -4,9 +4,10 @@ import { useState, useTransition, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Save, Trash2, Upload } from 'lucide-react'
-import { updateProfil, changePassword } from '@/actions/profil'
+import { Save, Trash2, Upload, Download, AlertTriangle } from 'lucide-react'
+import { updateProfil, changePassword, exporterMesDonnees, supprimerMonCompte } from '@/actions/profil'
 import { useProfilStore } from '@/stores/profil'
+import { signOut } from 'next-auth/react'
 
 interface ProfilData {
   id: string
@@ -421,6 +422,152 @@ export function ProfilForm({ profil }: ProfilFormProps) {
           </div>
         </div>
       </div>
+
+      {/* RGPD section */}
+      <RGPDSection email={profil.email} />
+    </div>
+  )
+}
+
+// ---------- RGPD Section Component ----------
+
+function RGPDSection({ email }: { email: string }) {
+  const [isPending, startTransition] = useTransition()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [confirmEmail, setConfirmEmail] = useState('')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
+
+  function handleExport() {
+    setExportLoading(true)
+    startTransition(async () => {
+      try {
+        const result = await exporterMesDonnees()
+        if (result.success && result.data) {
+          const json = JSON.stringify(result.data, null, 2)
+          const blob = new Blob([json], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = 'mes-donnees-conduc-rail.json'
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setExportLoading(false)
+      }
+    })
+  }
+
+  function handleDelete() {
+    setDeleteError(null)
+    startTransition(async () => {
+      try {
+        const result = await supprimerMonCompte(confirmEmail)
+        if (result.success) {
+          signOut({ callbackUrl: '/login' })
+        } else {
+          setDeleteError(result.error)
+        }
+      } catch {
+        setDeleteError('Erreur lors de la suppression du compte')
+      }
+    })
+  }
+
+  return (
+    <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
+      <h2 className="text-base font-bold text-[#004489] mb-4 pb-2 border-b border-[#DCDCDC]">
+        Mes donnees personnelles (RGPD)
+      </h2>
+      <p className="text-xs text-[#5A5A5A] mb-4">
+        Conformement au RGPD, vous pouvez exporter ou supprimer vos donnees personnelles.{' '}
+        <a
+          href="/politique-confidentialite"
+          className="underline text-[#004489] hover:text-[#003370]"
+        >
+          Voir la politique de confidentialite
+        </a>
+      </p>
+
+      <div className="flex flex-wrap gap-3 mb-4">
+        {/* Export button */}
+        <Button
+          onClick={handleExport}
+          disabled={isPending || exportLoading}
+          className="bg-[#004489] hover:bg-[#003370] text-white"
+        >
+          <Download className="h-4 w-4 mr-1" />
+          {exportLoading ? 'Export en cours...' : 'Exporter mes donnees'}
+        </Button>
+
+        {/* Delete button */}
+        <Button
+          onClick={() => setShowDeleteDialog(true)}
+          disabled={isPending}
+          className="bg-[#E20025] hover:bg-[#B8001E] text-white"
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          Supprimer mon compte
+        </Button>
+      </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteDialog && (
+        <div className="border border-[#E20025] rounded-lg p-4 bg-[#FDEAED]">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-5 w-5 text-[#E20025]" />
+            <h3 className="text-sm font-bold text-[#E20025]">
+              Suppression definitive du compte
+            </h3>
+          </div>
+          <p className="text-sm text-[#000000] mb-3">
+            Cette action est irreversible. Toutes vos donnees personnelles
+            seront supprimees. Saisissez votre email{' '}
+            <strong>{email}</strong> pour confirmer.
+          </p>
+
+          {deleteError && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200 mb-3">
+              {deleteError}
+            </div>
+          )}
+
+          <div className="mb-3">
+            <Input
+              type="email"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              placeholder="Saisissez votre email"
+              className="max-w-sm"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleDelete}
+              disabled={isPending || confirmEmail !== email}
+              className="bg-[#E20025] hover:bg-[#B8001E] text-white"
+            >
+              {isPending ? 'Suppression...' : 'Confirmer la suppression'}
+            </Button>
+            <Button
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setConfirmEmail('')
+                setDeleteError(null)
+              }}
+              className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

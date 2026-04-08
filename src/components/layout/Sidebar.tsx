@@ -102,6 +102,15 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
           <LogOut className="h-4 w-4" />
           Deconnexion
         </button>
+        <Link
+          href="/politique-confidentialite"
+          className="block px-3 mt-2 text-xs underline transition-colors"
+          style={{ color: 'rgba(255,255,255,0.40)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.80)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.40)'; }}
+        >
+          Politique de confidentialite
+        </Link>
       </div>
     </aside>
   );

@@ -114,6 +114,15 @@ export default function LoginPage() {
             <p className="text-xs text-text-secondary text-center mt-4">
               Demo : admin@conducrail.fr / demo1234
             </p>
+
+            <p className="text-xs text-text-secondary text-center mt-2">
+              <a
+                href="/politique-confidentialite"
+                className="underline hover:text-[#004489] transition-colors"
+              >
+                Politique de confidentialite
+              </a>
+            </p>
           </form>
         </div>
       </div>
