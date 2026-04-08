@@ -54,9 +54,12 @@ interface VehiculeData {
   type?: string
   designation?: string
   nombre?: number
+  capEssieuxFreines?: number
+  nbEssieux?: number
   poidsEntrant?: number
   poidsSortant?: number
   longueur?: number
+  capTraction?: number
   freinage?: string
   traction?: string
 }
