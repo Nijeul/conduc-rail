@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -12,15 +15,7 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
 
-const COULEURS_CATEGORIE: Record<string, string> = {
-  catenaire: "#004489",
-  voie: "#FF8F00",
-  procedure_sncf: "#E20025",
-  essais: "#7AA536",
-  dfv: "#003370",
-  groupe: "#F0F0F0",
-  autre: "#5A5A5A",
-};
+const DEFAULT_COLOR = "#004489";
 
 const COULEURS_LIGNE = [
   { label: "Bleu VINCI", couleur: "#004489" },
@@ -47,9 +42,9 @@ interface ChantierRowProps {
   projetId: string;
   chantierId: string;
   libelle: string;
-  categorie: string | null;
   couleur: string | null;
   estGroupe: boolean;
+  estDFV: boolean;
   creneaux: Creneau[];
   slotCount: number;
   colWidth: number;
@@ -60,15 +55,16 @@ interface ChantierRowProps {
   onCouleurChange: (chantierId: string, couleur: string | null) => void;
   onRenommer: (chantierId: string, newLibelle: string) => void;
   onSupprimer: (chantierId: string) => void;
+  sortable?: boolean;
 }
 
 export function ChantierRow({
   projetId,
   chantierId,
   libelle,
-  categorie,
   couleur,
   estGroupe,
+  estDFV,
   slotCount,
   colWidth,
   activeSlots,
@@ -77,14 +73,33 @@ export function ChantierRow({
   onCouleurChange,
   onRenommer,
   onSupprimer,
+  sortable = false,
 }: ChantierRowProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(libelle);
 
-  // Custom color takes priority, then category color
-  const categorieColor = COULEURS_CATEGORIE[categorie ?? "autre"] ?? COULEURS_CATEGORIE.autre;
-  const activeColor = couleur ?? categorieColor;
-  const dotColor = couleur ?? categorieColor;
+  // Sortable hook (only used when sortable=true)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: chantierId, disabled: !sortable });
+
+  const sortableStyle = sortable
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : undefined,
+      }
+    : {};
+
+  // Color: custom color or default
+  const activeColor = couleur ?? DEFAULT_COLOR;
+  const dotColor = couleur ?? DEFAULT_COLOR;
 
   const handleMouseDown = useCallback(
     (slotIndex: number) => {
@@ -129,7 +144,12 @@ export function ChantierRow({
 
   if (estGroupe) {
     return (
-      <div className="flex" style={{ backgroundColor: "#F0F0F0" }}>
+      <div
+        ref={sortable ? setNodeRef : undefined}
+        style={{ backgroundColor: "#F0F0F0", ...sortableStyle }}
+        className="flex"
+        {...(sortable ? attributes : {})}
+      >
         <div
           className="sticky left-0 z-10 flex items-center px-2 text-xs font-bold border-r border-b truncate"
           style={{
@@ -140,6 +160,14 @@ export function ChantierRow({
             height: 28,
           }}
         >
+          {sortable && (
+            <span
+              className="cursor-grab mr-1 text-gray-400 hover:text-gray-600"
+              {...listeners}
+            >
+              <GripVertical className="h-3 w-3" />
+            </span>
+          )}
           {libelle}
         </div>
         <div className="flex">
@@ -181,6 +209,14 @@ export function ChantierRow({
     </div>
   ) : (
     <>
+      {sortable && (
+        <span
+          className="cursor-grab mr-1 text-gray-400 hover:text-gray-600 shrink-0"
+          {...listeners}
+        >
+          <GripVertical className="h-3 w-3" />
+        </span>
+      )}
       <span
         className="inline-block w-2 h-2 rounded-full mr-1.5 shrink-0"
         style={{ backgroundColor: dotColor }}
@@ -190,16 +226,25 @@ export function ChantierRow({
   );
 
   return (
-    <div className="flex">
+    <div
+      ref={sortable ? setNodeRef : undefined}
+      className="flex"
+      style={sortableStyle}
+      {...(sortable ? attributes : {})}
+    >
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="sticky left-0 z-10 flex items-center px-2 text-xs border-r border-b truncate bg-white"
+            className={`sticky left-0 z-10 flex items-center px-2 text-xs border-r border-b truncate ${
+              estDFV ? "font-bold" : ""
+            }`}
             style={{
               width: 180,
               minWidth: 180,
               borderColor: "#DCDCDC",
               height: 28,
+              backgroundColor: estDFV ? "#E5EFF8" : "#FFFFFF",
+              color: estDFV ? "#003370" : undefined,
             }}
             title={libelle}
           >
@@ -245,26 +290,32 @@ export function ChantierRow({
                 onClick={() => onCouleurChange(chantierId, null)}
               >
                 <span className="text-xs" style={{ color: "#5A5A5A" }}>
-                  Couleur par defaut (categorie)
+                  Couleur par defaut
                 </span>
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
-          <ContextMenuItem
-            onClick={() => {
-              setRenameValue(libelle);
-              setIsRenaming(true);
-            }}
-          >
-            Renommer
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => onSupprimer(chantierId)}
-            className="text-[#E20025] focus:text-[#E20025]"
-          >
-            Supprimer
-          </ContextMenuItem>
+          {!estDFV && (
+            <ContextMenuItem
+              onClick={() => {
+                setRenameValue(libelle);
+                setIsRenaming(true);
+              }}
+            >
+              Renommer
+            </ContextMenuItem>
+          )}
+          {!estDFV && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => onSupprimer(chantierId)}
+                className="text-[#E20025] focus:text-[#E20025]"
+              >
+                Supprimer
+              </ContextMenuItem>
+            </>
+          )}
         </ContextMenuContent>
       </ContextMenu>
       <div className="flex">
@@ -281,7 +332,7 @@ export function ChantierRow({
                 minWidth: colWidth,
                 height: 28,
                 borderColor: "#DCDCDC",
-                backgroundColor: isActive ? activeColor : "transparent",
+                backgroundColor: isActive ? activeColor : estDFV ? "#F0F8FF" : "transparent",
               }}
               onMouseDown={() => handleMouseDown(i)}
             />

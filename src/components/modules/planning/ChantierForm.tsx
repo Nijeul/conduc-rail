@@ -11,22 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createChantierElementaire } from "@/actions/planning";
-
-const CATEGORIES = [
-  { value: "catenaire", label: "Caténaire" },
-  { value: "voie", label: "Voie" },
-  { value: "procedure_sncf", label: "Procédure SNCF" },
-  { value: "essais", label: "Essais" },
-  { value: "autre", label: "Autre" },
-];
 
 interface ChantierFormProps {
   projetId: string;
@@ -44,7 +29,6 @@ export function ChantierForm({
   nextOrdre,
 }: ChantierFormProps) {
   const [libelle, setLibelle] = useState("");
-  const [categorie, setCategorie] = useState("autre");
   const [estGroupe, setEstGroupe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -57,7 +41,7 @@ export function ChantierForm({
     try {
       const result = await createChantierElementaire(projetId, ocpId, {
         libelle,
-        categorie: estGroupe ? "groupe" : categorie,
+        categorie: null,
         estGroupe,
         ordreAffichage: nextOrdre,
         dureePlanifieeMinutes: 0,
@@ -67,7 +51,6 @@ export function ChantierForm({
         setError(result.error);
       } else {
         setLibelle("");
-        setCategorie("autre");
         setEstGroupe(false);
         onOpenChange(false);
       }
@@ -82,33 +65,18 @@ export function ChantierForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>Ajouter un chantier élémentaire</DialogTitle>
+          <DialogTitle>Ajouter un chantier elementaire</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="libelle">Libellé</Label>
+            <Label htmlFor="libelle">Libelle</Label>
             <Input
               id="libelle"
               value={libelle}
               onChange={(e) => setLibelle(e.target.value)}
               required
-              placeholder="Dépose caténaire V1"
+              placeholder="Depose catenaire V1"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Catégorie</Label>
-            <Select value={categorie} onValueChange={setCategorie} disabled={estGroupe}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -120,7 +88,7 @@ export function ChantierForm({
               style={{ accentColor: "#004489" }}
             />
             <Label htmlFor="estGroupe" className="cursor-pointer">
-              Ligne de groupe (titre / séparateur)
+              Ligne de groupe (titre / separateur)
             </Label>
           </div>
           {error && <p className="text-sm" style={{ color: "#E20025" }}>{error}</p>}

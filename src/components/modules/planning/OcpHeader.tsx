@@ -12,17 +12,6 @@ import { Plus, ZoomIn, ZoomOut, HelpCircle } from "lucide-react";
 import { useState, useCallback } from "react";
 import { PlanningPDFExport } from "./PlanningPDFExport";
 
-const COULEURS_CATEGORIE: Record<string, { label: string; couleur: string }> = {
-  catenaire: { label: "Caténaire", couleur: "#004489" },
-  voie: { label: "Voie", couleur: "#FF8F00" },
-  procedure_sncf: { label: "Procédure SNCF", couleur: "#E20025" },
-  essais: { label: "Essais", couleur: "#7AA536" },
-  signalisation: { label: "Signalisation", couleur: "#F2AB1B" },
-  telecom: { label: "Télécom", couleur: "#80B4FF" },
-  energie: { label: "Énergie", couleur: "#C26A32" },
-  genie_civil: { label: "Génie civil", couleur: "#A152E5" },
-  autre: { label: "Autre", couleur: "#5A5A5A" },
-};
 
 interface Creneau {
   id: string;
@@ -265,23 +254,6 @@ export function OcpHeader({
         </div>
       </div>
 
-      {/* Color legend row */}
-      <div className="flex items-center gap-3 px-6 pb-2">
-        <span className="text-xs font-medium" style={{ color: "#5A5A5A" }}>
-          Legende :
-        </span>
-        {Object.entries(COULEURS_CATEGORIE).map(([key, { label, couleur }]) => (
-          <div key={key} className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-sm"
-              style={{ backgroundColor: couleur }}
-            />
-            <span className="text-xs" style={{ color: "#5A5A5A" }}>
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

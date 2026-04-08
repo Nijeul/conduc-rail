@@ -339,6 +339,7 @@ model ChantierElementaire {
   dureePlanifieeMinutes Int      @default(0)
   ordreAffichage        Int      @default(0)
   estGroupe             Boolean  @default(false)
+  estDFV                Boolean  @default(false)
   createdAt             DateTime @default(now())
   ocp                   OCP      @relation(fields: [ocpId], references: [id], onDelete: Cascade)
   creneaux              CreneauActivite[]

@@ -21,6 +21,7 @@ interface ChantierElementaire {
   id: string;
   libelle: string;
   categorie: string | null;
+  couleur?: string | null;
   dureePlanifieeMinutes: number;
   ordreAffichage: number;
   estGroupe: boolean;
@@ -301,9 +302,9 @@ export async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> 
     }
 
     // Colonnes C+ : 1 si actif
-    const catColor = getCategoryColor(chantier.categorie);
+    const rowColor = chantier.couleur ?? "#004489";
     const argbColor =
-      "FF" + catColor.replace("#", "");
+      "FF" + rowColor.replace("#", "");
 
     for (let i = 0; i < slots.length; i++) {
       const col = i + 3;

@@ -135,6 +135,17 @@ export async function createOCP(
       },
     });
 
+    // Auto-create DFV line at position 0
+    await prisma.chantierElementaire.create({
+      data: {
+        ocpId: ocp.id,
+        libelle: "DFV",
+        estDFV: true,
+        ordreAffichage: 0,
+        couleur: "#003370",
+      },
+    });
+
     revalidatePath(`/projets/${projetId}/planning`);
     return { success: true, data: { id: ocp.id } };
   } catch (error) {
@@ -201,6 +212,44 @@ export async function deleteOCP(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erreur lors de la suppression",
+    };
+  }
+}
+
+// ──────────────────────────────────────────────
+// Reorder Chantiers (drag & drop)
+// ──────────────────────────────────────────────
+
+export async function reorderChantiers(
+  projetId: string,
+  ocpId: string,
+  orderedIds: string[]
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    const ocp = await prisma.oCP.findFirst({
+      where: { id: ocpId, projetId },
+    });
+    if (!ocp) throw new Error("OCP introuvable");
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.chantierElementaire.update({
+          where: { id },
+          data: { ordreAffichage: index },
+        })
+      )
+    );
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("reorderChantiers error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de la réorganisation",
     };
   }
 }
@@ -416,9 +465,11 @@ export async function dupliquerOCP(
             ocpId: copie.id,
             libelle: chantier.libelle,
             categorie: chantier.categorie,
+            couleur: chantier.couleur,
             dureePlanifieeMinutes: chantier.dureePlanifieeMinutes,
             ordreAffichage: chantier.ordreAffichage,
             estGroupe: chantier.estGroupe,
+            estDFV: chantier.estDFV,
           },
         });
 

@@ -2,6 +2,21 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { OcpHeader } from "./OcpHeader";
 import { TimelineHeader, generateSlots } from "./TimelineHeader";
 import { ChantierRow } from "./ChantierRow";
@@ -10,10 +25,10 @@ import { PlanningPersonnelSection } from "./PlanningPersonnelSection";
 import { PlanningTractionSection } from "./PlanningTractionSection";
 import {
   updateCreneaux,
-  calculerDFV,
   updateCouleurChantier,
   updateChantierElementaire,
   deleteChantierElementaire,
+  reorderChantiers,
 } from "@/actions/planning";
 
 const ZOOM_LEVELS = {
@@ -38,6 +53,7 @@ interface ChantierEl {
   categorie: string | null;
   couleur: string | null;
   estGroupe: boolean;
+  estDFV: boolean;
   ordreAffichage: number;
   dureePlanifieeMinutes: number;
   creneaux: Creneau[];
@@ -218,20 +234,59 @@ export function PlanningMinuteGrid({
     return map;
   });
 
-  // Compute DFV line (union of all active slots)
+  // Find the DFV chantier (manual DFV line)
+  const dfvChantier = ocp.chantiersElementaires.find((ch) => ch.estDFV);
+
+  // DFV minutes = active slots on the DFV line
   const dfvSlots = useMemo(() => {
-    const union = new Set<number>();
-    for (const s of Object.values(chantierSlots)) {
-      s.forEach((idx) => union.add(idx));
-    }
-    return union;
-  }, [chantierSlots]);
+    if (!dfvChantier) return new Set<number>();
+    return chantierSlots[dfvChantier.id] ?? new Set<number>();
+  }, [chantierSlots, dfvChantier]);
 
   // Update DFV display when slots change
   useEffect(() => {
     const minutes = dfvSlots.size * 30;
     setDfvMinutes(minutes);
   }, [dfvSlots]);
+
+  // Separate DFV row from other chantiers, keep order
+  const [sortedChantiers, setSortedChantiers] = useState(() =>
+    ocp.chantiersElementaires
+      .filter((ch) => !ch.estDFV)
+      .sort((a, b) => a.ordreAffichage - b.ordreAffichage)
+  );
+
+  // Re-sync sortedChantiers when ocp data changes
+  useEffect(() => {
+    setSortedChantiers(
+      ocp.chantiersElementaires
+        .filter((ch) => !ch.estDFV)
+        .sort((a, b) => a.ordreAffichage - b.ordreAffichage)
+    );
+  }, [ocp.chantiersElementaires]);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      setSortedChantiers((prev) => {
+        const oldIndex = prev.findIndex((ch) => ch.id === active.id);
+        const newIndex = prev.findIndex((ch) => ch.id === over.id);
+        const reordered = arrayMove(prev, oldIndex, newIndex);
+        // Persist new order to server
+        const orderedIds = reordered.map((ch) => ch.id);
+        reorderChantiers(projetId, ocp.id, orderedIds);
+        return reordered;
+      });
+    },
+    [projetId, ocp.id]
+  );
 
   // Debounced save ref
   const saveTimers = useRef<Record<string, NodeJS.Timeout>>({});
@@ -250,7 +305,6 @@ export function PlanningMinuteGrid({
           chantier?.creneaux ?? []
         );
         await updateCreneaux(projetId, chantierId, creneaux);
-        await calculerDFV(ocp.id);
       }, 500);
     },
     [projetId, ocp.id, ocp.chantiersElementaires, startMs, stepMs]
@@ -379,59 +433,63 @@ export function PlanningMinuteGrid({
             />
           </div>
 
-          {/* DFV summary row */}
-          <div className="flex">
-            <div
-              className="sticky left-0 z-10 flex items-center px-2 text-xs font-bold border-r border-b bg-white"
-              style={{
-                width: 180,
-                minWidth: 180,
-                borderColor: "#DCDCDC",
-                height: 28,
-                color: "#003370",
-              }}
-            >
-              DFV
-            </div>
-            <div className="flex">
-              {Array.from({ length: slotCount }).map((_, i) => (
-                <div
-                  key={i}
-                  className="border-r border-b shrink-0"
-                  style={{
-                    width: colWidth,
-                    minWidth: colWidth,
-                    height: 28,
-                    borderColor: "#DCDCDC",
-                    backgroundColor: dfvSlots.has(i) ? "#003370" : "transparent",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Chantier rows */}
-          {ocp.chantiersElementaires.map((ch) => (
+          {/* DFV row (manual, editable like any other row) */}
+          {dfvChantier && (
             <ChantierRow
-              key={ch.id}
+              key={dfvChantier.id}
               projetId={projetId}
-              chantierId={ch.id}
-              libelle={ch.libelle}
-              categorie={ch.categorie}
-              couleur={localCouleurs[ch.id] ?? null}
-              estGroupe={ch.estGroupe}
-              creneaux={ch.creneaux}
+              chantierId={dfvChantier.id}
+              libelle={dfvChantier.libelle}
+              couleur={localCouleurs[dfvChantier.id] ?? "#003370"}
+              estGroupe={false}
+              estDFV={true}
+              creneaux={dfvChantier.creneaux}
               slotCount={slotCount}
               colWidth={colWidth}
               dateDebut={ocp.dateDebut}
-              activeSlots={chantierSlots[ch.id] ?? new Set()}
+              activeSlots={chantierSlots[dfvChantier.id] ?? new Set()}
               onToggleSlot={handleToggleSlot}
               onDragSlots={handleDragSlots}
               onCouleurChange={handleCouleurChange}
               onRenommer={handleRenommer}
               onSupprimer={handleSupprimer}
             />
-          ))}
+          )}
+
+          {/* Chantier rows with drag & drop */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sortedChantiers.map((ch) => ch.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {sortedChantiers.map((ch) => (
+                <ChantierRow
+                  key={ch.id}
+                  projetId={projetId}
+                  chantierId={ch.id}
+                  libelle={ch.libelle}
+                  couleur={localCouleurs[ch.id] ?? null}
+                  estGroupe={ch.estGroupe}
+                  estDFV={false}
+                  creneaux={ch.creneaux}
+                  slotCount={slotCount}
+                  colWidth={colWidth}
+                  dateDebut={ocp.dateDebut}
+                  activeSlots={chantierSlots[ch.id] ?? new Set()}
+                  onToggleSlot={handleToggleSlot}
+                  onDragSlots={handleDragSlots}
+                  onCouleurChange={handleCouleurChange}
+                  onRenommer={handleRenommer}
+                  onSupprimer={handleSupprimer}
+                  sortable
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
           {/* Personnel section */}
           <PlanningPersonnelSection
@@ -464,7 +522,7 @@ export function PlanningMinuteGrid({
         ocpId={ocp.id}
         open={chantierFormOpen}
         onOpenChange={setChantierFormOpen}
-        nextOrdre={ocp.chantiersElementaires.length}
+        nextOrdre={sortedChantiers.length + 1}
       />
     </div>
   );
