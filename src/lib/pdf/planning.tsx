@@ -18,6 +18,7 @@ interface ChantierEl {
   categorie: string | null
   couleur?: string | null
   estGroupe: boolean
+  estDFV?: boolean
   ordreAffichage: number
   dureePlanifieeMinutes: number
   creneaux: Creneau[]
@@ -303,8 +304,7 @@ function drawPlanningPages(
   const legendH = 0
 
   // How many chantier rows per page
-  const actualHourRowH = (gridW / slots.length) < 3 ? 12 : hourHeaderH
-  const headerZoneH = dayHeaderH + actualHourRowH + dfvRowH
+  const headerZoneH = dayHeaderH + 5 + dfvRowH // hourRowH is now always 5
   const availH = CONTENT_BOTTOM - CONTENT_TOP - headerZoneH - legendH - 6
   const rowsPerPage = Math.floor(availH / rowH)
 
@@ -367,41 +367,28 @@ function drawPlanningPages(
     }
     y += dayHeaderH
 
-    // Hour sub-header row — afficher les heures même quand les cellules sont étroites
-    const hourRowH = cellW < 3 ? 12 : hourHeaderH // plus haut si cellules étroites (rotation)
+    // Hour sub-header row — heures pleines en horizontal, compact
+    const hourRowH = 5
     doc.setFillColor(...VINCI_BLEU_DARK)
-    doc.rect(MARGIN, y, labelColW, hourRowH, 'F')
+    doc.rect(MARGIN, y, labelColW + actualGridW, hourRowH, 'F')
 
     for (let i = 0; i < slotCount; i++) {
       const x = gridX + i * cellW
-      doc.setFillColor(...VINCI_BLEU_DARK)
-      doc.rect(x, y, cellW, hourRowH, 'F')
-
-      // Séparateur vertical léger entre heures pleines
       const isFullHour = slots[i].date.getMinutes() === 0
-      if (isFullHour && i > 0) {
-        doc.setDrawColor(255, 255, 255)
-        doc.setLineWidth(0.3)
-        doc.line(x, y, x, y + hourRowH)
-      }
 
-      // Afficher le label d'heure
-      if (cellW >= 4) {
-        // Assez large : texte horizontal
+      // Trait séparateur pour chaque heure pleine
+      if (isFullHour) {
+        doc.setDrawColor(255, 255, 255)
+        doc.setLineWidth(0.4)
+        doc.line(x, y, x, y + hourRowH)
+
+        // Label heure — horizontal, juste le chiffre
         doc.setTextColor(...WHITE)
-        doc.setFontSize(3)
-        doc.setFont('Helvetica', 'normal')
-        doc.text(slots[i].label, x + cellW / 2, y + hourRowH - 1.5, { align: 'center' })
-      } else if (isFullHour) {
-        // Cellules étroites : afficher seulement les heures pleines, en rotation
-        doc.setTextColor(...WHITE)
-        doc.setFontSize(3.5)
+        const fontSize = cellW >= 4 ? 3.5 : cellW >= 2.5 ? 2.8 : 2.2
+        doc.setFontSize(fontSize)
         doc.setFont('Helvetica', 'bold')
-        const hourLabel = slots[i].date.getHours() + 'h'
-        // Texte vertical via save/translate/rotate
-        doc.saveGraphicsState()
-        doc.text(hourLabel, x + cellW / 2 + 1, y + hourRowH - 1.5, { angle: 90 })
-        doc.restoreGraphicsState()
+        const hLabel = String(slots[i].date.getHours())
+        doc.text(hLabel, x + 0.5, y + hourRowH - 1.2)
       }
     }
     y += hourRowH
@@ -443,11 +430,28 @@ function drawPlanningPages(
     }
     y += dfvRowH
 
+    // Identifier les index de début de jour pour les séparateurs
+    const dayStartIndices = new Set<number>()
+    let prevDay = ''
+    for (let i = 0; i < slotCount; i++) {
+      if (slots[i].dayLabel !== prevDay) {
+        dayStartIndices.add(i)
+        prevDay = slots[i].dayLabel
+      }
+    }
+
     // Chantier rows
     const chantiers = chantierPages[p]
-    for (const ch of chantiers) {
+    for (let ci = 0; ci < chantiers.length; ci++) {
+      const ch = chantiers[ci]
       const isGroup = ch.estGroupe
-      const bgColor: [number, number, number] = isGroup ? GREY_LIGHT : WHITE
+      const isDFV = ch.estDFV
+      const isEven = ci % 2 === 0
+
+      // Fond de la ligne
+      const bgColor: [number, number, number] = isGroup ? GREY_LIGHT
+        : isDFV ? [229, 239, 248] as [number, number, number] // #E5EFF8
+        : isEven ? WHITE : [248, 248, 248] as [number, number, number]
 
       // Label cell
       doc.setFillColor(...bgColor)
@@ -456,18 +460,11 @@ function drawPlanningPages(
       doc.setLineWidth(0.1)
       doc.rect(MARGIN, y, labelColW, rowH)
 
-      doc.setTextColor(...BLACK)
-      doc.setFontSize(isGroup ? 4 : 3.5)
-      doc.setFont('Helvetica', isGroup ? 'bold' : 'normal')
-      const truncLib = ch.libelle.length > 30 ? ch.libelle.slice(0, 27) + '...' : ch.libelle
+      doc.setTextColor(isDFV ? VINCI_BLEU[0] : 0, isDFV ? VINCI_BLEU[1] : 0, isDFV ? VINCI_BLEU[2] : 0)
+      doc.setFontSize(isGroup ? 4 : isDFV ? 4 : 3.5)
+      doc.setFont('Helvetica', (isGroup || isDFV) ? 'bold' : 'normal')
+      const truncLib = ch.libelle.length > 32 ? ch.libelle.slice(0, 29) + '...' : ch.libelle
       doc.text(truncLib, MARGIN + 1.5, y + rowH - 1.2)
-
-      // Color indicator dot
-      if (!isGroup) {
-        const color = getChantierColor(ch)
-        doc.setFillColor(...color)
-        doc.circle(MARGIN + labelColW - 3, y + rowH / 2, 1, 'F')
-      }
 
       // Slot cells
       const chColor = getChantierColor(ch)
@@ -478,16 +475,23 @@ function drawPlanningPages(
         if (active) {
           doc.setFillColor(...chColor)
           doc.rect(x, y, cellW, rowH, 'F')
-        } else if (isGroup) {
-          doc.setFillColor(...GREY_LIGHT)
+        } else {
+          doc.setFillColor(...bgColor)
           doc.rect(x, y, cellW, rowH, 'F')
         }
 
-        // Grid lines
-        doc.setDrawColor(...GREY_BORDER)
-        doc.setLineWidth(0.05)
-        doc.rect(x, y, cellW, rowH)
+        // Séparateur de jour (trait blanc épais)
+        if (dayStartIndices.has(i) && i > 0) {
+          doc.setDrawColor(255, 255, 255)
+          doc.setLineWidth(0.5)
+          doc.line(x, y, x, y + rowH)
+        }
       }
+
+      // Bordure basse de la ligne
+      doc.setDrawColor(...GREY_BORDER)
+      doc.setLineWidth(0.1)
+      doc.line(MARGIN, y + rowH, MARGIN + labelColW + actualGridW, y + rowH)
 
       y += rowH
     }
