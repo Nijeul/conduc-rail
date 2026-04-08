@@ -673,6 +673,154 @@ function drawPersonnelPages(
 }
 
 // ──────────────────────────────────────────────
+// Vehicle Drawing Helper (jsPDF shapes)
+// ──────────────────────────────────────────────
+
+function drawVehicule(pdf: jsPDF, x: number, y: number, w: number, h: number, type: string, designation: string) {
+  const VEHICULE_COLORS: Record<string, string> = {
+    Loco: '#E65100',
+    Ballastiere: '#7D3520',
+    Bigrue: '#7B1FA2',
+    BML: '#E91E63',
+    Regaleuse: '#9E9D24',
+    Stabilisateur: '#0277BD',
+    Wagon: '#5A5A5A',
+    WagonLRS: '#E65100',
+  }
+
+  // Normalize type for lookup
+  const typeKey = Object.keys(VEHICULE_COLORS).find(
+    (k) => k.toLowerCase() === (type || '').toLowerCase()
+  ) || 'Wagon'
+  const couleur = VEHICULE_COLORS[typeKey] ?? '#5A5A5A'
+  const rgb = hexToRGB(couleur)
+
+  // Fond du vehicule
+  pdf.setFillColor(...rgb)
+
+  const tLower = (type || '').toLowerCase()
+
+  if (tLower === 'loco') {
+    // Locomotive: capot bas + cabine surelevee a droite
+    pdf.rect(x, y + h * 0.3, w * 0.65, h * 0.7, 'F')       // capot
+    pdf.rect(x + w * 0.6, y, w * 0.4, h, 'F')               // cabine
+    // Fenetres cabine
+    pdf.setFillColor(179, 229, 252) // #B3E5FC
+    pdf.rect(x + w * 0.65, y + h * 0.15, w * 0.15, h * 0.25, 'F')
+    pdf.rect(x + w * 0.82, y + h * 0.15, w * 0.15, h * 0.25, 'F')
+  } else if (tLower === 'ballastiere') {
+    // Trapezoidal hopper shape
+    const x1 = x + w * 0.1, x2 = x + w * 0.9
+    const x3 = x + w * 0.2, x4 = x + w * 0.8
+    pdf.triangle(x1, y, x2, y, x4, y + h, 'F')
+    pdf.triangle(x1, y, x3, y + h, x4, y + h, 'F')
+  } else if (tLower === 'bigrue') {
+    // Base plate + two cabins + pylone central
+    pdf.rect(x, y + h * 0.5, w, h * 0.5, 'F')               // plateforme
+    pdf.rect(x, y + h * 0.1, w * 0.22, h * 0.45, 'F')       // cabine gauche
+    pdf.rect(x + w * 0.78, y + h * 0.1, w * 0.22, h * 0.45, 'F') // cabine droite
+    // Pylone
+    const darkerRgb = hexToRGB('#4A148C')
+    pdf.setFillColor(...darkerRgb)
+    pdf.rect(x + w * 0.44, y, w * 0.12, h * 0.55, 'F')
+    // Fenetres
+    pdf.setFillColor(179, 229, 252)
+    pdf.rect(x + w * 0.04, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+    pdf.rect(x + w * 0.88, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+  } else if (tLower === 'bml') {
+    // Base + two cabins + picots centraux
+    pdf.rect(x, y + h * 0.5, w, h * 0.5, 'F')
+    pdf.rect(x, y + h * 0.1, w * 0.22, h * 0.45, 'F')
+    pdf.rect(x + w * 0.78, y + h * 0.1, w * 0.22, h * 0.45, 'F')
+    const darkerRgb = hexToRGB('#C2185B')
+    pdf.setFillColor(...darkerRgb)
+    // Petites dents de bourrage
+    for (let i = 0; i < 4; i++) {
+      pdf.rect(x + w * 0.28 + i * w * 0.13, y + h * 0.4, w * 0.04, h * 0.3, 'F')
+    }
+    // Fenetres
+    pdf.setFillColor(179, 229, 252)
+    pdf.rect(x + w * 0.04, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+    pdf.rect(x + w * 0.88, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+  } else if (tLower === 'regaleuse') {
+    // Base + cabine centrale + ailerons
+    pdf.rect(x, y + h * 0.5, w, h * 0.5, 'F')
+    // Ailerons rouges
+    const redRgb = hexToRGB('#E20025')
+    pdf.setFillColor(...redRgb)
+    pdf.rect(x + w * 0.08, y + h * 0.5, w * 0.22, h * 0.3, 'F')
+    pdf.rect(x + w * 0.70, y + h * 0.5, w * 0.22, h * 0.3, 'F')
+    // Cabine centrale
+    const cabRgb = hexToRGB('#CDDC39')
+    pdf.setFillColor(...cabRgb)
+    pdf.rect(x + w * 0.30, y + h * 0.1, w * 0.40, h * 0.45, 'F')
+    // Fenetres
+    pdf.setFillColor(179, 229, 252)
+    pdf.rect(x + w * 0.34, y + h * 0.2, w * 0.12, h * 0.15, 'F')
+    pdf.rect(x + w * 0.54, y + h * 0.2, w * 0.12, h * 0.15, 'F')
+  } else if (tLower === 'stabilisateur') {
+    // Base + two cabins + rouleaux centraux
+    pdf.rect(x, y + h * 0.5, w, h * 0.5, 'F')
+    pdf.rect(x, y + h * 0.1, w * 0.22, h * 0.45, 'F')
+    pdf.rect(x + w * 0.78, y + h * 0.1, w * 0.22, h * 0.45, 'F')
+    // Rouleaux (ellipses simulees par petits rectangles arrondis)
+    const darkRgb = hexToRGB('#01579B')
+    pdf.setFillColor(...darkRgb)
+    for (let i = 0; i < 3; i++) {
+      pdf.roundedRect(x + w * 0.28 + i * w * 0.17, y + h * 0.55, w * 0.12, h * 0.25, 1, 1, 'F')
+    }
+    // Fenetres
+    pdf.setFillColor(179, 229, 252)
+    pdf.rect(x + w * 0.04, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+    pdf.rect(x + w * 0.88, y + h * 0.2, w * 0.08, h * 0.15, 'F')
+  } else if (tLower === 'wagonlrs') {
+    // Wagon LRS: plateforme + rails longs depasses
+    pdf.roundedRect(x, y + h * 0.35, w, h * 0.65, 1, 1, 'F')
+    // Rails longs qui depassent
+    const railRgb = hexToRGB('#90A4AE')
+    pdf.setFillColor(...railRgb)
+    pdf.rect(x - w * 0.05, y + h * 0.3, w * 1.1, h * 0.08, 'F')
+    pdf.rect(x - w * 0.05, y + h * 0.45, w * 1.1, h * 0.08, 'F')
+    // Serre-rails
+    const clampRgb = hexToRGB('#455A64')
+    pdf.setFillColor(...clampRgb)
+    pdf.rect(x + w * 0.2, y + h * 0.25, w * 0.04, h * 0.35, 'F')
+    pdf.rect(x + w * 0.76, y + h * 0.25, w * 0.04, h * 0.35, 'F')
+  } else {
+    // Wagon standard: simple rectangle avec bord arrondi
+    pdf.roundedRect(x, y + h * 0.2, w, h * 0.8, 1, 1, 'F')
+    // Rebords
+    pdf.setDrawColor(...hexToRGB('#5A5A5A'))
+    pdf.setLineWidth(0.2)
+    pdf.roundedRect(x, y + h * 0.2, w, h * 0.8, 1, 1, 'S')
+  }
+
+  // Roues (2 cercles en bas)
+  pdf.setFillColor(38, 50, 56) // #263238
+  const wheelR = Math.min(2, h * 0.12)
+  pdf.circle(x + w * 0.2, y + h - wheelR * 0.3, wheelR, 'F')
+  pdf.circle(x + w * 0.8, y + h - wheelR * 0.3, wheelR, 'F')
+
+  // Attelages (petits rectangles aux extremites)
+  pdf.setFillColor(90, 90, 90)
+  pdf.rect(x - 1, y + h * 0.6, 1.5, h * 0.15, 'F')
+  pdf.rect(x + w - 0.5, y + h * 0.6, 1.5, h * 0.15, 'F')
+
+  // Designation sous le vehicule
+  pdf.setFontSize(3.5)
+  pdf.setTextColor(90, 90, 90)
+  const label = designation.length > 12 ? designation.slice(0, 10) + '...' : designation
+  pdf.text(label, x + w / 2, y + h + 3, { align: 'center' })
+}
+
+function formatHeurePDF(dateStr: Date | string): string {
+  const d = new Date(dateStr)
+  const hh = d.getHours().toString().padStart(2, '0')
+  const mm = d.getMinutes().toString().padStart(2, '0')
+  return `${hh}h${mm}`
+}
+
+// ──────────────────────────────────────────────
 // Traction Pages
 // ──────────────────────────────────────────────
 
@@ -710,36 +858,13 @@ function drawTractionPages(
   const barAreaW = CONTENT_W - labelW
   const barX = MARGIN + labelW
 
-  // Materiel type colors for blocks
-  const MATERIEL_COLORS: Record<string, string> = {
-    loco: '#E65100',
-    ballastiere: '#7D3520',
-    bigrue: '#7B1FA2',
-    bml: '#E91E63',
-    regaleuse: '#9E9D24',
-    stabilisateur: '#0277BD',
-    wagon: '#5A5A5A',
-    wagonlrs: '#E65100',
-    wagon_vide: '#5A5A5A',
-    wagon_ballast: '#78909C',
-    wagon_traverses: '#8D6E63',
-    wagon_rails: '#78909C',
-    wagon_pupitre: '#455A64',
-  }
-
-  function getMaterielColor(type: string): [number, number, number] {
-    const t = (type || '').toLowerCase()
-    const hex = MATERIEL_COLORS[t] || '#5A5A5A'
-    return hexToRGB(hex)
-  }
-
   for (const link of tractionLinks) {
     const vehicules = Array.isArray(link.composition.vehicules)
       ? (link.composition.vehicules as VehiculeData[])
       : []
 
-    // Estimate how much space we need
-    const neededH = 10 + Math.max(10, vehicules.length * 7 + 20)
+    // Estimate how much space we need (vehicule shapes are taller)
+    const neededH = 18 + Math.max(10, vehicules.length * 7 + 28)
 
     if (y + neededH > CONTENT_BOTTOM) {
       doc.addPage('a4', 'landscape')
@@ -750,7 +875,7 @@ function drawTractionPages(
 
     const displayLabel = link.label || link.composition.titre || 'Train'
 
-    // Label + timeline bar
+    // Label
     doc.setFillColor(...GREY_LIGHT)
     doc.rect(MARGIN, y, labelW, 7, 'F')
     doc.setTextColor(...BLACK)
@@ -758,6 +883,15 @@ function drawTractionPages(
     doc.setFont('Helvetica', 'bold')
     const truncLabel = displayLabel.length > 35 ? displayLabel.slice(0, 32) + '...' : displayLabel
     doc.text(truncLabel, MARGIN + 2, y + 5)
+
+    // --- Correction 2: Heures arrivee/depart au-dessus de la barre ---
+    const heureArrivee = formatHeurePDF(link.heureArrivee)
+    const heureDepart = formatHeurePDF(link.heureDepart)
+    doc.setFontSize(5)
+    doc.setTextColor(90, 90, 90)
+    doc.setFont('Helvetica', 'normal')
+    doc.text(`Arrivée ${heureArrivee}`, barX, y - 1)
+    doc.text(`Départ ${heureDepart}`, barX + barAreaW, y - 1, { align: 'right' })
 
     // Timeline bar background
     doc.setFillColor(...GREY_LIGHT)
@@ -787,38 +921,27 @@ function drawTractionPages(
     }
     y += 9
 
-    // Composition visual: colored blocks for each vehicle
+    // --- Correction 1 & 3: Vehicules realistes avec badge xN ---
     if (vehicules.length > 0) {
-      // Visual rame line
-      const blockH = 8
-      const blockW = Math.min(18, (CONTENT_W - 20) / vehicules.length)
+      // Visual rame line with realistic vehicle shapes
+      const vehH = 12
+      const vehW = Math.min(22, (CONTENT_W - 20) / vehicules.length)
       let bx2 = MARGIN + 4
       for (const v of vehicules) {
-        const color = getMaterielColor(v.type || 'wagon')
-        doc.setFillColor(...color)
-        doc.roundedRect(bx2, y, blockW - 1, blockH, 1, 1, 'F')
+        drawVehicule(doc, bx2, y, vehW - 2, vehH, v.type || 'Wagon', v.designation || v.type || '')
 
-        // Label inside block
-        doc.setTextColor(...WHITE)
-        doc.setFontSize(3)
-        doc.setFont('Helvetica', 'bold')
-        const vLabel = v.designation
-          ? (v.designation.length > 10 ? v.designation.slice(0, 8) + '..' : v.designation)
-          : (v.type || '')
-        doc.text(vLabel, bx2 + (blockW - 1) / 2, y + blockH / 2 + 0.5, { align: 'center' })
-
-        // Badge xN
+        // Badge xN (circle en haut a droite)
         if (v.nombre && v.nombre > 1) {
-          doc.setFillColor(255, 143, 0)
-          doc.roundedRect(bx2 + blockW - 5, y - 1, 6, 4, 1, 1, 'F')
-          doc.setTextColor(...WHITE)
-          doc.setFontSize(2.5)
-          doc.text(`x${v.nombre}`, bx2 + blockW - 2, y + 1.5, { align: 'center' })
+          doc.setFillColor(38, 50, 56) // #263238
+          doc.circle(bx2 + vehW - 3, y + 1, 3, 'F')
+          doc.setFontSize(5)
+          doc.setTextColor(255, 255, 255)
+          doc.text(`\u00d7${v.nombre}`, bx2 + vehW - 3, y + 2.5, { align: 'center' })
         }
 
-        bx2 += blockW
+        bx2 += vehW
       }
-      y += blockH + 2
+      y += vehH + 5
 
       // Summary table
       const cols = ['Type', 'Désignation', 'Nb', 'P.Ent (t)', 'P.Sort (t)', 'Long (m)']
