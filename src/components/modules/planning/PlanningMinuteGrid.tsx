@@ -80,6 +80,9 @@ interface PersonnelLink {
     entreprise: string | null;
     semaine: number;
     annee: number;
+    colonnes: any;
+    lignes: any;
+    cellules: any;
   };
 }
 

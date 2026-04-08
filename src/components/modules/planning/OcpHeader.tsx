@@ -53,6 +53,9 @@ interface PersonnelLink {
     entreprise: string | null;
     semaine: number;
     annee: number;
+    colonnes: any;
+    lignes: any;
+    cellules: any;
   };
 }
 
@@ -66,7 +69,7 @@ interface TractionLink {
     titre: string | null;
     date: Date | null;
     sens: string;
-    vehicules: unknown;
+    vehicules: any;
   };
 }
 
@@ -134,13 +137,13 @@ export function OcpHeader({
     setIsExporting(true);
     try {
       const { generateExcel } = await import("./PlanningExcelExport");
-      await generateExcel(ocp, nomProjet);
+      await generateExcel(ocp, nomProjet, personnelLinks, tractionLinks);
     } catch (err) {
       console.error("Export Excel error:", err);
     } finally {
       setIsExporting(false);
     }
-  }, [ocp, nomProjet, isExporting]);
+  }, [ocp, nomProjet, personnelLinks, tractionLinks, isExporting]);
 
   return (
     <div className="flex flex-col border-b" style={{ borderColor: "#DCDCDC" }}>

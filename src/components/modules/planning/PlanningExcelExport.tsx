@@ -38,9 +38,40 @@ interface OCP {
   chantiersElementaires: ChantierElementaire[];
 }
 
+interface PersonnelLink {
+  id: string;
+  debut: Date | string;
+  fin: Date | string;
+  tableauService: {
+    id: string;
+    titre: string;
+    entreprise: string | null;
+    semaine: number;
+    annee: number;
+    colonnes: any; // JSON
+    lignes: any;   // JSON
+    cellules: any; // JSON
+  };
+}
+
+interface TractionLink {
+  id: string;
+  heureArrivee: Date | string;
+  heureDepart: Date | string;
+  label: string | null;
+  composition: {
+    id: string;
+    titre: string | null;
+    sens: string;
+    vehicules: any; // JSON
+  };
+}
+
 interface PlanningExcelExportProps {
   ocp: OCP;
   nomProjet: string;
+  personnelLinks?: PersonnelLink[];
+  tractionLinks?: TractionLink[];
 }
 
 // ──────────────────────────────────────────────
@@ -114,7 +145,12 @@ function isCreneauActive(creneau: Creneau, slotStart: Date): boolean {
 // Export function
 // ──────────────────────────────────────────────
 
-export async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> {
+export async function generateExcel(
+  ocp: OCP,
+  nomProjet: string,
+  personnelLinks: PersonnelLink[] = [],
+  tractionLinks: TractionLink[] = [],
+): Promise<void> {
   const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
 
@@ -366,6 +402,244 @@ export async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> 
     }
   }
 
+  // ── Onglets Personnel (Tableaux de Service) ──
+  for (const link of personnelLinks) {
+    const ts = link.tableauService;
+    const colonnes = Array.isArray(ts.colonnes) ? ts.colonnes : [];
+    const lignes = Array.isArray(ts.lignes) ? ts.lignes : [];
+    if (colonnes.length === 0 && lignes.length === 0) continue;
+
+    const sheetTitle = `TS Semaine ${String(ts.semaine).padStart(2, "0")}`;
+    // Excel sheet names max 31 chars, no special chars
+    const safeName = sheetTitle.substring(0, 31);
+    const tsSheet = workbook.addWorksheet(safeName);
+
+    // Ligne 1 : Titre
+    const totalTsCols = 1 + colonnes.length; // col A = Poste, col B+ = colonnes activités
+    const tsRow1 = tsSheet.getRow(1);
+    if (totalTsCols > 1) {
+      tsSheet.mergeCells(1, 1, 1, totalTsCols);
+    }
+    const tsTitleCell = tsRow1.getCell(1);
+    tsTitleCell.value = ts.titre;
+    tsTitleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+    tsTitleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF004489" },
+    };
+    tsTitleCell.alignment = { horizontal: "center", vertical: "middle" };
+    tsRow1.height = 28;
+
+    // Ligne 2 : Entreprise, Semaine, Année
+    const tsRow2 = tsSheet.getRow(2);
+    if (totalTsCols > 1) {
+      tsSheet.mergeCells(2, 1, 2, totalTsCols);
+    }
+    const tsInfoCell = tsRow2.getCell(1);
+    tsInfoCell.value = `${ts.entreprise ?? "—"} | Semaine ${ts.semaine} | ${ts.annee}`;
+    tsInfoCell.font = { size: 11, color: { argb: "FF004489" } };
+    tsInfoCell.alignment = { horizontal: "left", vertical: "middle" };
+
+    // Ligne 3 : vide
+
+    // Ligne 4 : en-têtes colonnes
+    const tsHeaderRow = tsSheet.getRow(4);
+    const posteHeaderCell = tsHeaderRow.getCell(1);
+    posteHeaderCell.value = "Poste";
+    posteHeaderCell.font = { bold: true, size: 11, color: { argb: "FFFFFFFF" } };
+    posteHeaderCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF004489" },
+    };
+    posteHeaderCell.alignment = { horizontal: "center", vertical: "middle" };
+
+    for (let ci = 0; ci < colonnes.length; ci++) {
+      const col = colonnes[ci];
+      const colCell = tsHeaderRow.getCell(ci + 2);
+      colCell.value = col.titre ?? col.label ?? `Col ${ci + 1}`;
+      colCell.font = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+      const colColor = col.couleur
+        ? "FF" + String(col.couleur).replace("#", "")
+        : "FF004489";
+      colCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: colColor },
+      };
+      colCell.alignment = { horizontal: "center", vertical: "middle" };
+    }
+    tsHeaderRow.height = 24;
+
+    // Ligne 5+ : données lignes
+    const cellules = Array.isArray(ts.cellules) ? ts.cellules : [];
+    // Index cellules par ligneId+colonneId
+    const celluleMap = new Map<string, any>();
+    for (const c of cellules) {
+      if (c.ligneId && c.colonneId) {
+        celluleMap.set(`${c.ligneId}_${c.colonneId}`, c);
+      }
+    }
+
+    let tsRowIdx = 5;
+    for (const ligne of lignes) {
+      const row = tsSheet.getRow(tsRowIdx);
+
+      // Colonne A : libellé du poste avec couleur du type
+      const posteCell = row.getCell(1);
+      posteCell.value = ligne.libelle ?? ligne.titre ?? "—";
+      const ligneBg = ligne.bgColor ?? ligne.couleurFond ?? null;
+      const ligneFg = ligne.fgColor ?? ligne.couleurTexte ?? null;
+      if (ligneBg) {
+        posteCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF" + String(ligneBg).replace("#", "") },
+        };
+      }
+      posteCell.font = {
+        bold: true,
+        size: 10,
+        color: { argb: ligneFg ? "FF" + String(ligneFg).replace("#", "") : "FF000000" },
+      };
+
+      // Colonnes B+ : cellules (nom personnel + téléphone)
+      for (let ci = 0; ci < colonnes.length; ci++) {
+        const colDef = colonnes[ci];
+        const cellKey = `${ligne.id}_${colDef.id}`;
+        const cellData = celluleMap.get(cellKey);
+        const dataCell = row.getCell(ci + 2);
+
+        if (cellData) {
+          const parts: string[] = [];
+          if (cellData.nom || cellData.prenom) {
+            parts.push([cellData.prenom, cellData.nom].filter(Boolean).join(" "));
+          }
+          if (cellData.valeur) parts.push(String(cellData.valeur));
+          if (cellData.telephone) parts.push(cellData.telephone);
+          dataCell.value = parts.join("\n");
+          dataCell.alignment = { wrapText: true, vertical: "top" };
+        }
+
+        dataCell.border = {
+          top: { style: "thin", color: { argb: "FFDCDCDC" } },
+          left: { style: "thin", color: { argb: "FFDCDCDC" } },
+          bottom: { style: "thin", color: { argb: "FFDCDCDC" } },
+          right: { style: "thin", color: { argb: "FFDCDCDC" } },
+        };
+      }
+
+      // Border on poste cell too
+      posteCell.border = {
+        top: { style: "thin", color: { argb: "FFDCDCDC" } },
+        left: { style: "thin", color: { argb: "FFDCDCDC" } },
+        bottom: { style: "thin", color: { argb: "FFDCDCDC" } },
+        right: { style: "thin", color: { argb: "FFDCDCDC" } },
+      };
+
+      tsRowIdx++;
+    }
+
+    // Largeur colonnes
+    tsSheet.getColumn(1).width = 28;
+    for (let ci = 0; ci < colonnes.length; ci++) {
+      tsSheet.getColumn(ci + 2).width = 22;
+    }
+  }
+
+  // ── Onglet Traction (Compositions) ──
+  if (tractionLinks.length > 0) {
+    const tractionSheet = workbook.addWorksheet("Traction");
+    const trCols = 6; // Type | Désignation | Nombre | P.Entrant | P.Sortant | Longueur
+    let trRowIdx = 1;
+
+    for (const link of tractionLinks) {
+      const comp = link.composition;
+      const vehicules = Array.isArray(comp.vehicules) ? comp.vehicules : [];
+
+      // Ligne titre : label + arrivée → départ
+      const titleRow = tractionSheet.getRow(trRowIdx);
+      tractionSheet.mergeCells(trRowIdx, 1, trRowIdx, trCols);
+      const arrStr = link.heureArrivee
+        ? new Date(link.heureArrivee).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+        : "—";
+      const depStr = link.heureDepart
+        ? new Date(link.heureDepart).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+        : "—";
+      const trTitleCell = titleRow.getCell(1);
+      trTitleCell.value = `${link.label ?? comp.titre ?? "Composition"} — ${arrStr} → ${depStr}`;
+      trTitleCell.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+      trTitleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFF8F00" },
+      };
+      trTitleCell.alignment = { horizontal: "left", vertical: "middle" };
+      titleRow.height = 26;
+      trRowIdx++;
+
+      // Sous-titre : sens
+      const sensRow = tractionSheet.getRow(trRowIdx);
+      tractionSheet.mergeCells(trRowIdx, 1, trRowIdx, trCols);
+      const sensCell = sensRow.getCell(1);
+      sensCell.value = `Sens : ${comp.sens}`;
+      sensCell.font = { italic: true, size: 10, color: { argb: "FF5A5A5A" } };
+      trRowIdx++;
+
+      // En-têtes véhicules
+      const vehHeaders = ["Type", "Désignation", "Nombre", "P.Entrant", "P.Sortant", "Longueur"];
+      const vehHeaderRow = tractionSheet.getRow(trRowIdx);
+      for (let hi = 0; hi < vehHeaders.length; hi++) {
+        const hCell = vehHeaderRow.getCell(hi + 1);
+        hCell.value = vehHeaders[hi];
+        hCell.font = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+        hCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF004489" },
+        };
+        hCell.alignment = { horizontal: "center", vertical: "middle" };
+      }
+      trRowIdx++;
+
+      // Données véhicules
+      for (const v of vehicules) {
+        const vRow = tractionSheet.getRow(trRowIdx);
+        vRow.getCell(1).value = v.type ?? v.typeEngin ?? "—";
+        vRow.getCell(2).value = v.designation ?? v.nom ?? "—";
+        vRow.getCell(3).value = v.nombre ?? v.quantite ?? 1;
+        vRow.getCell(3).alignment = { horizontal: "center" };
+        vRow.getCell(4).value = v.pkEntrant ?? v.pEntrant ?? "—";
+        vRow.getCell(5).value = v.pkSortant ?? v.pSortant ?? "—";
+        vRow.getCell(6).value = v.longueur ?? "—";
+
+        // Bordures
+        for (let ci = 1; ci <= trCols; ci++) {
+          vRow.getCell(ci).border = {
+            top: { style: "thin", color: { argb: "FFDCDCDC" } },
+            left: { style: "thin", color: { argb: "FFDCDCDC" } },
+            bottom: { style: "thin", color: { argb: "FFDCDCDC" } },
+            right: { style: "thin", color: { argb: "FFDCDCDC" } },
+          };
+        }
+
+        trRowIdx++;
+      }
+
+      // Ligne vide de séparation
+      trRowIdx++;
+    }
+
+    // Largeur colonnes traction
+    tractionSheet.getColumn(1).width = 20;
+    tractionSheet.getColumn(2).width = 24;
+    tractionSheet.getColumn(3).width = 10;
+    tractionSheet.getColumn(4).width = 14;
+    tractionSheet.getColumn(5).width = 14;
+    tractionSheet.getColumn(6).width = 12;
+  }
+
   // ── Téléchargement ──
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
@@ -390,6 +664,8 @@ export async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> 
 export default function PlanningExcelExport({
   ocp,
   nomProjet,
+  personnelLinks = [],
+  tractionLinks = [],
 }: PlanningExcelExportProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -397,13 +673,13 @@ export default function PlanningExcelExport({
     if (isExporting) return;
     setIsExporting(true);
     try {
-      await generateExcel(ocp, nomProjet);
+      await generateExcel(ocp, nomProjet, personnelLinks, tractionLinks);
     } catch (err) {
       console.error("Export Excel error:", err);
     } finally {
       setIsExporting(false);
     }
-  }, [ocp, nomProjet, isExporting]);
+  }, [ocp, nomProjet, personnelLinks, tractionLinks, isExporting]);
 
   return (
     <Button
