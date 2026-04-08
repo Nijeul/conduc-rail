@@ -87,6 +87,7 @@ const FournisseurSchema = z.object({
   dateOffre: z.coerce.date().optional().nullable(),
   paysFabrication: z.string().max(200).optional().nullable(),
   incoterm: z.string().max(50).optional().nullable(),
+  montantOffre: z.number().min(0).optional().nullable(),
 });
 
 const UpdateFournisseurSchema = z.object({
@@ -96,6 +97,7 @@ const UpdateFournisseurSchema = z.object({
   dateOffre: z.coerce.date().optional().nullable(),
   paysFabrication: z.string().max(200).optional().nullable(),
   incoterm: z.string().max(50).optional().nullable(),
+  montantOffre: z.number().min(0).optional().nullable(),
   decision: z.enum(["go", "no_go", "en_attente"]).optional(),
   couleurDecision: z.enum(["vert", "jaune", "rouge"]).optional(),
 });
@@ -306,6 +308,7 @@ export async function addFournisseur(
         dateOffre: parsed.dateOffre ?? null,
         paysFabrication: parsed.paysFabrication ?? null,
         incoterm: parsed.incoterm ?? null,
+        montantOffre: parsed.montantOffre ?? null,
       },
     });
 
@@ -726,6 +729,7 @@ export async function dupliquerMatrice(
             dateOffre: fournisseur.dateOffre,
             paysFabrication: fournisseur.paysFabrication,
             incoterm: fournisseur.incoterm,
+            montantOffre: fournisseur.montantOffre,
             decision: "en_attente",
             couleurDecision: "jaune",
           },

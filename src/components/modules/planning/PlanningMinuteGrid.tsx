@@ -6,7 +6,15 @@ import { OcpHeader } from "./OcpHeader";
 import { TimelineHeader, generateSlots } from "./TimelineHeader";
 import { ChantierRow } from "./ChantierRow";
 import { ChantierForm } from "./ChantierForm";
-import { updateCreneaux, calculerDFV } from "@/actions/planning";
+import { PlanningPersonnelSection } from "./PlanningPersonnelSection";
+import { PlanningTractionSection } from "./PlanningTractionSection";
+import {
+  updateCreneaux,
+  calculerDFV,
+  updateCouleurChantier,
+  updateChantierElementaire,
+  deleteChantierElementaire,
+} from "@/actions/planning";
 
 const ZOOM_LEVELS = {
   compact: 10,
@@ -28,8 +36,10 @@ interface ChantierEl {
   id: string;
   libelle: string;
   categorie: string | null;
+  couleur: string | null;
   estGroupe: boolean;
   ordreAffichage: number;
+  dureePlanifieeMinutes: number;
   creneaux: Creneau[];
 }
 
@@ -44,9 +54,56 @@ interface OCPData {
   chantiersElementaires: ChantierEl[];
 }
 
+interface PersonnelLink {
+  id: string;
+  debut: Date;
+  fin: Date;
+  tableauService: {
+    id: string;
+    titre: string;
+    entreprise: string | null;
+    semaine: number;
+    annee: number;
+  };
+}
+
+interface TractionLink {
+  id: string;
+  heureArrivee: Date;
+  heureDepart: Date;
+  label: string | null;
+  composition: {
+    id: string;
+    titre: string | null;
+    date: Date | null;
+    sens: string;
+    vehicules: unknown;
+  };
+}
+
+interface TableauServiceOption {
+  id: string;
+  titre: string;
+  entreprise: string | null;
+  semaine: number;
+  annee: number;
+}
+
+interface CompositionOption {
+  id: string;
+  titre: string | null;
+  date: Date | null;
+  sens: string;
+}
+
 interface PlanningMinuteGridProps {
   projetId: string;
   ocp: OCPData;
+  nomProjet?: string;
+  personnelLinks?: PersonnelLink[];
+  tractionLinks?: TractionLink[];
+  tableaux?: TableauServiceOption[];
+  compositions?: CompositionOption[];
 }
 
 /**
@@ -121,11 +178,26 @@ function slotsToCreneaux(
   });
 }
 
-export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
+export function PlanningMinuteGrid({
+  projetId,
+  ocp,
+  nomProjet,
+  personnelLinks = [],
+  tractionLinks = [],
+  tableaux = [],
+  compositions = [],
+}: PlanningMinuteGridProps) {
   const router = useRouter();
   const [zoom, setZoom] = useState<ZoomLevel>("normal");
   const [chantierFormOpen, setChantierFormOpen] = useState(false);
   const [dfvMinutes, setDfvMinutes] = useState(ocp.dfvTotalMinutes);
+  const [localCouleurs, setLocalCouleurs] = useState<Record<string, string | null>>(() => {
+    const map: Record<string, string | null> = {};
+    for (const ch of ocp.chantiersElementaires) {
+      map[ch.id] = ch.couleur ?? null;
+    }
+    return map;
+  });
 
   const startMs = new Date(ocp.dateDebut).getTime();
   const stepMs = 30 * 60 * 1000;
@@ -206,7 +278,6 @@ export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
       setChantierSlots((prev) => {
         const currentSet = prev[chantierId] ?? new Set<number>();
         const newSet = new Set(currentSet);
-        // Determine action: if the starting slot was active, deactivate range; otherwise activate
         const shouldActivate = !currentSet.has(startIdx);
         for (let i = startIdx; i <= endIdx; i++) {
           if (shouldActivate) {
@@ -231,13 +302,41 @@ export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
     setZoom((z) => (z === "large" ? "normal" : z === "normal" ? "compact" : z));
   }, []);
 
+  const handleCouleurChange = useCallback(
+    async (chantierId: string, couleur: string | null) => {
+      setLocalCouleurs((prev) => ({ ...prev, [chantierId]: couleur }));
+      await updateCouleurChantier(projetId, chantierId, couleur ?? "");
+    },
+    [projetId]
+  );
+
+  const handleRenommer = useCallback(
+    async (chantierId: string, newLibelle: string) => {
+      await updateChantierElementaire(projetId, chantierId, { libelle: newLibelle });
+      router.refresh();
+    },
+    [projetId, router]
+  );
+
+  const handleSupprimer = useCallback(
+    async (chantierId: string) => {
+      if (!confirm("Supprimer ce chantier elementaire ?")) return;
+      await deleteChantierElementaire(projetId, chantierId);
+      router.refresh();
+    },
+    [projetId, router]
+  );
+
   // Re-init slots when ocp data changes (after server revalidation)
   useEffect(() => {
     const map: Record<string, Set<number>> = {};
+    const couleurMap: Record<string, string | null> = {};
     for (const ch of ocp.chantiersElementaires) {
       map[ch.id] = buildActiveSlots(ch.creneaux, startMs, stepMs);
+      couleurMap[ch.id] = ch.couleur ?? null;
     }
     setChantierSlots(map);
+    setLocalCouleurs(couleurMap);
   }, [ocp.chantiersElementaires, startMs, stepMs]);
 
   return (
@@ -252,11 +351,15 @@ export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onAddChantier={() => setChantierFormOpen(true)}
+        ocp={ocp}
+        nomProjet={nomProjet ?? "Projet"}
+        personnelLinks={personnelLinks}
+        tractionLinks={tractionLinks}
       />
 
       <div className="flex-1 overflow-auto relative">
         <div style={{ minWidth: 180 + slotCount * colWidth }}>
-          {/* Sticky timeline header row — label column + time columns */}
+          {/* Sticky timeline header row */}
           <div className="flex sticky top-0 z-30">
             <div
               className="sticky left-0 z-40 flex items-center justify-center text-xs font-bold text-white"
@@ -311,9 +414,11 @@ export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
           {ocp.chantiersElementaires.map((ch) => (
             <ChantierRow
               key={ch.id}
+              projetId={projetId}
               chantierId={ch.id}
               libelle={ch.libelle}
               categorie={ch.categorie}
+              couleur={localCouleurs[ch.id] ?? null}
               estGroupe={ch.estGroupe}
               creneaux={ch.creneaux}
               slotCount={slotCount}
@@ -322,8 +427,35 @@ export function PlanningMinuteGrid({ projetId, ocp }: PlanningMinuteGridProps) {
               activeSlots={chantierSlots[ch.id] ?? new Set()}
               onToggleSlot={handleToggleSlot}
               onDragSlots={handleDragSlots}
+              onCouleurChange={handleCouleurChange}
+              onRenommer={handleRenommer}
+              onSupprimer={handleSupprimer}
             />
           ))}
+
+          {/* Personnel section */}
+          <PlanningPersonnelSection
+            projetId={projetId}
+            ocpId={ocp.id}
+            links={personnelLinks}
+            tableaux={tableaux}
+            slotCount={slotCount}
+            colWidth={colWidth}
+            startMs={startMs}
+            stepMs={stepMs}
+          />
+
+          {/* Traction section */}
+          <PlanningTractionSection
+            projetId={projetId}
+            ocpId={ocp.id}
+            links={tractionLinks}
+            compositions={compositions}
+            slotCount={slotCount}
+            colWidth={colWidth}
+            startMs={startMs}
+            stepMs={stepMs}
+          />
         </div>
       </div>
 

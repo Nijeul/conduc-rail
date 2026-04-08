@@ -113,7 +113,7 @@ function isCreneauActive(creneau: Creneau, slotStart: Date): boolean {
 // Export function
 // ──────────────────────────────────────────────
 
-async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> {
+export async function generateExcel(ocp: OCP, nomProjet: string): Promise<void> {
   const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
 

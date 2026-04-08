@@ -243,6 +243,13 @@ export async function deleteProjet(id: string): Promise<ActionResult> {
         await tx.chantierElementaire.deleteMany({
           where: { ocpId: { in: ocpIds } },
         });
+        // Planning personnel & traction links
+        await tx.planningPersonnelLink.deleteMany({
+          where: { ocpId: { in: ocpIds } },
+        });
+        await tx.planningTractionLink.deleteMany({
+          where: { ocpId: { in: ocpIds } },
+        });
         // Nullify variante references before deleting OCPs
         await tx.oCP.updateMany({
           where: { ocpBaseId: { in: ocpIds } },

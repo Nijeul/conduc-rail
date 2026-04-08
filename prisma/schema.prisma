@@ -88,6 +88,7 @@ model TableauService {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   projet     Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  planningLinks PlanningPersonnelLink[]
   @@index([projetId])
 }
 
@@ -251,6 +252,7 @@ model CompositionTTx {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   projet    Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  planningLinks PlanningTractionLink[]
   @@index([projetId])
 }
 
@@ -323,6 +325,8 @@ model OCP {
   ocpBase           OCP?     @relation("VarianteDeBase", fields: [ocpBaseId], references: [id])
   variantes         OCP[]    @relation("VarianteDeBase")
   chantiersElementaires ChantierElementaire[]
+  personnelLinks        PlanningPersonnelLink[]
+  tractionLinks         PlanningTractionLink[]
   @@index([projetId])
 }
 
@@ -331,6 +335,7 @@ model ChantierElementaire {
   ocpId                 String
   libelle               String
   categorie             String?
+  couleur               String?
   dureePlanifieeMinutes Int      @default(0)
   ordreAffichage        Int      @default(0)
   estGroupe             Boolean  @default(false)
@@ -350,6 +355,31 @@ model CreneauActivite {
   createdAt              DateTime @default(now())
   chantierElementaire    ChantierElementaire @relation(fields: [chantierElementaireId], references: [id], onDelete: Cascade)
   @@index([chantierElementaireId])
+}
+
+model PlanningPersonnelLink {
+  id               String         @id @default(cuid())
+  ocpId            String
+  tableauServiceId String
+  debut            DateTime
+  fin              DateTime
+  createdAt        DateTime       @default(now())
+  ocp              OCP            @relation(fields: [ocpId], references: [id], onDelete: Cascade)
+  tableauService   TableauService @relation(fields: [tableauServiceId], references: [id], onDelete: Cascade)
+  @@index([ocpId])
+}
+
+model PlanningTractionLink {
+  id               String         @id @default(cuid())
+  ocpId            String
+  compositionId    String
+  heureArrivee     DateTime
+  heureDepart      DateTime
+  label            String?
+  createdAt        DateTime       @default(now())
+  ocp              OCP            @relation(fields: [ocpId], references: [id], onDelete: Cascade)
+  composition      CompositionTTx @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+  @@index([ocpId])
 }
 
 // ──────────────────────────────────────────────
@@ -384,6 +414,7 @@ model FournisseurCandidat {
   dateOffre       DateTime?
   paysFabrication String?
   incoterm        String?
+  montantOffre    Float?
   decision        String    @default("en_attente")
   couleurDecision String    @default("jaune")
   createdAt       DateTime  @default(now())

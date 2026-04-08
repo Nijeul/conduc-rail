@@ -450,6 +450,40 @@ export async function dupliquerOCP(
 }
 
 // ──────────────────────────────────────────────
+// Couleur d'un chantier élémentaire
+// ──────────────────────────────────────────────
+
+export async function updateCouleurChantier(
+  projetId: string,
+  chantierElId: string,
+  couleur: string
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    const chantier = await prisma.chantierElementaire.findFirst({
+      where: { id: chantierElId, ocp: { projetId } },
+    });
+    if (!chantier) throw new Error("Chantier élémentaire introuvable");
+
+    await prisma.chantierElementaire.update({
+      where: { id: chantierElId },
+      data: { couleur: couleur || null },
+    });
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("updateCouleurChantier error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de la mise à jour de la couleur",
+    };
+  }
+}
+
+// ──────────────────────────────────────────────
 // Calculer DFV (Durée Fermeture de Voie)
 // Union des créneaux actifs (planifie + realise)
 // ──────────────────────────────────────────────
@@ -523,4 +557,179 @@ export async function calculerDFV(
       error: error instanceof Error ? error.message : "Erreur lors du calcul DFV",
     };
   }
+}
+
+// ──────────────────────────────────────────────
+// Planning Personnel Links
+// ──────────────────────────────────────────────
+
+export async function addPersonnelLink(
+  projetId: string,
+  ocpId: string,
+  data: { tableauServiceId: string; debut: string; fin: string }
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    const ocp = await prisma.oCP.findFirst({ where: { id: ocpId, projetId } });
+    if (!ocp) throw new Error("OCP introuvable");
+
+    const link = await prisma.planningPersonnelLink.create({
+      data: {
+        ocpId,
+        tableauServiceId: data.tableauServiceId,
+        debut: new Date(data.debut),
+        fin: new Date(data.fin),
+      },
+    });
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: { id: link.id } };
+  } catch (error) {
+    console.error("addPersonnelLink error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de l'ajout du lien personnel",
+    };
+  }
+}
+
+export async function removePersonnelLink(
+  projetId: string,
+  linkId: string
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    await prisma.planningPersonnelLink.delete({ where: { id: linkId } });
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("removePersonnelLink error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de la suppression",
+    };
+  }
+}
+
+export async function getPersonnelLinks(ocpId: string) {
+  const user = await getAuthUser();
+
+  const ocp = await prisma.oCP.findUnique({
+    where: { id: ocpId },
+    select: { projetId: true },
+  });
+  if (!ocp) throw new Error("OCP introuvable");
+  await checkMembership(ocp.projetId, user.id);
+
+  return prisma.planningPersonnelLink.findMany({
+    where: { ocpId },
+    include: { tableauService: { select: { id: true, titre: true, entreprise: true, semaine: true, annee: true } } },
+    orderBy: { debut: "asc" },
+  });
+}
+
+// ──────────────────────────────────────────────
+// Planning Traction Links
+// ──────────────────────────────────────────────
+
+export async function addTractionLink(
+  projetId: string,
+  ocpId: string,
+  data: { compositionId: string; heureArrivee: string; heureDepart: string; label?: string }
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    const ocp = await prisma.oCP.findFirst({ where: { id: ocpId, projetId } });
+    if (!ocp) throw new Error("OCP introuvable");
+
+    const link = await prisma.planningTractionLink.create({
+      data: {
+        ocpId,
+        compositionId: data.compositionId,
+        heureArrivee: new Date(data.heureArrivee),
+        heureDepart: new Date(data.heureDepart),
+        label: data.label ?? null,
+      },
+    });
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: { id: link.id } };
+  } catch (error) {
+    console.error("addTractionLink error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de l'ajout du lien traction",
+    };
+  }
+}
+
+export async function removeTractionLink(
+  projetId: string,
+  linkId: string
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    await prisma.planningTractionLink.delete({ where: { id: linkId } });
+
+    revalidatePath(`/projets/${projetId}/planning`);
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("removeTractionLink error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur lors de la suppression",
+    };
+  }
+}
+
+export async function getTractionLinks(ocpId: string) {
+  const user = await getAuthUser();
+
+  const ocp = await prisma.oCP.findUnique({
+    where: { id: ocpId },
+    select: { projetId: true },
+  });
+  if (!ocp) throw new Error("OCP introuvable");
+  await checkMembership(ocp.projetId, user.id);
+
+  return prisma.planningTractionLink.findMany({
+    where: { ocpId },
+    include: { composition: { select: { id: true, titre: true, date: true, sens: true, vehicules: true } } },
+    orderBy: { heureArrivee: "asc" },
+  });
+}
+
+// ──────────────────────────────────────────────
+// Lister les Tableaux de Service / Compositions d'un projet (pour les selects)
+// ──────────────────────────────────────────────
+
+export async function getTableauxServiceProjet(projetId: string) {
+  const user = await getAuthUser();
+  await checkMembership(projetId, user.id);
+
+  return prisma.tableauService.findMany({
+    where: { projetId },
+    select: { id: true, titre: true, entreprise: true, semaine: true, annee: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getCompositionsProjet(projetId: string) {
+  const user = await getAuthUser();
+  await checkMembership(projetId, user.id);
+
+  return prisma.compositionTTx.findMany({
+    where: { projetId },
+    select: { id: true, titre: true, date: true, sens: true },
+    orderBy: { createdAt: "desc" },
+  });
 }

@@ -56,6 +56,10 @@ export function PlanningList({ projetId, ocps }: PlanningListProps) {
 
   return (
     <div className="p-6">
+      <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: "#E5EFF8", color: "#003370" }}>
+        Le planning minuté permet de planifier des interventions sur des fenêtres de travaux (week-end, nuit). Chaque case = 30 minutes.
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-bold">Planning Minuté (OCP)</h1>
         <Button

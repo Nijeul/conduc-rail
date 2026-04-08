@@ -39,6 +39,7 @@ type Fournisseur = {
   rang: number;
   refOffre: string | null;
   dateOffre: Date | null;
+  montantOffre: number | null;
   paysFabrication: string | null;
   incoterm: string | null;
   decision: string;
