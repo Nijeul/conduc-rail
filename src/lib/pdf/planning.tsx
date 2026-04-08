@@ -986,80 +986,158 @@ function drawTractionPages(
       }
       y += vehH + 5
 
-      // Summary table
-      const cols = ['Type', 'Désignation', 'Nb', 'P.Ent (t)', 'P.Sort (t)', 'Long (m)']
-      const colWidths = [22, 40, 10, 18, 18, 18]
-      const tblRowH = 4.5
+      // Tableau transposé (comme l'export Composition TTx)
+      // Propriétés en lignes, véhicules en colonnes
+      const propLabels = ['Type', 'Désignation', 'Nombre', 'Cap. essieux freinés', 'Nb Essieux', 'Poids Entrant (T)', 'Poids Sortant (T)', 'Longueur (m)', 'Cap. traction (T)']
+      const propColW = 32
+      const vehColW = Math.min(35, (CONTENT_W - propColW - 50) / Math.max(vehicules.length, 1))
+      const tblRowH = 5
       const tblX = MARGIN + 4
+      const resumeW = 48
+      const resumeX = tblX + propColW + vehicules.length * vehColW + 4
 
-      // Table header
-      for (let ci = 0; ci < cols.length; ci++) {
-        let cx = tblX
-        for (let j = 0; j < ci; j++) cx += colWidths[j]
-        doc.setFillColor(...VINCI_BLEU)
-        doc.rect(cx, y, colWidths[ci], tblRowH, 'F')
-        doc.setTextColor(...WHITE)
-        doc.setFontSize(3)
-        doc.setFont('Helvetica', 'bold')
-        doc.text(cols[ci], cx + colWidths[ci] / 2, y + tblRowH - 1, { align: 'center' })
+      // Vérifier si ça tient sur la page
+      const tableH = (propLabels.length + 1) * tblRowH + 20
+      if (y + tableH > CONTENT_BOTTOM) {
+        doc.addPage('a4', 'landscape')
+        pageContents.pages.push(1)
+        drawHeader(doc, `${ocp.nom} — TRACTION`, ocp.version, logoBase64, nomSociete)
+        y = CONTENT_TOP + 4
       }
+
+      // En-tête colonnes (Propriété | V1 | V2 | ...)
+      doc.setFillColor(...VINCI_BLEU)
+      doc.rect(tblX, y, propColW, tblRowH, 'F')
+      doc.setTextColor(...WHITE)
+      doc.setFontSize(4)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('Propriété', tblX + propColW / 2, y + tblRowH - 1.2, { align: 'center' })
+
+      vehicules.forEach((v, vi) => {
+        const cx = tblX + propColW + vi * vehColW
+        doc.setFillColor(...VINCI_BLEU)
+        doc.rect(cx, y, vehColW, tblRowH, 'F')
+        doc.setTextColor(...WHITE)
+        doc.setFontSize(4)
+        doc.text(`V${vi + 1}`, cx + vehColW / 2, y + tblRowH - 1.2, { align: 'center' })
+      })
       y += tblRowH
 
-      // Table rows
-      for (let vi = 0; vi < vehicules.length; vi++) {
-        const v = vehicules[vi]
-        const rowBg: [number, number, number] = vi % 2 === 0 ? WHITE : GREY_LIGHT
-        const values = [
-          v.type || '',
-          v.designation || '',
-          String(v.nombre ?? 1),
-          v.poidsEntrant != null ? String(v.poidsEntrant) : '',
-          v.poidsSortant != null ? String(v.poidsSortant) : '',
-          v.longueur != null ? String(v.longueur) : '',
-        ]
+      // Lignes de propriétés
+      for (let pi = 0; pi < propLabels.length; pi++) {
+        const rowBg: [number, number, number] = pi % 2 === 0 ? WHITE : GREY_LIGHT
 
-        for (let ci = 0; ci < cols.length; ci++) {
-          let cx = tblX
-          for (let j = 0; j < ci; j++) cx += colWidths[j]
+        // Libellé propriété
+        doc.setFillColor(240, 240, 240)
+        doc.rect(tblX, y, propColW, tblRowH, 'F')
+        doc.setDrawColor(...GREY_BORDER)
+        doc.setLineWidth(0.1)
+        doc.rect(tblX, y, propColW, tblRowH)
+        doc.setTextColor(...BLACK)
+        doc.setFontSize(3.5)
+        doc.setFont('Helvetica', 'bold')
+        doc.text(propLabels[pi], tblX + 1.5, y + tblRowH - 1.2)
+
+        // Valeurs par véhicule
+        vehicules.forEach((v, vi) => {
+          const cx = tblX + propColW + vi * vehColW
           doc.setFillColor(...rowBg)
-          doc.rect(cx, y, colWidths[ci], tblRowH, 'F')
+          doc.rect(cx, y, vehColW, tblRowH, 'F')
           doc.setDrawColor(...GREY_BORDER)
-          doc.setLineWidth(0.05)
-          doc.rect(cx, y, colWidths[ci], tblRowH)
+          doc.rect(cx, y, vehColW, tblRowH)
+
+          let val = ''
+          switch (pi) {
+            case 0: val = v.type || ''; break
+            case 1: val = v.designation || ''; break
+            case 2: val = String(v.nombre ?? 1); break
+            case 3: val = v.capEssieuxFreines != null ? String(v.capEssieuxFreines) : ''; break
+            case 4: val = v.nbEssieux != null ? String(v.nbEssieux) : ''; break
+            case 5: val = v.poidsEntrant != null ? String(v.poidsEntrant) : ''; break
+            case 6: val = v.poidsSortant != null ? String(v.poidsSortant) : ''; break
+            case 7: val = v.longueur != null ? String(v.longueur) : ''; break
+            case 8: val = v.capTraction != null ? String(v.capTraction) : ''; break
+          }
+
           doc.setTextColor(...BLACK)
-          doc.setFontSize(3)
+          doc.setFontSize(3.5)
           doc.setFont('Helvetica', 'normal')
-          const valTrunc = values[ci].length > 22 ? values[ci].slice(0, 19) + '...' : values[ci]
-          doc.text(valTrunc, cx + colWidths[ci] / 2, y + tblRowH - 1.2, { align: 'center' })
-        }
+          const valTrunc = val.length > 18 ? val.slice(0, 15) + '...' : val
+          doc.text(valTrunc, cx + vehColW / 2, y + tblRowH - 1.2, { align: 'center' })
+        })
         y += tblRowH
       }
 
-      // Freinage / Traction badges
-      y += 1
-      let badgeX = MARGIN + 4
-      for (const v of vehicules) {
-        if (v.freinage) {
-          doc.setFillColor(122, 165, 54) // vert
-          const bw = doc.getTextWidth(v.freinage) * 1.2 + 4
-          doc.roundedRect(badgeX, y, Math.max(bw, 12), 4, 1, 1, 'F')
-          doc.setTextColor(...WHITE)
-          doc.setFontSize(2.5)
-          doc.setFont('Helvetica', 'bold')
-          doc.text(v.freinage, badgeX + Math.max(bw, 12) / 2, y + 2.8, { align: 'center' })
-          badgeX += Math.max(bw, 12) + 2
-        }
-        if (v.traction) {
-          doc.setFillColor(...VINCI_BLEU)
-          const bw = doc.getTextWidth(v.traction) * 1.2 + 4
-          doc.roundedRect(badgeX, y, Math.max(bw, 12), 4, 1, 1, 'F')
-          doc.setTextColor(...WHITE)
-          doc.setFontSize(2.5)
-          doc.setFont('Helvetica', 'bold')
-          doc.text(v.traction, badgeX + Math.max(bw, 12) / 2, y + 2.8, { align: 'center' })
-          badgeX += Math.max(bw, 12) + 2
-        }
+      // Panneau résumé (à droite du tableau)
+      const resumeY = y - propLabels.length * tblRowH - tblRowH
+      doc.setFillColor(240, 240, 240)
+      doc.rect(resumeX, resumeY, resumeW, propLabels.length * tblRowH + tblRowH, 'F')
+      doc.setDrawColor(...GREY_BORDER)
+      doc.rect(resumeX, resumeY, resumeW, propLabels.length * tblRowH + tblRowH)
+
+      // Titre résumé
+      doc.setFillColor(...VINCI_BLEU)
+      doc.rect(resumeX, resumeY, resumeW, tblRowH, 'F')
+      doc.setTextColor(...WHITE)
+      doc.setFontSize(4)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('Résumé', resumeX + resumeW / 2, resumeY + tblRowH - 1.2, { align: 'center' })
+
+      // Calculs résumé
+      const totCapEss = vehicules.reduce((s, v) => s + ((v.capEssieuxFreines ?? 0) * (v.nombre ?? 1)), 0)
+      const totEssieux = vehicules.reduce((s, v) => s + ((v.nbEssieux ?? 0) * (v.nombre ?? 1)), 0)
+      const totCapTrac = vehicules.reduce((s, v) => s + (v.capTraction ?? 0), 0)
+      const totPEnt = vehicules.reduce((s, v) => s + ((v.poidsEntrant ?? 0) * (v.nombre ?? 1)), 0)
+      const totPSort = vehicules.reduce((s, v) => s + ((v.poidsSortant ?? 0) * (v.nombre ?? 1)), 0)
+      const totLong = vehicules.reduce((s, v) => s + ((v.longueur ?? 0) * (v.nombre ?? 1)), 0)
+      const freinageOk = totCapEss >= totEssieux
+      const tractionOk = totCapTrac >= totPSort
+
+      const resumeLines = [
+        { label: 'Cap. ess. freinés', value: String(totCapEss) },
+        { label: 'Nb essieux rame', value: String(totEssieux) },
+        { label: 'Cap. traction (T)', value: String(totCapTrac) },
+        { label: 'Poids Entrant (T)', value: String(totPEnt) },
+        { label: 'Poids Sortant (T)', value: String(totPSort) },
+        { label: 'Longueur rame (m)', value: String(totLong) },
+      ]
+
+      let ry = resumeY + tblRowH + 1
+      doc.setFontSize(3.5)
+      for (const rl of resumeLines) {
+        doc.setTextColor(...BLACK)
+        doc.setFont('Helvetica', 'normal')
+        doc.text(rl.label, resumeX + 2, ry + 3)
+        doc.setFont('Helvetica', 'bold')
+        doc.text(rl.value, resumeX + resumeW - 2, ry + 3, { align: 'right' })
+        ry += 4
       }
+
+      // Badges freinage/traction
+      ry += 2
+      // Freinage
+      const frBg = freinageOk ? hexToRGB('#E8EFDA') : hexToRGB('#FDEAED')
+      const frFg = freinageOk ? hexToRGB('#5E8019') : hexToRGB('#E20025')
+      doc.setFillColor(...frBg)
+      doc.roundedRect(resumeX + 2, ry, 20, 4, 1, 1, 'F')
+      doc.setTextColor(...frFg)
+      doc.setFontSize(3)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('Freinage', resumeX + 3, ry + 3)
+      doc.text(freinageOk ? 'assuré' : 'insuffisant', resumeX + resumeW - 2, ry + 3, { align: 'right' })
+      ry += 5
+
+      // Traction
+      const trBg = tractionOk ? hexToRGB('#E8EFDA') : hexToRGB('#FDEAED')
+      const trFg = tractionOk ? hexToRGB('#5E8019') : hexToRGB('#E20025')
+      doc.setFillColor(...trBg)
+      doc.roundedRect(resumeX + 2, ry, 20, 4, 1, 1, 'F')
+      doc.setTextColor(...trFg)
+      doc.setFontSize(3)
+      doc.setFont('Helvetica', 'bold')
+      doc.text('Traction', resumeX + 3, ry + 3)
+      doc.text(tractionOk ? 'suffisante' : 'insuffisante', resumeX + resumeW - 2, ry + 3, { align: 'right' })
+
       y += 7
     } else {
       doc.setTextColor(...TEXT_MUTED)
