@@ -582,23 +582,39 @@ function drawPersonnelPages(
     }
     y += 8
 
-    // Mini table: tableau de service content
+    // Tableau de service détaillé (pleine largeur, comme les compositions)
     const ts = link.tableauService
-    const colonnes = ts.colonnes || []
-    const lignes = ts.lignes || []
-    const cellules = ts.cellules || {}
+    const colonnes = (ts.colonnes || []) as Array<{ id: string; nom: string; couleur: string }>
+    const lignes = (ts.lignes || []) as Array<{ id: string; libelle: string; bg: string; fg: string }>
+    const cellules = (ts.cellules || {}) as Record<string, { texte?: string; personnelNom?: string; personnelTelephone?: string }>
 
     if (colonnes.length > 0 && lignes.length > 0) {
-      const colW = Math.min(
-        (CONTENT_W - 30) / (colonnes.length + 1),
-        35
-      )
-      const posteW = 30
-      const tableW = posteW + colonnes.length * colW
-      const miniRowH = 5
+      // Titre du TS en bannière
+      if (y + 8 > CONTENT_BOTTOM) {
+        doc.addPage('a4', 'landscape')
+        pageContents.pages.push(1)
+        drawHeader(doc, `${ocp.nom} — PERSONNEL`, ocp.version, logoBase64, nomSociete)
+        y = CONTENT_TOP + 4
+      }
 
-      // Check if the mini-table fits on the page
-      const tableH = (lignes.length + 1) * miniRowH + 2
+      doc.setFillColor(0, 51, 112) // #003370
+      doc.rect(MARGIN, y, CONTENT_W, 7, 'F')
+      doc.setTextColor(...WHITE)
+      doc.setFontSize(6)
+      doc.setFont('Helvetica', 'bold')
+      doc.text(label, MARGIN + 4, y + 5)
+      y += 9
+
+      // Dimensions du tableau — pleine largeur
+      const posteW = 50
+      const colW = Math.min(
+        (CONTENT_W - posteW) / Math.max(colonnes.length, 1),
+        60
+      )
+      const miniRowH = 7
+
+      // Check if the table fits on the page
+      const tableH = (lignes.length + 1) * miniRowH + 4
       if (y + tableH > CONTENT_BOTTOM) {
         doc.addPage('a4', 'landscape')
         pageContents.pages.push(1)
@@ -608,71 +624,91 @@ function drawPersonnelPages(
 
       // Column headers
       doc.setFillColor(...VINCI_BLEU)
-      doc.rect(MARGIN + 4, y, posteW, miniRowH, 'F')
+      doc.rect(MARGIN, y, posteW, miniRowH, 'F')
       doc.setTextColor(...WHITE)
-      doc.setFontSize(3.5)
+      doc.setFontSize(5)
       doc.setFont('Helvetica', 'bold')
-      doc.text('Poste', MARGIN + 4 + posteW / 2, y + miniRowH - 1.2, { align: 'center' })
+      doc.text('Poste', MARGIN + posteW / 2, y + miniRowH - 2, { align: 'center' })
 
       for (let ci = 0; ci < colonnes.length; ci++) {
-        const cx = MARGIN + 4 + posteW + ci * colW
+        const cx = MARGIN + posteW + ci * colW
         const colColor = hexToRGB(colonnes[ci].couleur || '#004489')
         doc.setFillColor(...colColor)
         doc.rect(cx, y, colW, miniRowH, 'F')
         doc.setTextColor(...WHITE)
-        doc.setFontSize(3)
+        doc.setFontSize(4.5)
         doc.setFont('Helvetica', 'bold')
-        const colLabel = colonnes[ci].nom.length > 15 ? colonnes[ci].nom.slice(0, 12) + '...' : colonnes[ci].nom
-        doc.text(colLabel, cx + colW / 2, y + miniRowH - 1.2, { align: 'center' })
+        const colLabel = colonnes[ci].nom.length > 20 ? colonnes[ci].nom.slice(0, 17) + '...' : colonnes[ci].nom
+        doc.text(colLabel, cx + colW / 2, y + miniRowH - 2, { align: 'center' })
       }
       y += miniRowH
 
       // Data rows
       for (let ri = 0; ri < lignes.length; ri++) {
+        // Page break if needed
+        if (y + miniRowH > CONTENT_BOTTOM) {
+          doc.addPage('a4', 'landscape')
+          pageContents.pages.push(1)
+          drawHeader(doc, `${ocp.nom} — PERSONNEL`, ocp.version, logoBase64, nomSociete)
+          y = CONTENT_TOP + 4
+        }
+
         const rowBg: [number, number, number] = ri % 2 === 0 ? WHITE : GREY_LIGHT
         const ligne = lignes[ri]
 
-        // Libelle cell
+        // Libelle cell with type color
         const libBg = hexToRGB(ligne.bg || '#FFFFFF')
         doc.setFillColor(...libBg)
-        doc.rect(MARGIN + 4, y, posteW, miniRowH, 'F')
+        doc.rect(MARGIN, y, posteW, miniRowH, 'F')
         doc.setDrawColor(...GREY_BORDER)
-        doc.setLineWidth(0.05)
-        doc.rect(MARGIN + 4, y, posteW, miniRowH)
+        doc.setLineWidth(0.1)
+        doc.rect(MARGIN, y, posteW, miniRowH)
         const libFg = hexToRGB(ligne.fg || '#000000')
         doc.setTextColor(...libFg)
-        doc.setFontSize(3)
+        doc.setFontSize(4.5)
         doc.setFont('Helvetica', 'bold')
-        const libTrunc = ligne.libelle.length > 18 ? ligne.libelle.slice(0, 15) + '...' : ligne.libelle
-        doc.text(libTrunc, MARGIN + 4 + 1, y + miniRowH - 1.2)
+        const libTrunc = ligne.libelle.length > 28 ? ligne.libelle.slice(0, 25) + '...' : ligne.libelle
+        doc.text(libTrunc, MARGIN + 2, y + miniRowH - 2)
 
         // Data cells
         for (let ci = 0; ci < colonnes.length; ci++) {
-          const cx = MARGIN + 4 + posteW + ci * colW
+          const cx = MARGIN + posteW + ci * colW
           doc.setFillColor(...rowBg)
           doc.rect(cx, y, colW, miniRowH, 'F')
           doc.setDrawColor(...GREY_BORDER)
-          doc.setLineWidth(0.05)
+          doc.setLineWidth(0.1)
           doc.rect(cx, y, colW, miniRowH)
 
           const key = `${ligne.id}|${colonnes[ci].id}`
           const cell = cellules[key]
           if (cell) {
-            const nom = cell.personnelNom
-              ? cell.texte
-                ? `${cell.personnelNom} - ${cell.texte}`
-                : cell.personnelNom
-              : cell.texte || ''
-            doc.setTextColor(...BLACK)
-            doc.setFontSize(2.5)
-            doc.setFont('Helvetica', 'normal')
-            const nomTrunc = nom.length > 20 ? nom.slice(0, 17) + '...' : nom
-            doc.text(nomTrunc, cx + colW / 2, y + miniRowH - 1.5, { align: 'center' })
+            const nom = cell.personnelNom || ''
+            const tel = cell.personnelTelephone || ''
+            if (nom) {
+              doc.setTextColor(...BLACK)
+              doc.setFontSize(4)
+              doc.setFont('Helvetica', 'bold')
+              const nomTrunc = nom.length > 22 ? nom.slice(0, 19) + '...' : nom
+              doc.text(nomTrunc, cx + colW / 2, y + 3, { align: 'center' })
+            }
+            if (tel) {
+              doc.setTextColor(90, 90, 90)
+              doc.setFontSize(3)
+              doc.setFont('Helvetica', 'normal')
+              doc.text('Tel: ' + tel, cx + colW / 2, y + miniRowH - 1.5, { align: 'center' })
+            }
+            if (!nom && cell.texte) {
+              doc.setTextColor(...BLACK)
+              doc.setFontSize(3.5)
+              doc.setFont('Helvetica', 'normal')
+              const txtTrunc = cell.texte.length > 22 ? cell.texte.slice(0, 19) + '...' : cell.texte
+              doc.text(txtTrunc, cx + colW / 2, y + miniRowH - 2, { align: 'center' })
+            }
           }
         }
         y += miniRowH
       }
-      y += 4
+      y += 6
     } else {
       y += 2
     }
