@@ -27,7 +27,7 @@ const ProfilSchema = z.object({
 
 const PasswordSchema = z.object({
   ancienMotDePasse: z.string().min(1, "L'ancien mot de passe est requis"),
-  nouveauMotDePasse: z.string().min(6, 'Le nouveau mot de passe doit faire au moins 6 caracteres'),
+  nouveauMotDePasse: z.string().min(8, 'Le nouveau mot de passe doit faire au moins 8 caracteres'),
   confirmation: z.string().min(1, 'La confirmation est requise'),
 }).refine(data => data.nouveauMotDePasse === data.confirmation, {
   message: 'Les mots de passe ne correspondent pas',

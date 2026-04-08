@@ -34,7 +34,14 @@ const EvenementSchema = z.object({
 const FichierSchema = z.object({
   nom: z.string().min(1),
   type: z.string().min(1),
-  contenu: z.string().min(1),
+  contenu: z.string().min(1).refine(
+    s =>
+      s.startsWith('data:image/png;') ||
+      s.startsWith('data:image/jpeg;') ||
+      s.startsWith('data:application/pdf;') ||
+      s.length < 100,
+    { message: 'Type de fichier non autorise' }
+  ),
   taille: z.number().max(2 * 1024 * 1024, 'Fichier trop volumineux (max 2MB)'),
 })
 

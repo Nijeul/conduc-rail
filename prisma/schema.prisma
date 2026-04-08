@@ -88,6 +88,7 @@ model TableauService {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   projet     Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@index([projetId])
 }
 
 model LigneDE {
@@ -102,6 +103,7 @@ model LigneDE {
   createdAt    DateTime @default(now())
   projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
   avancements  LigneAvancement[]
+  @@index([projetId])
 }
 
 model RapportJournalier {
@@ -127,6 +129,7 @@ model RapportJournalier {
   projet           Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
   redacteur        User?     @relation("redacteur", fields: [redacteurId], references: [id])
   avancements      LigneAvancement[]
+  @@index([projetId])
 }
 
 model SoudureAluminothermique {
@@ -155,6 +158,7 @@ model SoudureAluminothermique {
   couleurLigne  String?
   createdAt     DateTime  @default(now())
   projet        Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@index([projetId])
 }
 
 model MaterielTTx {
@@ -204,6 +208,8 @@ model EvenementChantier {
   projet         Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
   courrier       CourrierChantier? @relation(fields: [courrierId], references: [id])
   categorieRef   CategorieEvenement? @relation(fields: [categorieId], references: [id])
+  @@index([projetId])
+  @@index([categorieId])
 }
 
 model FichierEvenement {
@@ -232,6 +238,7 @@ model CourrierChantier {
   updatedAt    DateTime  @updatedAt
   projet       Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
   evenements   EvenementChantier[]
+  @@index([projetId])
 }
 
 model CompositionTTx {
@@ -244,6 +251,7 @@ model CompositionTTx {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   projet    Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@index([projetId])
 }
 
 model LigneFicheEcart {
@@ -263,6 +271,7 @@ model LigneFicheEcart {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@index([projetId])
 }
 
 model LigneARFManuelle {
@@ -280,6 +289,7 @@ model LigneARFManuelle {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   projet           Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  @@index([projetId])
 }
 
 model LigneAvancement {
@@ -313,6 +323,7 @@ model OCP {
   ocpBase           OCP?     @relation("VarianteDeBase", fields: [ocpBaseId], references: [id])
   variantes         OCP[]    @relation("VarianteDeBase")
   chantiersElementaires ChantierElementaire[]
+  @@index([projetId])
 }
 
 model ChantierElementaire {
@@ -326,6 +337,7 @@ model ChantierElementaire {
   createdAt             DateTime @default(now())
   ocp                   OCP      @relation(fields: [ocpId], references: [id], onDelete: Cascade)
   creneaux              CreneauActivite[]
+  @@index([ocpId])
 }
 
 model CreneauActivite {
@@ -337,6 +349,7 @@ model CreneauActivite {
   statut                 String   @default("planifie")
   createdAt              DateTime @default(now())
   chantierElementaire    ChantierElementaire @relation(fields: [chantierElementaireId], references: [id], onDelete: Cascade)
+  @@index([chantierElementaireId])
 }
 
 // ──────────────────────────────────────────────
@@ -359,6 +372,7 @@ model MatriceDecisionnelle {
   projet          Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
   fournisseurs    FournisseurCandidat[]
   criteres        Critere[]
+  @@index([projetId])
 }
 
 model FournisseurCandidat {
