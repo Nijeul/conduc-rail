@@ -298,7 +298,8 @@ function drawPlanningPages(
   const legendH = 8
 
   // How many chantier rows per page
-  const headerZoneH = dayHeaderH + hourHeaderH + dfvRowH
+  const actualHourRowH = (gridW / slots.length) < 3 ? 12 : hourHeaderH
+  const headerZoneH = dayHeaderH + actualHourRowH + dfvRowH
   const availH = CONTENT_BOTTOM - CONTENT_TOP - headerZoneH - legendH - 6
   const rowsPerPage = Math.floor(availH / rowH)
 
@@ -361,22 +362,44 @@ function drawPlanningPages(
     }
     y += dayHeaderH
 
-    // Hour sub-header row
+    // Hour sub-header row — afficher les heures même quand les cellules sont étroites
+    const hourRowH = cellW < 3 ? 12 : hourHeaderH // plus haut si cellules étroites (rotation)
     doc.setFillColor(...VINCI_BLEU_DARK)
-    doc.rect(MARGIN, y, labelColW, hourHeaderH, 'F')
+    doc.rect(MARGIN, y, labelColW, hourRowH, 'F')
+
     for (let i = 0; i < slotCount; i++) {
       const x = gridX + i * cellW
       doc.setFillColor(...VINCI_BLEU_DARK)
-      doc.rect(x, y, cellW, hourHeaderH, 'F')
-      // Only show hour label if cell is wide enough
+      doc.rect(x, y, cellW, hourRowH, 'F')
+
+      // Séparateur vertical léger entre heures pleines
+      const isFullHour = slots[i].date.getMinutes() === 0
+      if (isFullHour && i > 0) {
+        doc.setDrawColor(255, 255, 255)
+        doc.setLineWidth(0.3)
+        doc.line(x, y, x, y + hourRowH)
+      }
+
+      // Afficher le label d'heure
       if (cellW >= 4) {
+        // Assez large : texte horizontal
         doc.setTextColor(...WHITE)
-        doc.setFontSize(2.5)
+        doc.setFontSize(3)
         doc.setFont('Helvetica', 'normal')
-        doc.text(slots[i].label, x + cellW / 2, y + hourHeaderH - 1, { align: 'center' })
+        doc.text(slots[i].label, x + cellW / 2, y + hourRowH - 1.5, { align: 'center' })
+      } else if (isFullHour) {
+        // Cellules étroites : afficher seulement les heures pleines, en rotation
+        doc.setTextColor(...WHITE)
+        doc.setFontSize(3.5)
+        doc.setFont('Helvetica', 'bold')
+        const hourLabel = slots[i].date.getHours() + 'h'
+        // Texte vertical via save/translate/rotate
+        doc.saveGraphicsState()
+        doc.text(hourLabel, x + cellW / 2 + 1, y + hourRowH - 1.5, { angle: 90 })
+        doc.restoreGraphicsState()
       }
     }
-    y += hourHeaderH
+    y += hourRowH
 
     // DFV row
     doc.setFillColor(...WHITE)

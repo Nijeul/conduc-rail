@@ -69,21 +69,40 @@ export function TimelineHeader({ dateDebut, dateFin, colWidth }: TimelineHeaderP
       </div>
       {/* Hour row */}
       <div className="flex" style={{ backgroundColor: "#003370" }}>
-        {slots.map((slot, i) => (
-          <div
-            key={i}
-            className="text-white text-center border-r shrink-0 flex items-center justify-center"
-            style={{
-              width: colWidth,
-              minWidth: colWidth,
-              borderColor: "rgba(255,255,255,0.15)",
-              height: 22,
-              fontSize: colWidth < 20 ? 8 : 10,
-            }}
-          >
-            {colWidth >= 20 || slot.date.getMinutes() === 0 ? slot.label : ""}
-          </div>
-        ))}
+        {slots.map((slot, i) => {
+          const isFullHour = slot.date.getMinutes() === 0
+          const showLabel = colWidth >= 20 || isFullHour
+          const useVertical = colWidth < 14 && isFullHour
+
+          return (
+            <div
+              key={i}
+              className="text-white text-center border-r shrink-0 flex items-end justify-center overflow-hidden"
+              style={{
+                width: colWidth,
+                minWidth: colWidth,
+                borderColor: "rgba(255,255,255,0.15)",
+                borderLeftWidth: isFullHour ? 1 : 0,
+                borderLeftColor: "rgba(255,255,255,0.3)",
+                height: useVertical ? 32 : 22,
+                fontSize: colWidth < 14 ? 7 : colWidth < 20 ? 8 : 10,
+                paddingBottom: useVertical ? 2 : 0,
+              }}
+            >
+              {showLabel && (
+                <span style={{
+                  writingMode: useVertical ? 'vertical-rl' : undefined,
+                  textOrientation: useVertical ? 'mixed' : undefined,
+                  transform: useVertical ? 'rotate(180deg)' : undefined,
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1,
+                }}>
+                  {slot.label}
+                </span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   );
