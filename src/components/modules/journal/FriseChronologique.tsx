@@ -193,14 +193,20 @@ export function FriseChronologique({
   const friseRef = useRef<HTMLDivElement>(null)
   const { exportAvecGuard, isExporting } = useExportPDF()
 
+  // Only keep categories that have at least one event
+  const categoriesUtilisees = useMemo(
+    () => categories.filter(cat => evenements.some(ev => ev.categorieId === cat.id)),
+    [categories, evenements]
+  )
+
   // Build a set of category IDs for filtering
   const allCatIds = useMemo(() => {
     const ids = new Set<string>()
-    categories.forEach(c => ids.add(c.id))
+    categoriesUtilisees.forEach(c => ids.add(c.id))
     // Also add a special key for events without categorieId (legacy)
     ids.add('__legacy__')
     return ids
-  }, [categories])
+  }, [categoriesUtilisees])
 
   const [filtresActifs, setFiltresActifs] = useState<Set<string>>(() => new Set(allCatIds))
 
@@ -624,7 +630,7 @@ export function FriseChronologique({
     <div>
       <div className="flex items-center justify-between mb-2">
         <FiltresFrise
-          categories={categories}
+          categories={categoriesUtilisees}
           actifs={filtresActifs}
           onToggle={toggleFiltre}
         />

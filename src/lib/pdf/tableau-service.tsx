@@ -271,7 +271,7 @@ export function TableauServicePdf({
                       <Text style={styles.celluleNom}>{nomDisplay}</Text>
                       {telephone ? (
                         <Text style={styles.celluleTel}>
-                          {'\u{1F4DE}'} {telephone}
+                          Tel: {telephone}
                         </Text>
                       ) : null}
                     </View>
