@@ -71,10 +71,7 @@ export function MatriceList({ projetId, matrices }: MatriceListProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#004489]">
-          Matrices decisionnelles
-        </h2>
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           onClick={() => setCreateOpen(true)}
           className="bg-[#004489] text-white hover:bg-[#003370]"
@@ -83,6 +80,9 @@ export function MatriceList({ projetId, matrices }: MatriceListProps) {
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle matrice
         </Button>
+        <h2 className="text-lg font-semibold text-[#004489]">
+          Matrices decisionnelles
+        </h2>
       </div>
 
       {/* Table */}

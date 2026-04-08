@@ -405,10 +405,7 @@ export function DetailEstimatifContent({ projetId, projetName }: DetailEstimatif
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-6 py-4 border-b shrink-0 flex items-center justify-between" style={{ borderColor: '#DCDCDC' }}>
-        <h1 className="text-lg font-bold" style={{ color: '#004489' }}>
-          Détail Estimatif - {projetName}
-        </h1>
+      <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3 flex-wrap" style={{ borderColor: '#DCDCDC' }}>
         <button
           onClick={() =>
             exportAvecGuard(async () => {
@@ -457,6 +454,9 @@ export function DetailEstimatifContent({ projetId, projetName }: DetailEstimatif
           )}
           {isExporting ? 'Génération...' : 'Export PDF'}
         </button>
+        <h1 className="text-lg font-bold" style={{ color: '#004489' }}>
+          Détail Estimatif - {projetName}
+        </h1>
       </div>
 
       {/* Table */}

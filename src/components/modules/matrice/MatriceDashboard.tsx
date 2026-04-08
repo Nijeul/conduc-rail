@@ -234,7 +234,7 @@ export function MatriceDashboard({
       </div>
 
       {/* Recalculate button */}
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <Button
           onClick={handleRecalculate}
           disabled={loading}

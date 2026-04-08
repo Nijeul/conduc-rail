@@ -101,9 +101,17 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div
-        className="flex items-center justify-between gap-4 px-6 py-3 border-b"
+        className="flex items-center gap-4 flex-wrap px-6 py-3 border-b"
         style={{ borderColor: '#DCDCDC' }}
       >
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90"
+          style={{ backgroundColor: '#004489' }}
+        >
+          <Plus className="h-4 w-4" />
+          Ajouter un materiel
+        </button>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -114,14 +122,6 @@ export function MaterielTable({ initialData }: MaterielTableProps) {
             className="w-full h-9 pl-9 pr-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90"
-          style={{ backgroundColor: '#004489' }}
-        >
-          <Plus className="h-4 w-4" />
-          Ajouter un materiel
-        </button>
       </div>
 
       {/* Table */}

@@ -56,7 +56,7 @@ export function JournalPageClient({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3 flex-wrap mb-4">
         <h1 className="text-lg font-semibold text-gray-800">
           Journal de Chantier
         </h1>

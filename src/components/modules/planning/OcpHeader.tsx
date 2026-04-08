@@ -156,7 +156,7 @@ export function OcpHeader({
   return (
     <div className="flex flex-col border-b" style={{ borderColor: "#DCDCDC" }}>
       {/* Main header row */}
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center gap-4 flex-wrap px-6 py-3">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold">{nom}</h1>
           <Badge

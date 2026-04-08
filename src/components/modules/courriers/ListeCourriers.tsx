@@ -43,8 +43,7 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#004489]">Courriers de chantier</h2>
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           onClick={() => router.push(`/projets/${projetId}/courriers/nouveau`)}
           className="bg-[#004489] hover:bg-[#004489]/90 text-white"
@@ -52,6 +51,7 @@ export function ListeCourriers({ courriers, projetId }: ListeCourriersProps) {
           <Plus className="h-4 w-4 mr-2" />
           Nouveau courrier
         </Button>
+        <h2 className="text-lg font-semibold text-[#004489]">Courriers de chantier</h2>
       </div>
 
       {/* Table */}

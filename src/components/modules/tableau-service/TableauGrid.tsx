@@ -163,7 +163,7 @@ export function TableauGrid({ exportPdfButton, personnelMap }: Props) {
   return (
     <div className="flex flex-col flex-1">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-[#DCDCDC]">
+      <div className="flex items-center gap-3 flex-wrap px-4 py-2 bg-white border-b border-[#DCDCDC]">
         <div className="flex items-center gap-2">
           {exportPdfButton}
         </div>

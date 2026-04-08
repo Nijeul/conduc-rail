@@ -223,7 +223,7 @@ export function BidCompTable({
       </div>
 
       {/* Toolbar */}
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <Button
           onClick={() => setAddOpen(true)}
           className="bg-[#004489] text-white hover:bg-[#003370] text-xs"

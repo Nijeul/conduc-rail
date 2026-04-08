@@ -210,10 +210,7 @@ export function RapportForm({
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#004489]">
-          {isNew ? 'Nouveau rapport journalier' : 'Modifier le rapport'}
-        </h1>
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <RapportPDFButton
             projetName={projetName}
@@ -228,6 +225,9 @@ export function RapportForm({
             {isPending ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
         </div>
+        <h1 className="text-xl font-bold text-[#004489]">
+          {isNew ? 'Nouveau rapport journalier' : 'Modifier le rapport'}
+        </h1>
       </div>
 
       {error && (

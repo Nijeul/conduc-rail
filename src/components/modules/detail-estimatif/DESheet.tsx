@@ -432,10 +432,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
           className="!w-full !max-w-full sm:!max-w-full p-0 flex flex-col"
         >
           <SheetHeader className="px-6 py-4 border-b shrink-0" style={{ borderColor: '#DCDCDC' }}>
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-lg font-bold" style={{ color: '#004489' }}>
-                Detail Estimatif - {projetName}
-              </SheetTitle>
+            <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() =>
@@ -486,6 +483,9 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
                   {isExporting ? 'Generation...' : 'Export PDF'}
                 </button>
               </div>
+              <SheetTitle className="text-lg font-bold" style={{ color: '#004489' }}>
+                Detail Estimatif - {projetName}
+              </SheetTitle>
             </div>
           </SheetHeader>
 

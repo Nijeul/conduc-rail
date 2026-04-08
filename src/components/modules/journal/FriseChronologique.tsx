@@ -628,12 +628,7 @@ export function FriseChronologique({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <FiltresFrise
-          categories={categoriesUtilisees}
-          actifs={filtresActifs}
-          onToggle={toggleFiltre}
-        />
+      <div className="flex items-center gap-3 flex-wrap mb-2">
         <button
           onClick={handleExportFrise}
           disabled={isExporting}
@@ -641,6 +636,11 @@ export function FriseChronologique({
         >
           {isExporting ? 'Generation...' : 'Export PDF'}
         </button>
+        <FiltresFrise
+          categories={categoriesUtilisees}
+          actifs={filtresActifs}
+          onToggle={toggleFiltre}
+        />
       </div>
 
       {/* Wrapper externe */}

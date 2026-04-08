@@ -153,10 +153,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
   return (
     <div className="space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#004489]">
-          {isNew ? 'Nouveau courrier' : `Courrier : ${reference}`}
-        </h2>
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <SelectTemplate projetInfos={projetInfos} onSelect={handleTemplate} />
           {!isNew && (
@@ -191,6 +188,9 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
             </Button>
           )}
         </div>
+        <h2 className="text-lg font-semibold text-[#004489]">
+          {isNew ? 'Nouveau courrier' : `Courrier : ${reference}`}
+        </h2>
       </div>
 
       {/* Avertissement champs profil manquants */}

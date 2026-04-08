@@ -60,8 +60,7 @@ export function PlanningList({ projetId, ocps }: PlanningListProps) {
         Le planning minuté permet de planifier des interventions sur des fenêtres de travaux (week-end, nuit). Chaque case = 30 minutes.
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold">Planning Minuté (OCP)</h1>
+      <div className="flex items-center gap-3 flex-wrap mb-4">
         <Button
           onClick={() => setFormOpen(true)}
           style={{ backgroundColor: "#004489" }}
@@ -70,6 +69,7 @@ export function PlanningList({ projetId, ocps }: PlanningListProps) {
           <Plus className="h-4 w-4 mr-1" />
           Nouveau planning
         </Button>
+        <h1 className="text-lg font-bold">Planning Minuté (OCP)</h1>
       </div>
 
       <div className="border rounded-lg overflow-hidden" style={{ borderColor: "#DCDCDC" }}>

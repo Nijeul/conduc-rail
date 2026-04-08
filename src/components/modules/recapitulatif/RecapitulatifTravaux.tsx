@@ -722,7 +722,7 @@ export function RecapitulatifTravaux({
             </button>
           ))}
         </div>
-        <div className="flex gap-2 ml-auto">
+        <div className="flex gap-2">
           <Button
             onClick={exportExcel}
             variant="outline"
