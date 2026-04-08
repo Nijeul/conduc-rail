@@ -679,7 +679,7 @@ export async function getPersonnelLinks(ocpId: string) {
 
   return prisma.planningPersonnelLink.findMany({
     where: { ocpId },
-    include: { tableauService: { select: { id: true, titre: true, entreprise: true, semaine: true, annee: true } } },
+    include: { tableauService: true },
     orderBy: { debut: "asc" },
   });
 }
