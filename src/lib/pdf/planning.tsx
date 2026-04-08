@@ -295,7 +295,7 @@ function drawPlanningPages(
   const dayHeaderH = 6
   const hourHeaderH = 5
   const dfvRowH = 4
-  const legendH = 8
+  const legendH = 0
 
   // How many chantier rows per page
   const actualHourRowH = (gridW / slots.length) < 3 ? 12 : hourHeaderH
@@ -487,23 +487,7 @@ function drawPlanningPages(
       y += rowH
     }
 
-    // Legend at bottom
-    y += 3
-    doc.setFontSize(4)
-    doc.setFont('Helvetica', 'bold')
-    doc.setTextColor(...BLACK)
-    doc.text('Légende :', MARGIN, y + 3)
-    let legendX = MARGIN + 15
-    for (const [, { label, couleur }] of Object.entries(COULEURS_CATEGORIE)) {
-      const rgb = hexToRGB(couleur)
-      doc.setFillColor(...rgb)
-      doc.rect(legendX, y + 0.5, 3, 3, 'F')
-      doc.setTextColor(...BLACK)
-      doc.setFontSize(3.5)
-      doc.setFont('Helvetica', 'normal')
-      doc.text(label, legendX + 4, y + 3)
-      legendX += doc.getTextWidth(label) + 8
-    }
+    // Légende supprimée (les catégories ne sont plus utilisées)
   }
 }
 
