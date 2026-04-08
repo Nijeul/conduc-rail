@@ -287,9 +287,9 @@ function drawPlanningPages(
   const slots = generateTimeSlots(dateDebut, dateFin)
   const slotCount = slots.length
 
-  const sortedChantiers = [...ocp.chantiersElementaires].sort(
-    (a, b) => a.ordreAffichage - b.ordreAffichage
-  )
+  const sortedChantiers = [...ocp.chantiersElementaires]
+    .filter(ch => !ch.estDFV) // DFV est affiché en barre de synthèse header, pas en ligne
+    .sort((a, b) => a.ordreAffichage - b.ordreAffichage)
 
   // Layout constants
   const labelColW = 55
@@ -297,14 +297,14 @@ function drawPlanningPages(
   const gridW = CONTENT_W - labelColW
   const cellW = Math.min(gridW / slotCount, 6)
   const actualGridW = cellW * slotCount
-  const rowH = 5
+  const rowH = 7
   const dayHeaderH = 6
-  const hourHeaderH = 5
-  const dfvRowH = 4
+  const hourRowH = 5
+  const dfvRowH = 6
   const legendH = 0
 
   // How many chantier rows per page
-  const headerZoneH = dayHeaderH + 5 + dfvRowH // hourRowH is now always 5
+  const headerZoneH = dayHeaderH + hourRowH + dfvRowH
   const availH = CONTENT_BOTTOM - CONTENT_TOP - headerZoneH - legendH - 6
   const rowsPerPage = Math.floor(availH / rowH)
 
@@ -350,17 +350,26 @@ function drawPlanningPages(
     doc.setFillColor(...VINCI_BLEU)
     doc.rect(MARGIN, y, labelColW, dayHeaderH, 'F')
     doc.setTextColor(...WHITE)
-    doc.setFontSize(5)
+    doc.setFontSize(6)
     doc.setFont('Helvetica', 'bold')
-    doc.text('Chantiers', MARGIN + 2, y + dayHeaderH - 1.5)
+    doc.text('Chantiers', MARGIN + 2, y + dayHeaderH / 2 + 1.5)
 
-    for (const dg of dayGroups) {
+    for (let di = 0; di < dayGroups.length; di++) {
+      const dg = dayGroups[di]
       const x = gridX + dg.startIdx * cellW
       const w = (dg.endIdx - dg.startIdx + 1) * cellW
-      doc.setFillColor(...VINCI_BLEU)
+      // Alterner le fond pour distinguer les jours
+      const dayBg: [number, number, number] = di % 2 === 0 ? VINCI_BLEU : VINCI_BLEU_DARK
+      doc.setFillColor(...dayBg)
       doc.rect(x, y, w, dayHeaderH, 'F')
+      // Séparateur blanc entre jours
+      if (di > 0) {
+        doc.setDrawColor(255, 255, 255)
+        doc.setLineWidth(0.6)
+        doc.line(x, y, x, y + dayHeaderH)
+      }
       doc.setTextColor(...WHITE)
-      doc.setFontSize(4)
+      doc.setFontSize(5)
       doc.setFont('Helvetica', 'bold')
       const truncLabel = w > 20 ? dg.label : dg.label.slice(0, 3)
       doc.text(truncLabel, x + w / 2, y + dayHeaderH - 1.5, { align: 'center' })
@@ -368,7 +377,6 @@ function drawPlanningPages(
     y += dayHeaderH
 
     // Hour sub-header row — heures pleines en horizontal, compact
-    const hourRowH = 5
     doc.setFillColor(...VINCI_BLEU_DARK)
     doc.rect(MARGIN, y, labelColW + actualGridW, hourRowH, 'F')
 
@@ -382,13 +390,15 @@ function drawPlanningPages(
         doc.setLineWidth(0.4)
         doc.line(x, y, x, y + hourRowH)
 
-        // Label heure — horizontal, juste le chiffre
+        // Label heure — horizontal, centré sur 2 slots (1h = 2×30min)
         doc.setTextColor(...WHITE)
-        const fontSize = cellW >= 4 ? 3.5 : cellW >= 2.5 ? 2.8 : 2.2
+        const fontSize = cellW >= 4 ? 4.5 : cellW >= 2.5 ? 4 : 3.5
         doc.setFontSize(fontSize)
         doc.setFont('Helvetica', 'bold')
-        const hLabel = String(slots[i].date.getHours())
-        doc.text(hLabel, x + 0.5, y + hourRowH - 1.2)
+        const hLabel = slots[i].date.getHours().toString().padStart(2, '0') + 'h'
+        // Centrer le label sur la largeur de 2 cellules (1 heure)
+        const hLabelW = Math.min(cellW * 2, actualGridW - (i * cellW))
+        doc.text(hLabel, x + hLabelW / 2, y + hourRowH / 2 + fontSize * 0.15, { align: 'center' })
       }
     }
     y += hourRowH
@@ -397,9 +407,9 @@ function drawPlanningPages(
     doc.setFillColor(...WHITE)
     doc.rect(MARGIN, y, labelColW, dfvRowH, 'F')
     doc.setTextColor(...VINCI_BLEU_DARK)
-    doc.setFontSize(4)
+    doc.setFontSize(5)
     doc.setFont('Helvetica', 'bold')
-    doc.text('DFV', MARGIN + 2, y + dfvRowH - 1)
+    doc.text('DFV', MARGIN + 2, y + dfvRowH / 2 + 1.5)
 
     const startMs = dateDebut.getTime()
     const stepMs = 30 * 60 * 1000
@@ -451,7 +461,7 @@ function drawPlanningPages(
       // Fond de la ligne
       const bgColor: [number, number, number] = isGroup ? GREY_LIGHT
         : isDFV ? [229, 239, 248] as [number, number, number] // #E5EFF8
-        : isEven ? WHITE : [248, 248, 248] as [number, number, number]
+        : isEven ? WHITE : GREY_LIGHT
 
       // Label cell
       doc.setFillColor(...bgColor)
@@ -461,10 +471,10 @@ function drawPlanningPages(
       doc.rect(MARGIN, y, labelColW, rowH)
 
       doc.setTextColor(isDFV ? VINCI_BLEU[0] : 0, isDFV ? VINCI_BLEU[1] : 0, isDFV ? VINCI_BLEU[2] : 0)
-      doc.setFontSize(isGroup ? 4 : isDFV ? 4 : 3.5)
+      doc.setFontSize(isGroup ? 5.5 : 5)
       doc.setFont('Helvetica', (isGroup || isDFV) ? 'bold' : 'normal')
-      const truncLib = ch.libelle.length > 32 ? ch.libelle.slice(0, 29) + '...' : ch.libelle
-      doc.text(truncLib, MARGIN + 1.5, y + rowH - 1.2)
+      const truncLib = ch.libelle.length > 45 ? ch.libelle.slice(0, 42) + '...' : ch.libelle
+      doc.text(truncLib, MARGIN + 2, y + rowH / 2 + 1.5)
 
       // Slot cells
       const chColor = getChantierColor(ch)
@@ -478,12 +488,16 @@ function drawPlanningPages(
         } else {
           doc.setFillColor(...bgColor)
           doc.rect(x, y, cellW, rowH, 'F')
+          // Bordure fine pour matérialiser la grille
+          doc.setDrawColor(...GREY_BORDER)
+          doc.setLineWidth(0.05)
+          doc.rect(x, y, cellW, rowH)
         }
 
-        // Séparateur de jour (trait blanc épais)
+        // Séparateur de jour (trait bleu foncé bien visible)
         if (dayStartIndices.has(i) && i > 0) {
-          doc.setDrawColor(255, 255, 255)
-          doc.setLineWidth(0.5)
+          doc.setDrawColor(...VINCI_BLEU_DARK)
+          doc.setLineWidth(0.6)
           doc.line(x, y, x, y + rowH)
         }
       }
