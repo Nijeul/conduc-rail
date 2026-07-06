@@ -4,15 +4,6 @@ import { useEffect } from 'react'
 import { pdf } from '@react-pdf/renderer'
 import { CourrierPDF } from '@/lib/pdf/courrier'
 
-interface ProjetInfos {
-  name?: string | null
-  moaNom?: string | null
-  moaPrenom?: string | null
-  moaAdresse?: string | null
-  numeroAffaire?: string | null
-  numeroOTP?: string | null
-}
-
 interface UserInfos {
   name?: string | null
   nomSociete?: string | null
@@ -27,8 +18,13 @@ interface Props {
   reference: string
   objet: string
   corps: string
+  destinataire?: string | null
+  lieu?: string | null
+  modeEnvoi?: string | null
+  copies?: string | null
+  signataireNom?: string | null
+  signataireFonction?: string | null
   dateEnvoi?: Date | null
-  projetInfos: ProjetInfos
   userInfos?: UserInfos | null
   onDone: () => void
 }
@@ -37,8 +33,13 @@ export function CourrierPDFDownload({
   reference,
   objet,
   corps,
+  destinataire,
+  lieu,
+  modeEnvoi,
+  copies,
+  signataireNom,
+  signataireFonction,
   dateEnvoi,
-  projetInfos,
   userInfos,
   onDone,
 }: Props) {
@@ -53,22 +54,22 @@ export function CourrierPDFDownload({
             telSociete={userInfos?.telSociete}
             faxSociete={userInfos?.faxSociete}
             certifications={userInfos?.certifications}
-            signataireName={userInfos?.name}
-            moaPrenom={projetInfos.moaPrenom}
-            moaNom={projetInfos.moaNom}
-            moaAdresse={projetInfos.moaAdresse}
-            objet={objet}
+            destinataire={destinataire}
+            lieu={lieu}
+            modeEnvoi={modeEnvoi}
             reference={reference}
-            numeroAffaire={projetInfos.numeroAffaire}
-            numeroOTP={projetInfos.numeroOTP}
+            objet={objet}
             corps={corps}
+            copies={copies}
+            signataireNom={signataireNom}
+            signataireFonction={signataireFonction}
             dateEnvoi={dateEnvoi}
           />
         ).toBlob()
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `courrier_${reference || 'sans-ref'}.pdf`
+        link.download = `courrier_${(objet || reference || 'sans-ref').slice(0, 60).replace(/[^\w\dàâéèêëîïôùûüç -]/gi, '').replace(/\s+/g, '_')}.pdf`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)

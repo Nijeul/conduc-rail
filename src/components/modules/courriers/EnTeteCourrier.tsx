@@ -1,73 +1,53 @@
 interface EnTeteCourrierProps {
   nomSociete?: string | null
-  moaPrenom?: string | null
-  moaNom?: string | null
-  moaAdresse?: string | null
+  adresseSociete?: string | null
+  destinataire?: string | null
+  lieu?: string | null
+  modeEnvoi?: string | null
   objet: string
   reference: string
-  numeroAffaire?: string | null
-  numeroOTP?: string | null
 }
 
+// Aperçu de la mise en page du courrier (fidèle au PDF généré)
 export function EnTeteCourrier({
   nomSociete,
-  moaPrenom,
-  moaNom,
-  moaAdresse,
+  adresseSociete,
+  destinataire,
+  lieu,
+  modeEnvoi,
   objet,
   reference,
-  numeroAffaire,
-  numeroOTP,
 }: EnTeteCourrierProps) {
   const today = new Date().toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
+  const lieuDate = lieu?.trim() ? `${lieu.trim()}, le ${today}` : `Le ${today}`
 
   return (
-    <div className="bg-[#F0F0F0] border border-border rounded-md p-6 text-sm space-y-4 font-mono">
-      {/* Header line */}
-      <div className="flex justify-between items-start">
-        <span className="font-bold text-[#004489]">
-          {nomSociete || 'CONDUC RAIL'}
-        </span>
-        <span className="text-text-secondary">Le {today}</span>
-      </div>
-
-      {/* Destinataire */}
-      <div className="space-y-1">
-        <p className="text-text-secondary">A l&apos;attention de :</p>
-        <p className="font-medium">
-          {moaPrenom || '[Prenom]'} {moaNom || '[Nom]'}
-        </p>
-        {moaAdresse && (
-          <p className="whitespace-pre-line text-text-secondary">{moaAdresse}</p>
+    <div className="bg-white border border-[#DCDCDC] rounded-md p-6 text-sm space-y-4 shadow-sm">
+      {/* Émetteur (haut gauche) */}
+      <div>
+        <p className="font-bold text-[#004489]">{nomSociete || '[Société]'}</p>
+        {adresseSociete && (
+          <p className="whitespace-pre-line text-xs text-[#5A5A5A]">{adresseSociete}</p>
         )}
       </div>
 
-      {/* References */}
-      <div className="space-y-1 border-t border-border/50 pt-3">
-        <p>
-          <span className="text-text-secondary">Objet : </span>
-          <span className="font-medium">{objet || '[objet]'}</span>
+      {/* Destinataire + date (bloc droit) */}
+      <div className="ml-[52%] space-y-2">
+        <p className="whitespace-pre-line">
+          {destinataire?.trim() || '[Destinataire\nFonction\nOrganisme\nAdresse]'}
         </p>
-        {numeroAffaire && (
-          <p>
-            <span className="text-text-secondary">Ref. affaire : </span>
-            {numeroAffaire}
-          </p>
-        )}
-        <p>
-          <span className="text-text-secondary">Ref. courrier : </span>
-          {reference || '[reference]'}
-        </p>
-        {numeroOTP && (
-          <p>
-            <span className="text-text-secondary">N° OTP : </span>
-            {numeroOTP}
-          </p>
-        )}
+        <p className="pt-2">{lieuDate}</p>
+        {modeEnvoi?.trim() && <p className="italic">{modeEnvoi}</p>}
+      </div>
+
+      {/* Réf. / Objet */}
+      <div className="space-y-1 border-t border-[#DCDCDC] pt-3">
+        <p className="font-bold">Ref : {reference || '[référence du marché]'}</p>
+        <p className="font-bold">Objet : {objet || '[objet du courrier]'}</p>
       </div>
     </div>
   )

@@ -45,6 +45,11 @@ interface CourrierData {
   corps: string
   statut?: string
   dateEnvoi?: Date | null
+  lieu?: string | null
+  modeEnvoi?: string | null
+  copies?: string | null
+  signataireNom?: string | null
+  signataireFonction?: string | null
 }
 
 interface EditeurCourrierProps {
@@ -71,6 +76,26 @@ function getMissingProfilFields(userInfos?: UserInfos | null): string[] {
   return missing
 }
 
+/** Bloc destinataire pré-rempli depuis les infos MOA du projet */
+function destinataireParDefaut(infos: ProjetInfos): string {
+  const lignes = [
+    [infos.moaPrenom, infos.moaNom].filter(Boolean).join(' '),
+    infos.moaAdresse || '',
+  ].filter(Boolean)
+  return lignes.join('\n')
+}
+
+/** Ville extraite de la dernière ligne de l'adresse société ("44800 Saint Herblain") */
+function lieuParDefaut(userInfos?: UserInfos | null): string {
+  const derniere = (userInfos?.adresseSociete || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .pop()
+  if (!derniere) return ''
+  return derniere.replace(/^\d{5}\s*/, '').replace(/\s*Cedex.*$/i, '')
+}
+
 export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: EditeurCourrierProps) {
   const router = useRouter()
   const isNew = !courrier?.id
@@ -78,8 +103,21 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
   const [reference, setReference] = useState(courrier?.reference || '')
   const [objet, setObjet] = useState(courrier?.objet || '')
   const [type, setType] = useState(courrier?.type || 'lettre')
-  const [destinataire, setDestinataire] = useState(courrier?.destinataire || '')
+  const [destinataire, setDestinataire] = useState(
+    courrier?.destinataire ?? (isNew ? destinataireParDefaut(projetInfos) : '')
+  )
   const [corps, setCorps] = useState(courrier?.corps || '')
+  const [lieu, setLieu] = useState(
+    courrier?.lieu ?? (isNew ? lieuParDefaut(userInfos) : '')
+  )
+  const [modeEnvoi, setModeEnvoi] = useState(courrier?.modeEnvoi || '')
+  const [copies, setCopies] = useState(courrier?.copies || '')
+  const [signataireNom, setSignataireNom] = useState(
+    courrier?.signataireNom ?? (isNew ? userInfos?.name || '' : '')
+  )
+  const [signataireFonction, setSignataireFonction] = useState(
+    courrier?.signataireFonction ?? (isNew ? 'Conducteur de Travaux' : '')
+  )
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
   const [showPdf, setShowPdf] = useState(false)
@@ -88,27 +126,34 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
   const isEnvoye = courrier?.statut === 'envoye'
   const missingFields = getMissingProfilFields(userInfos)
 
-  async function handleSave() {
-    setSaving(true)
-    setMessage(null)
-
-    const data = {
+  function buildData() {
+    return {
       reference,
       objet,
       type: type as 'lettre' | 'compte-rendu' | 'note' | 'demande' | 'autre',
       destinataire: destinataire || undefined,
       corps,
+      lieu: lieu || undefined,
+      modeEnvoi: modeEnvoi || undefined,
+      copies: copies || undefined,
+      signataireNom: signataireNom || undefined,
+      signataireFonction: signataireFonction || undefined,
     }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setMessage(null)
 
     if (isNew) {
-      const result = await createCourrier(projetId, data)
+      const result = await createCourrier(projetId, buildData())
       if (result.success) {
         router.push(`/projets/${projetId}/courriers/${result.data.id}`)
       } else {
         setMessage({ type: 'error', text: result.error })
       }
     } else {
-      const result = await updateCourrier(projetId, { ...data, id: courrier!.id! })
+      const result = await updateCourrier(projetId, { ...buildData(), id: courrier!.id! })
       if (result.success) {
         setMessage({ type: 'success', text: 'Courrier enregistre' })
       } else {
@@ -124,16 +169,7 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
     setSending(true)
     setMessage(null)
 
-    // Save first
-    const saveData = {
-      id: courrier.id,
-      reference,
-      objet,
-      type: type as 'lettre' | 'compte-rendu' | 'note' | 'demande' | 'autre',
-      destinataire: destinataire || undefined,
-      corps,
-    }
-    await updateCourrier(projetId, saveData)
+    await updateCourrier(projetId, { ...buildData(), id: courrier.id })
 
     const result = await marquerCourrierEnvoye(projetId, courrier.id)
     if (result.success) {
@@ -225,28 +261,27 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
         </div>
       )}
 
-      {/* En-tete preview */}
+      {/* Aperçu de la mise en page */}
       <EnTeteCourrier
-        nomSociete={projetInfos.nomSociete}
-        moaPrenom={projetInfos.moaPrenom}
-        moaNom={projetInfos.moaNom}
-        moaAdresse={projetInfos.moaAdresse}
+        nomSociete={userInfos?.nomSociete}
+        adresseSociete={userInfos?.adresseSociete}
+        destinataire={destinataire}
+        lieu={lieu}
+        modeEnvoi={modeEnvoi}
         objet={objet}
         reference={reference}
-        numeroAffaire={projetInfos.numeroAffaire}
-        numeroOTP={projetInfos.numeroOTP}
       />
 
-      {/* Editable fields */}
+      {/* Identification */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="reference">Reference</Label>
+          <Label htmlFor="reference">Réf. (marché, contrat, opération)</Label>
           <Input
             id="reference"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             disabled={isEnvoye}
-            placeholder="CR-2026-001"
+            placeholder="Travaux de voie — Ligne 420 000 — Contrat n° ..."
           />
         </div>
         <div className="space-y-1.5">
@@ -267,36 +302,105 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
         </div>
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="objet">Objet</Label>
+        <Input
+          id="objet"
+          value={objet}
+          onChange={(e) => setObjet(e.target.value)}
+          disabled={isEnvoye}
+          placeholder="Procédure d'alerte du dépassement de la masse des travaux"
+        />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="objet">Objet</Label>
-          <Input
-            id="objet"
-            value={objet}
-            onChange={(e) => setObjet(e.target.value)}
-            disabled={isEnvoye}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="destinataire">Destinataire</Label>
-          <Input
+          <Label htmlFor="destinataire">
+            Destinataire (une information par ligne : nom, fonction, organisme, adresse)
+          </Label>
+          <textarea
             id="destinataire"
             value={destinataire}
             onChange={(e) => setDestinataire(e.target.value)}
             disabled={isEnvoye}
+            rows={6}
+            placeholder={
+              'Mme Alexandra PETIT\nPersonne Responsable du Marché\nSNCF Réseau\n14/15 Boulevard de Stalingrad\n44041 Nantes Cedex 01'
+            }
+            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 leading-relaxed"
           />
+        </div>
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="lieu">Lieu (fait à)</Label>
+              <Input
+                id="lieu"
+                value={lieu}
+                onChange={(e) => setLieu(e.target.value)}
+                disabled={isEnvoye}
+                placeholder="Saint Herblain"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="modeEnvoi">Mode d&apos;envoi</Label>
+              <Input
+                id="modeEnvoi"
+                value={modeEnvoi}
+                onChange={(e) => setModeEnvoi(e.target.value)}
+                disabled={isEnvoye}
+                placeholder="Envoyé par Docusign / LRAR n° ..."
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="signataireNom">Signataire</Label>
+              <Input
+                id="signataireNom"
+                value={signataireNom}
+                onChange={(e) => setSignataireNom(e.target.value)}
+                disabled={isEnvoye}
+                placeholder="Julien PAULAIS"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="signataireFonction">Fonction</Label>
+              <Input
+                id="signataireFonction"
+                value={signataireFonction}
+                onChange={(e) => setSignataireFonction(e.target.value)}
+                disabled={isEnvoye}
+                placeholder="Conducteur de Travaux"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="copies">Copies (une par ligne)</Label>
+            <textarea
+              id="copies"
+              value={copies}
+              onChange={(e) => setCopies(e.target.value)}
+              disabled={isEnvoye}
+              rows={3}
+              placeholder={'DUPONT Christian (MOE Générale) : c.dupont@reseau.sncf.fr'}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 leading-relaxed"
+            />
+          </div>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="corps">Corps du courrier</Label>
+        <Label htmlFor="corps">
+          Corps du courrier — les mentions [entre crochets] des modèles sont à compléter
+        </Label>
         <textarea
           id="corps"
           value={corps}
           onChange={(e) => setCorps(e.target.value)}
           disabled={isEnvoye}
-          rows={16}
-          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono leading-relaxed"
+          rows={18}
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 leading-relaxed"
         />
       </div>
 
@@ -306,8 +410,13 @@ export function EditeurCourrier({ projetId, projetInfos, userInfos, courrier }: 
           reference={reference}
           objet={objet}
           corps={corps}
+          destinataire={destinataire}
+          lieu={lieu}
+          modeEnvoi={modeEnvoi}
+          copies={copies}
+          signataireNom={signataireNom}
+          signataireFonction={signataireFonction}
           dateEnvoi={courrier?.dateEnvoi}
-          projetInfos={projetInfos}
           userInfos={userInfos}
           onDone={() => setShowPdf(false)}
         />

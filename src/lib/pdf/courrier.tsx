@@ -1,237 +1,177 @@
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-  StyleSheet,
-} from '@react-pdf/renderer'
-import { PiedPagePDF } from './pdf-entete'
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
 
-const BLEU = '#004489'
-const GRIS_FONCE = '#004489'
-const GRIS_MOYEN = '#5A5A5A'
+// Mise en page calquée sur le courrier type ETF (modèle « DAPT ») :
+// logo + adresse agence en tête, bloc destinataire à droite, lieu/date et
+// mention d'envoi à droite, Réf. et Objet en gras, corps justifié,
+// signature à droite, liste des copies, pied de page société.
+
+const NOIR = '#000000'
+const GRIS = '#5A5A5A'
 const GRIS_CLAIR = '#DCDCDC'
 
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 10,
-    paddingTop: 40,
-    paddingBottom: 70,
-    paddingHorizontal: 50,
-    color: GRIS_FONCE,
-  },
-  // ---------- En-tete 2 colonnes ----------
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 30,
-    paddingBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: BLEU,
-  },
-  headerLeft: {
-    maxWidth: '50%',
-  },
-  headerLogo: {
-    width: 80,
-    height: 40,
-    objectFit: 'contain',
-    marginBottom: 6,
-  },
-  societeName: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: BLEU,
-    marginBottom: 2,
-  },
-  societeAdresse: {
-    fontSize: 9,
-    color: GRIS_MOYEN,
-    lineHeight: 1.5,
-    marginBottom: 2,
-  },
-  societeTelFax: {
-    fontSize: 9,
-    color: GRIS_MOYEN,
-    marginBottom: 1,
-  },
-  societeCertifications: {
-    fontSize: 8,
-    color: BLEU,
-    marginTop: 4,
-  },
-  headerRight: {
-    maxWidth: '45%',
-    textAlign: 'right',
-  },
-  dateVille: {
-    fontSize: 10,
-    color: GRIS_FONCE,
-    marginBottom: 14,
-  },
-  destinataireLabel: {
-    fontSize: 8,
-    color: GRIS_MOYEN,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  destinataireNom: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: GRIS_FONCE,
-    marginBottom: 2,
-  },
-  destinataireAdresse: {
-    fontSize: 9,
-    color: GRIS_MOYEN,
+    fontSize: 10.5,
+    paddingTop: 45,
+    paddingBottom: 80,
+    paddingHorizontal: 62,
+    color: NOIR,
     lineHeight: 1.4,
   },
-  // ---------- References ----------
-  referencesBlock: {
-    marginBottom: 18,
-    paddingLeft: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: BLEU,
+  // ---------- En-tête ----------
+  header: {
+    marginBottom: 8,
   },
-  refRow: {
-    flexDirection: 'row',
-    marginBottom: 3,
+  headerLogo: {
+    width: 110,
+    height: 45,
+    objectFit: 'contain',
+    objectPositionX: 0,
+    marginBottom: 4,
   },
-  refLabel: {
-    width: 120,
-    fontSize: 9,
-    color: GRIS_MOYEN,
-  },
-  refValue: {
-    fontSize: 10,
-    color: GRIS_FONCE,
-  },
-  // ---------- Objet ----------
-  objetBlock: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: GRIS_CLAIR,
-  },
-  objetRow: {
-    flexDirection: 'row',
-  },
-  objetLabel: {
-    width: 120,
-    fontSize: 10,
+  societeName: {
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: GRIS_FONCE,
+    marginBottom: 2,
   },
-  objetValue: {
-    fontSize: 10,
+  agenceLigne: {
+    fontSize: 8.5,
+    color: GRIS,
+  },
+  // ---------- Bloc destinataire (à droite) ----------
+  blocDroite: {
+    marginLeft: '52%',
+  },
+  destinataireLigne: {
+    fontSize: 10.5,
+  },
+  lieuDate: {
+    fontSize: 10.5,
+    marginTop: 18,
+  },
+  modeEnvoi: {
+    fontSize: 10.5,
+    fontFamily: 'Helvetica-Oblique',
+    marginTop: 8,
+  },
+  // ---------- Références ----------
+  refBloc: {
+    marginTop: 22,
+    marginBottom: 14,
+  },
+  refLigne: {
+    fontSize: 10.5,
     fontFamily: 'Helvetica-Bold',
-    color: GRIS_FONCE,
-    flex: 1,
+    marginBottom: 6,
   },
   // ---------- Corps ----------
-  corpsContainer: {
-    marginBottom: 30,
-  },
   corpsParagraph: {
-    fontSize: 10,
-    color: GRIS_FONCE,
-    lineHeight: 1.6,
+    fontSize: 10.5,
     textAlign: 'justify',
-    marginBottom: 6,
+    marginBottom: 9,
+    lineHeight: 1.45,
   },
   corpsBold: {
     fontFamily: 'Helvetica-Bold',
   },
   // ---------- Signature ----------
-  signatureBlock: {
-    marginTop: 40,
-    alignItems: 'flex-end',
+  signatureBloc: {
+    marginTop: 28,
+    marginLeft: '52%',
+    marginBottom: 30,
   },
   signatureNom: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: 'Helvetica-Bold',
-    color: GRIS_FONCE,
   },
-  signaturePoste: {
+  signatureFonction: {
+    fontSize: 10.5,
+  },
+  // ---------- Copies ----------
+  copiesBloc: {
+    marginTop: 10,
+  },
+  copiesLabel: {
+    fontSize: 9.5,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 3,
+  },
+  copiesLigne: {
     fontSize: 9,
-    color: GRIS_MOYEN,
-    marginTop: 2,
+    color: GRIS,
+    lineHeight: 1.35,
   },
   // ---------- Pied de page ----------
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 50,
-    right: 50,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
+    bottom: 28,
+    left: 62,
+    right: 62,
+    borderTopWidth: 0.5,
     borderTopColor: GRIS_CLAIR,
-    paddingTop: 8,
+    paddingTop: 6,
   },
-  footerRef: {
-    fontSize: 8,
-    color: GRIS_MOYEN,
+  footerTexte: {
+    fontSize: 7,
+    color: GRIS,
+    textAlign: 'center',
+    lineHeight: 1.4,
   },
   footerPage: {
-    fontSize: 8,
-    color: GRIS_MOYEN,
+    fontSize: 7,
+    color: GRIS,
+    textAlign: 'right',
+    marginTop: 2,
   },
 })
 
 export interface CourrierPDFProps {
-  // Emetteur (from user profil)
+  // Émetteur (profil utilisateur)
   nomSociete?: string | null
   logoSociete?: string | null
   adresseSociete?: string | null
   telSociete?: string | null
   faxSociete?: string | null
   certifications?: string | null
-  signataireName?: string | null
-  signatairePoste?: string | null
-  // Destinataire (from projet infos)
-  moaPrenom?: string | null
-  moaNom?: string | null
-  moaAdresse?: string | null
-  // Courrier content
-  objet: string
+  // Contenu du courrier
+  destinataire?: string | null // bloc multi-lignes
+  lieu?: string | null
+  modeEnvoi?: string | null
   reference: string
-  numeroAffaire?: string | null
-  numeroOTP?: string | null
+  objet: string
   corps: string
+  copies?: string | null // une ligne par destinataire en copie
+  signataireNom?: string | null
+  signataireFonction?: string | null
   dateEnvoi?: Date | null
-  ville?: string | null
 }
 
-/**
- * Parses the body text handling line breaks and **bold** markers.
- * Returns an array of React-PDF elements.
- */
+function logoValide(logo: string | null | undefined): boolean {
+  if (!logo) return false
+  return /^data:image\/(png|jpeg|jpg|webp);base64,/.test(logo)
+}
+
+/** Corps : paragraphes séparés par ligne vide, gestion des segments **gras** */
 function renderCorps(corps: string) {
   const paragraphs = corps.split(/\n\n+/)
   return paragraphs.map((para, pIdx) => {
     const lines = para.split('\n')
     return (
-      <View key={pIdx} style={styles.corpsParagraph}>
+      <View key={pIdx} style={styles.corpsParagraph} wrap={false}>
         {lines.map((line, lIdx) => {
-          // Parse **bold** segments
           const parts = line.split(/(\*\*[^*]+\*\*)/)
           return (
             <Text key={lIdx}>
-              {parts.map((part, sIdx) => {
-                if (part.startsWith('**') && part.endsWith('**')) {
-                  return (
-                    <Text key={sIdx} style={styles.corpsBold}>
-                      {part.slice(2, -2)}
-                    </Text>
-                  )
-                }
-                return <Text key={sIdx}>{part}</Text>
-              })}
+              {parts.map((part, sIdx) =>
+                part.startsWith('**') && part.endsWith('**') ? (
+                  <Text key={sIdx} style={styles.corpsBold}>
+                    {part.slice(2, -2)}
+                  </Text>
+                ) : (
+                  <Text key={sIdx}>{part}</Text>
+                )
+              )}
               {lIdx < lines.length - 1 ? '\n' : ''}
             </Text>
           )
@@ -248,121 +188,125 @@ export function CourrierPDF({
   telSociete,
   faxSociete,
   certifications,
-  signataireName,
-  signatairePoste,
-  moaPrenom,
-  moaNom,
-  moaAdresse,
-  objet,
+  destinataire,
+  lieu,
+  modeEnvoi,
   reference,
-  numeroAffaire,
-  numeroOTP,
+  objet,
   corps,
+  copies,
+  signataireNom,
+  signataireFonction,
   dateEnvoi,
-  ville,
 }: CourrierPDFProps) {
-  const dateStr = dateEnvoi
-    ? new Date(dateEnvoi).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : new Date().toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+  const dateStr = (dateEnvoi ? new Date(dateEnvoi) : new Date()).toLocaleDateString(
+    'fr-FR',
+    { year: 'numeric', month: 'long', day: 'numeric' }
+  )
+  const lieuDate = lieu?.trim() ? `${lieu.trim()}, le ${dateStr}` : `Le ${dateStr}`
 
-  const villeDate = ville ? `${ville}, le ${dateStr}` : `Le ${dateStr}`
+  const lignesDestinataire = (destinataire || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const lignesCopies = (copies || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const lignesAgence = (adresseSociete || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  const footerParts = [
+    nomSociete,
+    lignesAgence.join(', '),
+    telSociete ? `Tél. : ${telSociete}` : null,
+    faxSociete ? `Fax : ${faxSociete}` : null,
+    certifications,
+  ].filter(Boolean)
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ==================== EN-TETE 2 COLONNES ==================== */}
+        {/* ==================== EN-TÊTE : logo + agence ==================== */}
         <View style={styles.header}>
-          {/* Colonne gauche : emetteur */}
-          <View style={styles.headerLeft}>
-            {logoSociete && (
-              <Image src={logoSociete} style={styles.headerLogo} />
-            )}
-            <Text style={styles.societeName}>
-              {nomSociete || ''}
+          {logoValide(logoSociete) ? (
+            <Image src={logoSociete!} style={styles.headerLogo} />
+          ) : (
+            <Text style={styles.societeName}>{nomSociete || ''}</Text>
+          )}
+          {lignesAgence.map((l, i) => (
+            <Text key={i} style={styles.agenceLigne}>
+              {l}
             </Text>
-            {adresseSociete && (
-              <Text style={styles.societeAdresse}>{adresseSociete}</Text>
-            )}
-            {telSociete && (
-              <Text style={styles.societeTelFax}>
-                Tel. {telSociete}
-                {faxSociete ? ` — Fax. ${faxSociete}` : ''}
-              </Text>
-            )}
-            {!telSociete && faxSociete && (
-              <Text style={styles.societeTelFax}>Fax. {faxSociete}</Text>
-            )}
-            {certifications && (
-              <Text style={styles.societeCertifications}>
-                {certifications}
-              </Text>
-            )}
-          </View>
-
-          {/* Colonne droite : date + destinataire */}
-          <View style={styles.headerRight}>
-            <Text style={styles.dateVille}>{villeDate}</Text>
-            <Text style={styles.destinataireLabel}>A l&apos;attention de</Text>
-            <Text style={styles.destinataireNom}>
-              {moaPrenom || ''} {moaNom || ''}
-            </Text>
-            {moaAdresse && (
-              <Text style={styles.destinataireAdresse}>{moaAdresse}</Text>
-            )}
-          </View>
+          ))}
         </View>
 
-        {/* ==================== REFERENCES ==================== */}
-        <View style={styles.referencesBlock}>
-          {numeroAffaire && (
-            <View style={styles.refRow}>
-              <Text style={styles.refLabel}>Ref. affaire :</Text>
-              <Text style={styles.refValue}>{numeroAffaire}</Text>
-            </View>
+        {/* ==================== DESTINATAIRE (à droite) ==================== */}
+        <View style={styles.blocDroite}>
+          {lignesDestinataire.length > 0 ? (
+            lignesDestinataire.map((l, i) => (
+              <Text key={i} style={styles.destinataireLigne}>
+                {l}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.destinataireLigne} />
           )}
-          <View style={styles.refRow}>
-            <Text style={styles.refLabel}>Ref. courrier :</Text>
-            <Text style={styles.refValue}>{reference}</Text>
-          </View>
-          {numeroOTP && (
-            <View style={styles.refRow}>
-              <Text style={styles.refLabel}>N° OTP :</Text>
-              <Text style={styles.refValue}>{numeroOTP}</Text>
-            </View>
-          )}
+          <Text style={styles.lieuDate}>{lieuDate}</Text>
+          {modeEnvoi?.trim() ? (
+            <Text style={styles.modeEnvoi}>{modeEnvoi.trim()}</Text>
+          ) : null}
         </View>
 
-        {/* ==================== OBJET ==================== */}
-        <View style={styles.objetBlock}>
-          <View style={styles.objetRow}>
-            <Text style={styles.objetLabel}>Objet :</Text>
-            <Text style={styles.objetValue}>{objet}</Text>
-          </View>
+        {/* ==================== RÉF. / OBJET ==================== */}
+        <View style={styles.refBloc}>
+          {reference?.trim() ? (
+            <Text style={styles.refLigne}>Ref : {reference.trim()}</Text>
+          ) : null}
+          {objet?.trim() ? (
+            <Text style={styles.refLigne}>Objet : {objet.trim()}</Text>
+          ) : null}
         </View>
 
         {/* ==================== CORPS ==================== */}
-        <View style={styles.corpsContainer}>{renderCorps(corps)}</View>
+        <View>{renderCorps(corps)}</View>
 
         {/* ==================== SIGNATURE ==================== */}
-        {signataireName && (
-          <View style={styles.signatureBlock}>
-            <Text style={styles.signatureNom}>{signataireName}</Text>
-            {signatairePoste && (
-              <Text style={styles.signaturePoste}>{signatairePoste}</Text>
-            )}
+        {(signataireNom || signataireFonction) && (
+          <View style={styles.signatureBloc} wrap={false}>
+            {signataireNom ? (
+              <Text style={styles.signatureNom}>{signataireNom}</Text>
+            ) : null}
+            {signataireFonction ? (
+              <Text style={styles.signatureFonction}>{signataireFonction}</Text>
+            ) : null}
+          </View>
+        )}
+
+        {/* ==================== COPIES ==================== */}
+        {lignesCopies.length > 0 && (
+          <View style={styles.copiesBloc} wrap={false}>
+            <Text style={styles.copiesLabel}>Copie :</Text>
+            {lignesCopies.map((l, i) => (
+              <Text key={i} style={styles.copiesLigne}>
+                {l}
+              </Text>
+            ))}
           </View>
         )}
 
         {/* ==================== PIED DE PAGE ==================== */}
-        <PiedPagePDF nomSociete={nomSociete} projetName={`Ref. ${reference}`} />
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerTexte}>{footerParts.join(' — ')}</Text>
+          <Text
+            style={styles.footerPage}
+            render={({ pageNumber, totalPages }) =>
+              totalPages > 1 ? `Page ${pageNumber} / ${totalPages}` : ''
+            }
+          />
+        </View>
       </Page>
     </Document>
   )

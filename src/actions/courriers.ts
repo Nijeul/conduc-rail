@@ -36,8 +36,13 @@ const CreateCourrierSchema = z.object({
   reference: z.string().min(1, 'La reference est requise').max(100),
   objet: z.string().min(1, "L'objet est requis").max(500),
   type: z.enum(['lettre', 'compte-rendu', 'note', 'demande', 'autre']),
-  destinataire: z.string().max(300).optional(),
+  destinataire: z.string().max(1000).optional(),
   corps: z.string().optional(),
+  lieu: z.string().max(100).optional(),
+  modeEnvoi: z.string().max(200).optional(),
+  copies: z.string().max(2000).optional(),
+  signataireNom: z.string().max(200).optional(),
+  signataireFonction: z.string().max(200).optional(),
 })
 
 const UpdateCourrierSchema = CreateCourrierSchema.extend({
@@ -92,6 +97,11 @@ export async function createCourrier(
         type: parsed.data.type,
         destinataire: parsed.data.destinataire || null,
         corps: parsed.data.corps || '',
+        lieu: parsed.data.lieu || null,
+        modeEnvoi: parsed.data.modeEnvoi || null,
+        copies: parsed.data.copies || null,
+        signataireNom: parsed.data.signataireNom || null,
+        signataireFonction: parsed.data.signataireFonction || null,
         statut: 'brouillon',
       },
     })
@@ -133,6 +143,11 @@ export async function updateCourrier(
         type: parsed.data.type,
         destinataire: parsed.data.destinataire || null,
         corps: parsed.data.corps || '',
+        lieu: parsed.data.lieu || null,
+        modeEnvoi: parsed.data.modeEnvoi || null,
+        copies: parsed.data.copies || null,
+        signataireNom: parsed.data.signataireNom || null,
+        signataireFonction: parsed.data.signataireFonction || null,
       },
     })
 
