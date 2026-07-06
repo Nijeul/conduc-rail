@@ -131,7 +131,7 @@ export function PrixNouveauxPDF({
               <Text style={[styles.colNumero, { fontSize: 7 }]}>{pn.numero || '-'}</Text>
               <View style={styles.colIntitule}>
                 <Text style={{ fontSize: 7 }}>{pn.intitule}</Text>
-                {pn.commentaire ? (
+                {interne && pn.commentaire ? (
                   <Text style={{ fontSize: 6, color: '#5A5A5A' }}>{pn.commentaire}</Text>
                 ) : null}
               </View>
