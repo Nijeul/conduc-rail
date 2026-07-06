@@ -145,113 +145,101 @@ export function DetailEstimatifPDF({
   const societe = user?.nomSociete ?? nomSociete
   const dateStr = formatDateFR()
 
-  // Split lignes into pages of 30
-  const LINES_PER_PAGE = 30
-  const pages: LigneDE[][] = []
-  for (let i = 0; i < lignes.length; i += LINES_PER_PAGE) {
-    pages.push(lignes.slice(i, i + LINES_PER_PAGE))
-  }
-  if (pages.length === 0) pages.push([])
-
-  const totalPages = pages.length
-
+  // Pagination automatique de react-pdf : chaque ligne est insécable
+  // (wrap={false}) et le moteur place le saut de page selon la hauteur
+  // réelle des lignes (désignations longues, chapitres...).
   return (
     <Document>
-      {pages.map((pageLignes, pageIndex) => (
-        <Page key={pageIndex} size="A4" style={styles.page}>
-          {/* Header */}
-          <EntetePDF
-            titrePDF="DETAIL ESTIMATIF"
-            projetName={projetName}
-            date={dateStr}
-            logoSociete={logo}
-            nomSociete={societe}
-          />
+      <Page size="A4" style={styles.page} wrap>
+        {/* Header (première page) */}
+        <EntetePDF
+          titrePDF="DETAIL ESTIMATIF"
+          projetName={projetName}
+          date={dateStr}
+          logoSociete={logo}
+          nomSociete={societe}
+        />
 
-          {/* Table */}
-          <View style={styles.table}>
-            {/* Table header */}
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderCell, styles.colCode]}>N deg. de prix</Text>
-              <Text style={[styles.tableHeaderCell, styles.colDesignation]}>Intitule</Text>
-              <Text style={[styles.tableHeaderCell, styles.colUnite]}>Unite</Text>
-              <Text style={[styles.tableHeaderCell, styles.colQuantite]}>Qte marche</Text>
-              <Text style={[styles.tableHeaderCell, styles.colPU]}>PU HT (EUR)</Text>
-              <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total HT (EUR)</Text>
-            </View>
+        {/* Table */}
+        <View style={styles.table}>
+          {/* Table header */}
+          <View style={styles.tableHeader} wrap={false}>
+            <Text style={[styles.tableHeaderCell, styles.colCode]}>N deg. de prix</Text>
+            <Text style={[styles.tableHeaderCell, styles.colDesignation]}>Intitule</Text>
+            <Text style={[styles.tableHeaderCell, styles.colUnite]}>Unite</Text>
+            <Text style={[styles.tableHeaderCell, styles.colQuantite]}>Qte marche</Text>
+            <Text style={[styles.tableHeaderCell, styles.colPU]}>PU HT (EUR)</Text>
+            <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total HT (EUR)</Text>
+          </View>
 
-            {/* Table rows */}
-            {pageLignes.map((ligne, i) => {
-              const globalIndex = pageIndex * LINES_PER_PAGE + i
-              const rowTotal = ligne.quantite * ligne.prixUnitaire
-              if (ligne.estChapitre) {
-                const profondeur = (ligne.code.match(/\./g) || []).length
-                return (
-                  <View
-                    key={ligne.id}
-                    style={[styles.tableRow, { backgroundColor: '#E5EFF8' }]}
-                  >
-                    <Text style={[styles.tableCell, styles.colCode, { fontFamily: 'Helvetica-Bold', color: '#003370' }]}>
-                      {ligne.code}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.tableCell,
-                        { flex: 1, fontFamily: 'Helvetica-Bold', color: '#003370', paddingLeft: 4 + profondeur * 10 },
-                      ]}
-                    >
-                      {ligne.designation}
-                    </Text>
-                  </View>
-                )
-              }
+          {/* Table rows */}
+          {lignes.map((ligne, i) => {
+            const rowTotal = ligne.quantite * ligne.prixUnitaire
+            if (ligne.estChapitre) {
+              const profondeur = (ligne.code.match(/\./g) || []).length
               return (
                 <View
                   key={ligne.id}
-                  style={[
-                    styles.tableRow,
-                    globalIndex % 2 === 0
-                      ? styles.tableRowEven
-                      : styles.tableRowOdd,
-                  ]}
+                  style={[styles.tableRow, { backgroundColor: '#E5EFF8' }]}
+                  wrap={false}
                 >
-                  <Text style={[styles.tableCell, styles.colCode]}>
+                  <Text style={[styles.tableCell, styles.colCode, { fontFamily: 'Helvetica-Bold', color: '#003370' }]}>
                     {ligne.code}
                   </Text>
-                  <Text style={[styles.tableCell, styles.colDesignation]}>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      { flex: 1, fontFamily: 'Helvetica-Bold', color: '#003370', paddingLeft: 4 + profondeur * 10 },
+                    ]}
+                  >
                     {ligne.designation}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.colUnite]}>
-                    {ligne.unite}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.colQuantite]}>
-                    {formatNumber(ligne.quantite, 3)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.colPU]}>
-                    {formatNumber(ligne.prixUnitaire, 2)}
-                  </Text>
-                  <Text style={[styles.tableCell, styles.colTotal]}>
-                    {formatNumber(rowTotal, 2)} EUR
                   </Text>
                 </View>
               )
-            })}
-          </View>
+            }
+            return (
+              <View
+                key={ligne.id}
+                style={[
+                  styles.tableRow,
+                  i % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+                ]}
+                wrap={false}
+              >
+                <Text style={[styles.tableCell, styles.colCode]}>
+                  {ligne.code}
+                </Text>
+                <Text style={[styles.tableCell, styles.colDesignation]}>
+                  {ligne.designation}
+                </Text>
+                <Text style={[styles.tableCell, styles.colUnite]}>
+                  {ligne.unite}
+                </Text>
+                <Text style={[styles.tableCell, styles.colQuantite]}>
+                  {formatNumber(ligne.quantite, 3)}
+                </Text>
+                <Text style={[styles.tableCell, styles.colPU]}>
+                  {formatNumber(ligne.prixUnitaire, 2)}
+                </Text>
+                <Text style={[styles.tableCell, styles.colTotal]}>
+                  {formatNumber(rowTotal, 2)} EUR
+                </Text>
+              </View>
+            )
+          })}
+        </View>
 
-          {/* Total on last page only */}
-          {pageIndex === totalPages - 1 && (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total HT :</Text>
-              <Text style={styles.totalValue}>
-                {formatNumber(totalHT, 2)} EUR
-              </Text>
-            </View>
-          )}
+        {/* Total */}
+        <View style={styles.totalRow} wrap={false}>
+          <Text style={styles.totalLabel}>Total HT :</Text>
+          <Text style={styles.totalValue}>
+            {formatNumber(totalHT, 2)} EUR
+          </Text>
+        </View>
 
-          {/* Page footer */}
-          <PiedPagePDF nomSociete={societe} projetName={projetName} />
-        </Page>
-      ))}
+        {/* Page footer (fixe, toutes les pages) */}
+        <PiedPagePDF nomSociete={societe} projetName={projetName} />
+      </Page>
     </Document>
   )
 }
