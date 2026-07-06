@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getMatrice } from "@/actions/matrice";
+import { getProjet } from "@/actions/projets";
 import { MatriceDetailClient } from "./MatriceDetailClient";
 
 interface Props {
@@ -12,8 +13,12 @@ export default async function MatriceDetailPage({ params }: Props) {
   if (!session?.user?.id) redirect("/login");
 
   let matrice;
+  let projet;
   try {
-    matrice = await getMatrice(params.id, params.matriceId);
+    [matrice, projet] = await Promise.all([
+      getMatrice(params.id, params.matriceId),
+      getProjet(params.id),
+    ]);
   } catch {
     notFound();
   }
@@ -22,6 +27,7 @@ export default async function MatriceDetailPage({ params }: Props) {
     <div className="p-6">
       <MatriceDetailClient
         projetId={params.id}
+        projetName={projet?.name || "Projet"}
         matrice={matrice}
       />
     </div>

@@ -767,3 +767,88 @@ export async function dupliquerMatrice(
     };
   }
 }
+
+// ──────────────────────────────────────────────
+// Bid Comp (grille de comparaison des offres)
+// ──────────────────────────────────────────────
+
+const LigneBidCompSchema = z.object({
+  id: z.string().min(1).max(100),
+  libelle: z.string().max(300),
+  besoin: z.string().max(2000),
+  valeurs: z.record(z.string().max(100), z.string().max(2000)),
+});
+
+const BidCompSchema = z.object({
+  sections: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        titre: z.string().max(200),
+        type: z.enum(["texte", "cout"]),
+        lignes: z.array(LigneBidCompSchema).max(100),
+      })
+    )
+    .max(30),
+  conclusions: z.string().max(5000),
+  pourquoiPasTroisFournisseurs: z.string().max(2000),
+  signatureSourcing: z.string().max(300),
+  signatureProjet: z.string().max(300),
+});
+
+/**
+ * Sauvegarde la grille Bid Comp et synchronise le montant d'offre
+ * de chaque fournisseur avec le total calculé des lignes de coûts.
+ */
+export async function saveBidComp(
+  projetId: string,
+  matriceId: string,
+  data: unknown
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser();
+    await checkMembership(projetId, user.id);
+
+    const matrice = await prisma.matriceDecisionnelle.findFirst({
+      where: { id: matriceId, projetId },
+      include: { fournisseurs: true },
+    });
+    if (!matrice) throw new Error("Matrice introuvable");
+
+    const parsed = BidCompSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: "Grille Bid Comp invalide" };
+    }
+
+    // Total (€) par fournisseur = somme des cellules des sections "cout"
+    const totaux = new Map<string, number>();
+    for (const section of parsed.data.sections) {
+      if (section.type !== "cout") continue;
+      for (const l of section.lignes) {
+        for (const [fid, valeur] of Object.entries(l.valeurs)) {
+          const n = parseFloat(valeur.replace(/[€\s]/g, "").replace(",", "."));
+          if (!isNaN(n)) totaux.set(fid, (totaux.get(fid) ?? 0) + n);
+        }
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.matriceDecisionnelle.update({
+        where: { id: matriceId },
+        data: { bidComp: parsed.data },
+      }),
+      ...matrice.fournisseurs.map((f) =>
+        prisma.fournisseurCandidat.update({
+          where: { id: f.id },
+          data: { montantOffre: totaux.get(f.id) ?? 0 },
+        })
+      ),
+    ]);
+
+    // Pas de revalidatePath : appelé en auto-save
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("saveBidComp error:", error);
+    return { success: false, error: "Erreur lors de la sauvegarde de la grille" };
+  }
+}

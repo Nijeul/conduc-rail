@@ -403,6 +403,7 @@ model MatriceDecisionnelle {
   devise          String   @default("EUR")
   seuilGo         Float    @default(60)
   statut          String   @default("brouillon")
+  bidComp         Json     @default("{}")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   projet          Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)

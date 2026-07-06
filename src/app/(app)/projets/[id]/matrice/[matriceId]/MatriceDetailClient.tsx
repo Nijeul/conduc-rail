@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BidCompTable } from "@/components/modules/matrice/BidCompTable";
+import { BidCompGrid } from "@/components/modules/matrice/BidCompGrid";
 import { SelectionRMSTable } from "@/components/modules/matrice/SelectionRMSTable";
 import { MatriceDashboard } from "@/components/modules/matrice/MatriceDashboard";
 import { ArrowLeft } from "lucide-react";
@@ -59,6 +59,7 @@ type Matrice = {
   devise: string;
   seuilGo: number;
   statut: string;
+  bidComp: unknown;
   createdAt: Date;
   updatedAt: Date;
   fournisseurs: Fournisseur[];
@@ -67,11 +68,13 @@ type Matrice = {
 
 interface MatriceDetailClientProps {
   projetId: string;
+  projetName: string;
   matrice: Matrice;
 }
 
 export function MatriceDetailClient({
   projetId,
+  projetName,
   matrice,
 }: MatriceDetailClientProps) {
   return (
@@ -113,19 +116,24 @@ export function MatriceDetailClient({
         </TabsList>
 
         <TabsContent value="bidcomp" className="mt-4">
-          <BidCompTable
+          <BidCompGrid
             projetId={projetId}
-            matriceId={matrice.id}
+            projetName={projetName}
             matrice={{
+              id: matrice.id,
+              titre: matrice.titre,
               acheteur: matrice.acheteur,
               site: matrice.site,
               familleAchats: matrice.familleAchats,
               budgetTheorique: matrice.budgetTheorique,
               devise: matrice.devise,
-              seuilGo: matrice.seuilGo,
             }}
-            criteres={matrice.criteres}
-            fournisseurs={matrice.fournisseurs}
+            fournisseurs={matrice.fournisseurs.map((f) => ({
+              id: f.id,
+              nom: f.nom,
+              decision: f.decision,
+            }))}
+            bidCompInitial={matrice.bidComp}
           />
         </TabsContent>
 
