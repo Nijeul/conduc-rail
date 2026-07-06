@@ -53,6 +53,8 @@ model Projet {
   lignesARFManuelles LigneARFManuelle[]
   ocps              OCP[]
   matrices          MatriceDecisionnelle[]
+  sousTraitants     SousTraitant[]
+  situations        Situation[]
 }
 
 model ProjetMember {
@@ -104,6 +106,7 @@ model LigneDE {
   createdAt    DateTime @default(now())
   projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
   avancements  LigneAvancement[]
+  lignesSituation LigneSituation[]
   @@index([projetId])
 }
 
@@ -450,4 +453,91 @@ model NotationCritere {
   critere                     Critere  @relation(fields: [critereId], references: [id], onDelete: Cascade)
   fournisseur                 FournisseurCandidat @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
   @@unique([critereId, fournisseurId])
+}
+
+// ---------------------------------------------------------------------------
+// Module Sous-Traitants (poste contractuel + poste financier)
+// ---------------------------------------------------------------------------
+
+model SousTraitant {
+  id             String   @id @default(cuid())
+  projetId       String
+  nom            String
+  contact        String?
+  telephone      String?
+  email          String?
+  paiementDirect Boolean  @default(false)
+  montantMarche  Float    @default(0)
+  montantAS      Float    @default(0)
+  commentaire    String?
+  ordre          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  projet         Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  avenants       AvenantSousTraitant[]
+  facturations   FacturationSousTraitant[]
+
+  @@index([projetId])
+}
+
+model AvenantSousTraitant {
+  id             String       @id @default(cuid())
+  sousTraitantId String
+  numero         Int          @default(1)
+  libelle        String?
+  montant        Float        @default(0)
+  date           DateTime?
+  createdAt      DateTime     @default(now())
+  sousTraitant   SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Cascade)
+
+  @@index([sousTraitantId])
+}
+
+model FacturationSousTraitant {
+  id             String       @id @default(cuid())
+  sousTraitantId String
+  annee          Int
+  mois           Int
+  montant        Float        @default(0)
+  commentaire    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  sousTraitant   SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Cascade)
+
+  @@unique([sousTraitantId, annee, mois])
+}
+
+// ---------------------------------------------------------------------------
+// Situations de travaux persistantes (creation / modification / consultation)
+// ---------------------------------------------------------------------------
+
+model Situation {
+  id          String   @id @default(cuid())
+  projetId    String
+  numero      Int
+  libelle     String?
+  annee       Int
+  mois        Int
+  statut      String   @default("brouillon") // brouillon | validee
+  commentaire String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  projet      Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  lignes      LigneSituation[]
+
+  @@unique([projetId, numero])
+  @@index([projetId])
+}
+
+model LigneSituation {
+  id           String    @id @default(cuid())
+  situationId  String
+  ligneDEId    String
+  quantite     Float     @default(0)
+  prixUnitaire Float     @default(0) // snapshot du PU au moment de la saisie
+  situation    Situation @relation(fields: [situationId], references: [id], onDelete: Cascade)
+  ligneDE      LigneDE   @relation(fields: [ligneDEId], references: [id], onDelete: Cascade)
+
+  @@unique([situationId, ligneDEId])
+  @@index([situationId])
 }

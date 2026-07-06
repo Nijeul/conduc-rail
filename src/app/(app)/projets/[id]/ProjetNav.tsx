@@ -14,20 +14,22 @@ const ONGLETS = [
   {
     id: 'contractuelle',
     label: 'Gestion Contractuelle',
-    routes: ['/infos', '/courriers', '/suivi/journal'],
+    routes: ['/infos', '/courriers', '/sous-traitants', '/suivi/journal'],
     sousMenus: [
       { label: 'Infos', href: 'infos' },
       { label: 'Courriers', href: 'courriers' },
+      { label: 'Sous-traitants', href: 'sous-traitants' },
       { label: 'Journal', href: 'suivi/journal' },
     ],
   },
   {
     id: 'financiere',
     label: 'Gestion Financière',
-    routes: ['/detail-estimatif', '/suivi/situation', '/suivi/arf', '/matrice'],
+    routes: ['/detail-estimatif', '/suivi/situation', '/suivi/sous-traitants', '/suivi/arf', '/matrice'],
     sousMenus: [
       { label: 'Détail Estimatif', href: 'detail-estimatif' },
-      { label: 'Situation', href: 'suivi/situation' },
+      { label: 'Situations', href: 'suivi/situations' },
+      { label: 'Suivi ST', href: 'suivi/sous-traitants' },
       { label: 'Suivi ARF', href: 'suivi/arf' },
       { label: 'Matrice', href: 'matrice' },
     ],

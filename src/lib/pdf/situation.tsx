@@ -1,11 +1,4 @@
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-} from '@react-pdf/renderer'
-import type { SituationResult } from '@/actions/situation'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { EntetePDF, PiedPagePDF } from './pdf-entete'
 
 const styles = StyleSheet.create({
@@ -15,25 +8,6 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 50,
     paddingHorizontal: 30,
-    orientation: 'landscape',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#004489',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#004489',
-  },
-  headerSub: {
-    fontSize: 10,
-    color: '#5A5A5A',
   },
   tableHeader: {
     flexDirection: 'row',
@@ -43,8 +17,8 @@ const styles = StyleSheet.create({
   },
   tableHeaderText: {
     color: 'white',
-    fontWeight: 'bold',
-    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 7,
   },
   tableRow: {
     flexDirection: 'row',
@@ -56,67 +30,35 @@ const styles = StyleSheet.create({
   rowAlt: {
     backgroundColor: '#F0F0F0',
   },
-  colCode: { width: 60 },
+  colCode: { width: 50 },
   colDesignation: { flex: 1 },
-  colUnite: { width: 40, textAlign: 'center' },
+  colUnite: { width: 45, textAlign: 'center' },
   colPU: { width: 60, textAlign: 'right' },
-  colQteMarche: { width: 60, textAlign: 'right' },
-  colQteReal: { width: 60, textAlign: 'right' },
+  colQte: { width: 55, textAlign: 'right' },
   colMontant: { width: 70, textAlign: 'right' },
-  colAvancement: { width: 65, textAlign: 'right' },
-  footerRow: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderTopWidth: 2,
-    borderTopColor: '#004489',
-    backgroundColor: '#003370',
-    color: '#FFFFFF',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 30,
-    right: 30,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    fontSize: 8,
-    color: '#B5ABA1',
-    borderTopWidth: 0.5,
-    borderTopColor: '#DCDCDC',
-    paddingTop: 5,
-  },
+  colAvancement: { width: 55, textAlign: 'right' },
 })
 
-// Formatage compatible react-pdf (pas d'espaces insécables)
 function formatFR(n: number, dec = 2): string {
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: dec,
-    maximumFractionDigits: dec,
-  }).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
+  return n
+    .toLocaleString('fr-FR', {
+      minimumFractionDigits: dec,
+      maximumFractionDigits: dec,
+    })
+    .replace(/ /g, ' ')
+    .replace(/ /g, ' ')
 }
 
 function formatMontantFR(n: number): string {
-  return n.toLocaleString('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).replace(/\u00A0/g, ' ').replace(/\u202F/g, ' ')
-}
-
-function formatDateDisplay(dateStr: string): string {
-  if (!dateStr) return '-'
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+  return n
+    .toLocaleString('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     })
-  } catch {
-    return dateStr
-  }
+    .replace(/ /g, ' ')
+    .replace(/ /g, ' ')
 }
 
 function getAvancementBg(avancement: number): string {
@@ -133,108 +75,169 @@ function getAvancementColor(avancement: number): string {
   return '#E20025'
 }
 
-interface Props {
-  projetName: string
-  data: SituationResult
-  userLogo?: string
-  nomSociete?: string
-  user?: { logoSociete?: string | null; nomSociete?: string | null }
+const MOIS_FR = [
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+]
+
+export interface SituationPDFMeta {
+  numero: number
+  libelle: string | null
+  annee: number
+  mois: number
+  statut: string
 }
 
-export function SituationPDF({ projetName, data, userLogo, nomSociete, user }: Props) {
-  const logo = user?.logoSociete ?? userLogo
-  const societe = user?.nomSociete ?? nomSociete
+export interface SituationPDFLigne {
+  ligneDEId: string
+  code: string
+  designation: string
+  unite: string
+  prixUnitaire: number
+  quantiteMarche: number
+  quantiteAnterieure: number
+  quantite: number
+  montantSituation: number
+  quantiteCumulee: number
+  avancement: number
+}
+
+export interface SituationPDFData {
+  lignes: SituationPDFLigne[]
+  totalSituation: number
+  totalAnterieur: number
+  totalCumule: number
+  totalMarche: number
+  avancementGlobal: number
+}
+
+interface Props {
+  projetName: string
+  meta: SituationPDFMeta
+  data: SituationPDFData
+  userLogo?: string
+  nomSociete?: string
+}
+
+export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: Props) {
+  const sousTitre = [
+    `Situation n°${meta.numero}`,
+    `${MOIS_FR[meta.mois - 1] ?? ''} ${meta.annee}`,
+    meta.libelle || undefined,
+    meta.statut === 'validee' ? 'Validée' : 'Brouillon',
+  ]
+    .filter(Boolean)
+    .join(' — ')
 
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
-        {/* Header */}
         <EntetePDF
           titrePDF="SITUATION DE TRAVAUX"
           projetName={projetName}
-          date={`Du ${formatDateDisplay(data.dateDebut)} au ${formatDateDisplay(data.dateFin)}`}
-          logoSociete={logo}
-          nomSociete={societe}
+          date={sousTitre}
+          logoSociete={userLogo}
+          nomSociete={nomSociete}
         />
 
-        {/* Table Header */}
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, styles.colCode]}>N° prix</Text>
           <Text style={[styles.tableHeaderText, styles.colDesignation]}>Intitulé</Text>
           <Text style={[styles.tableHeaderText, styles.colUnite]}>Unité</Text>
           <Text style={[styles.tableHeaderText, styles.colPU]}>PU HT</Text>
-          <Text style={[styles.tableHeaderText, styles.colQteMarche]}>Qté marché</Text>
-          <Text style={[styles.tableHeaderText, styles.colQteReal]}>Qté réalisée</Text>
-          <Text style={[styles.tableHeaderText, styles.colMontant]}>Montant réalisé</Text>
+          <Text style={[styles.tableHeaderText, styles.colQte]}>Qté marché</Text>
+          <Text style={[styles.tableHeaderText, styles.colQte]}>Qté antér.</Text>
+          <Text style={[styles.tableHeaderText, styles.colQte]}>Qté situation</Text>
+          <Text style={[styles.tableHeaderText, styles.colMontant]}>Montant situation</Text>
+          <Text style={[styles.tableHeaderText, styles.colQte]}>Qté cumulée</Text>
           <Text style={[styles.tableHeaderText, styles.colAvancement]}>Avmt. %</Text>
         </View>
 
-        {/* Table Body */}
         {data.lignes.map((l, i) => (
           <View
-            key={l.id}
-            style={[
-              styles.tableRow,
-              i % 2 !== 0 ? styles.rowAlt : {},
-            ]}
+            key={l.ligneDEId}
+            style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}
+            wrap={false}
           >
             <Text style={[styles.colCode, { fontSize: 7 }]}>{l.code}</Text>
             <Text style={[styles.colDesignation, { fontSize: 7 }]}>{l.designation}</Text>
-            <Text style={styles.colUnite}>{l.unite}</Text>
-            <Text style={styles.colPU}>{formatMontantFR(l.prixUnitaire)}</Text>
-            <Text style={styles.colQteMarche}>{formatFR(l.quantiteMarche)}</Text>
-            <Text style={styles.colQteReal}>{formatFR(l.quantiteRealisee)}</Text>
-            <Text style={[styles.colMontant, { fontWeight: 'bold' }]}>{formatMontantFR(l.montantRealise)}</Text>
+            <Text style={[styles.colUnite, { fontSize: 7 }]}>{l.unite}</Text>
+            <Text style={[styles.colPU, { fontSize: 7 }]}>
+              {formatMontantFR(l.prixUnitaire)}
+            </Text>
+            <Text style={[styles.colQte, { fontSize: 7 }]}>{formatFR(l.quantiteMarche)}</Text>
+            <Text style={[styles.colQte, { fontSize: 7, color: '#5A5A5A' }]}>
+              {formatFR(l.quantiteAnterieure)}
+            </Text>
+            <Text style={[styles.colQte, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
+              {formatFR(l.quantite)}
+            </Text>
+            <Text style={[styles.colMontant, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
+              {formatMontantFR(l.montantSituation)}
+            </Text>
+            <Text style={[styles.colQte, { fontSize: 7 }]}>{formatFR(l.quantiteCumulee)}</Text>
             <View
               style={[
                 styles.colAvancement,
                 {
                   backgroundColor: getAvancementBg(l.avancement),
                   borderRadius: 2,
-                  paddingVertical: 2,
-                  paddingHorizontal: 4,
+                  paddingVertical: 1,
+                  paddingHorizontal: 3,
                 },
               ]}
             >
-              <Text style={{
-                textAlign: 'right',
-                color: getAvancementColor(l.avancement),
-                fontWeight: 'bold',
-                fontSize: 8,
-              }}>
+              <Text
+                style={{
+                  textAlign: 'right',
+                  color: getAvancementColor(l.avancement),
+                  fontFamily: 'Helvetica-Bold',
+                  fontSize: 7,
+                }}
+              >
                 {formatFR(l.avancement, 1)} %
               </Text>
             </View>
           </View>
         ))}
 
-        {/* Footer total row */}
-        <View style={{
-          flexDirection: 'row',
-          marginTop: 8,
-          borderRadius: 3,
-          overflow: 'hidden',
-        }}>
-          <View style={{
-            flex: 1,
+        {/* Totaux */}
+        <View
+          style={{
+            marginTop: 8,
+            borderRadius: 3,
+            overflow: 'hidden',
             backgroundColor: '#003370',
             paddingVertical: 8,
             paddingHorizontal: 12,
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-          }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 9, fontWeight: 'bold' }}>
-              MONTANT RÉALISÉ HT
-            </Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' }}>
-              {formatMontantFR(data.totalMontantRealise)}
-            </Text>
-          </View>
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 8 }}>
+            Cumul antérieur : {formatMontantFR(data.totalAnterieur)}
+          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'Helvetica-Bold' }}>
+            SITUATION HT : {formatMontantFR(data.totalSituation)}
+          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 8 }}>
+            Cumul : {formatMontantFR(data.totalCumule)} (
+            {formatFR(data.avancementGlobal, 1)} % du marché)
+          </Text>
         </View>
 
-        {/* Page footer */}
-        <PiedPagePDF nomSociete={societe} projetName={projetName} />
+        <PiedPagePDF nomSociete={nomSociete} projetName={projetName} />
       </Page>
     </Document>
   )

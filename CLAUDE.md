@@ -159,8 +159,8 @@ conduc-rail/
 ## NAVIGATION DU PROJET (3 onglets)
 
 ```
-GESTION CONTRACTUELLE    → Infos · Courriers · Journal
-GESTION FINANCIÈRE       → Détail Estimatif · Situation · Suivi ARF
+GESTION CONTRACTUELLE    → Infos · Courriers · Sous-traitants · Journal
+GESTION FINANCIÈRE       → Détail Estimatif · Situations · Suivi ST · Suivi ARF
 GESTION DE CHANTIER      → Tableau de Service · Rapports · Composition TTx · SA
 ```
 
@@ -310,6 +310,8 @@ TableauService · LigneDE · RapportJournalier
 SoudureAluminothermique · CompositionTTx
 MaterielTTx · LigneFicheEcart
 EvenementChantier · FichierEvenement · CourrierChantier
+SousTraitant · AvenantSousTraitant · FacturationSousTraitant
+Situation · LigneSituation
 ```
 
 Champs ajoutés à `User` : `logoSociete · nomSociete · adresseSociete · telSociete · faxSociete · certifications`
