@@ -334,7 +334,21 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
             </tr>
           </thead>
           <tbody>
-            {calculs.lignes.map((l, i) => (
+            {calculs.lignes.map((l, i) =>
+              l.estChapitre ? (
+                <tr key={l.ligneDEId} className="border-b border-[#DCDCDC] bg-[#E5EFF8]">
+                  <td className="px-2 py-1.5 font-mono text-[12px] font-bold text-[#003370]">
+                    {l.code}
+                  </td>
+                  <td
+                    colSpan={9}
+                    className="px-2 py-1.5 text-[12px] font-bold text-[#003370]"
+                    style={{ paddingLeft: 8 + (l.code.match(/\./g) || []).length * 14 }}
+                  >
+                    {l.designation}
+                  </td>
+                </tr>
+              ) : (
               <tr
                 key={l.ligneDEId}
                 className={`border-b border-[#DCDCDC] ${
@@ -377,7 +391,8 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
                   {formatNombreFR(l.avancement, 1)} %
                 </td>
               </tr>
-            ))}
+              )
+            )}
             {calculs.lignes.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-3 py-8 text-center text-gray-400">

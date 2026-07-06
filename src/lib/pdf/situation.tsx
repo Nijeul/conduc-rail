@@ -79,6 +79,7 @@ export interface SituationPDFMeta {
 
 export interface SituationPDFLigne {
   ligneDEId: string
+  estChapitre?: boolean
   code: string
   designation: string
   unite: string
@@ -142,7 +143,29 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
           <Text style={[styles.tableHeaderText, styles.colAvancement]}>Avmt. %</Text>
         </View>
 
-        {data.lignes.map((l, i) => (
+        {data.lignes.map((l, i) =>
+          l.estChapitre ? (
+            <View
+              key={l.ligneDEId}
+              style={[styles.tableRow, { backgroundColor: '#E5EFF8' }]}
+              wrap={false}
+            >
+              <Text style={[styles.colCode, { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#003370' }]}>
+                {l.code}
+              </Text>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 7,
+                  fontFamily: 'Helvetica-Bold',
+                  color: '#003370',
+                  paddingLeft: 4 + (l.code.match(/\./g) || []).length * 10,
+                }}
+              >
+                {l.designation}
+              </Text>
+            </View>
+          ) : (
           <View
             key={l.ligneDEId}
             style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}
@@ -188,7 +211,8 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
               </Text>
             </View>
           </View>
-        ))}
+          )
+        )}
 
         {/* Totaux */}
         <View

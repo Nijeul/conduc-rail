@@ -184,6 +184,27 @@ export function DetailEstimatifPDF({
             {pageLignes.map((ligne, i) => {
               const globalIndex = pageIndex * LINES_PER_PAGE + i
               const rowTotal = ligne.quantite * ligne.prixUnitaire
+              if (ligne.estChapitre) {
+                const profondeur = (ligne.code.match(/\./g) || []).length
+                return (
+                  <View
+                    key={ligne.id}
+                    style={[styles.tableRow, { backgroundColor: '#E5EFF8' }]}
+                  >
+                    <Text style={[styles.tableCell, styles.colCode, { fontFamily: 'Helvetica-Bold', color: '#003370' }]}>
+                      {ligne.code}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.tableCell,
+                        { flex: 1, fontFamily: 'Helvetica-Bold', color: '#003370', paddingLeft: 4 + profondeur * 10 },
+                      ]}
+                    >
+                      {ligne.designation}
+                    </Text>
+                  </View>
+                )
+              }
               return (
                 <View
                   key={ligne.id}

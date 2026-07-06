@@ -45,6 +45,7 @@ export interface SituationResume {
 
 export interface SituationLigneDetail {
   ligneDEId: string
+  estChapitre: boolean
   code: string
   designation: string
   unite: string
@@ -174,6 +175,7 @@ export async function getSituationDetail(
       const ant = anterieurParLigne.get(l.id) || { qte: 0, montant: 0 }
       return {
         ligneDEId: l.id,
+        estChapitre: l.estChapitre,
         code: l.code,
         designation: l.designation,
         unite: l.unite,
@@ -276,9 +278,11 @@ export async function saveLignesSituation(
       return { success: false, error: 'Situation validee : repassez-la en brouillon pour la modifier' }
     }
 
-    // Snapshot des PU actuels du Détail Estimatif
+    // Snapshot des PU actuels du Détail Estimatif (les chapitres sont exclus)
     const lignesDE = await prisma.ligneDE.findMany({ where: { projetId } })
-    const puParLigne = new Map(lignesDE.map((l) => [l.id, l.prixUnitaire]))
+    const puParLigne = new Map(
+      lignesDE.filter((l) => !l.estChapitre).map((l) => [l.id, l.prixUnitaire])
+    )
 
     await prisma.$transaction(
       parsed.data.lignes

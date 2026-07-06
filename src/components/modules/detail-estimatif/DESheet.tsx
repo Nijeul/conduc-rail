@@ -192,6 +192,41 @@ function SortableRow({
     )
   }
 
+  const profondeur = (ligne.code.match(/\./g) || []).length
+
+  if (ligne.estChapitre) {
+    return (
+      <tr ref={setNodeRef} style={{ ...style, backgroundColor: isDragging ? '#D5E5F5' : '#E5EFF8' }}>
+        <td className="px-1 py-1 w-8">
+          <button
+            className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        </td>
+        <td className="px-1 py-1 w-[100px] font-bold" style={{ color: '#003370' }}>
+          {renderCell('code', ligne.code)}
+        </td>
+        <td className="px-1 py-1 font-bold" colSpan={4} style={{ color: '#003370', paddingLeft: 4 + profondeur * 14 }}>
+          {renderCell('designation', ligne.designation)}
+        </td>
+        <td className="px-1 py-1 w-[120px]" />
+        <td className="px-1 py-1 w-8">
+          <button
+            onClick={() => onDelete(ligne.id)}
+            disabled={deletingId === ligne.id}
+            className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors disabled:opacity-50"
+            title="Supprimer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </td>
+      </tr>
+    )
+  }
+
   return (
     <tr ref={setNodeRef} style={style}>
       <td className="px-1 py-1 w-8">
@@ -206,7 +241,7 @@ function SortableRow({
       <td className="px-1 py-1 w-[100px]">
         {renderCell('code', ligne.code)}
       </td>
-      <td className="px-1 py-1">
+      <td className="px-1 py-1" style={{ paddingLeft: 4 + profondeur * 14 }}>
         {renderCell('designation', ligne.designation)}
       </td>
       <td className="px-1 py-1 w-[70px]">
@@ -360,7 +395,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
     }
   }
 
-  const handleAddLine = () => {
+  const handleAddLine = (estChapitre = false) => {
     startTransition(async () => {
       const result = await createLigneDE(projetId, {
         code: '',
@@ -368,6 +403,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
         unite: '',
         quantite: 0,
         prixUnitaire: 0,
+        estChapitre,
       })
       if (result.success) {
         setLignes((prev) => [
@@ -380,6 +416,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
             unite: '',
             quantite: 0,
             prixUnitaire: 0,
+            estChapitre,
             ordre: prev.length,
             createdAt: new Date(),
           },
@@ -553,13 +590,22 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
           {/* Footer */}
           <div className="shrink-0 border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#DCDCDC' }}>
             <button
-              onClick={handleAddLine}
+              onClick={() => handleAddLine(false)}
               disabled={isPending}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: '#004489' }}
             >
               <Plus className="h-4 w-4" />
               Ligne
+            </button>
+            <button
+              onClick={() => handleAddLine(true)}
+              disabled={isPending}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-90 disabled:opacity-50 ml-2"
+              style={{ backgroundColor: '#E5EFF8', color: '#003370', border: '1px solid #004489' }}
+            >
+              <Plus className="h-4 w-4" />
+              Chapitre
             </button>
             <div className="text-sm font-bold" style={{ color: '#004489' }}>
               Total HT : {formatNombreFR(totalHT, 2)} &euro;

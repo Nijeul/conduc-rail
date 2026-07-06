@@ -12,6 +12,7 @@ const LigneDESchema = z.object({
   unite: z.string().max(20).default(''),
   quantite: z.number().min(0).default(0),
   prixUnitaire: z.number().min(0).default(0),
+  estChapitre: z.boolean().default(false),
 })
 
 const UpdateLigneDESchema = z.object({
@@ -21,6 +22,7 @@ const UpdateLigneDESchema = z.object({
   unite: z.string().max(20).optional(),
   quantite: z.number().min(0).optional(),
   prixUnitaire: z.number().min(0).optional(),
+  estChapitre: z.boolean().optional(),
   ordre: z.number().int().min(0).optional(),
 })
 
@@ -84,6 +86,7 @@ export async function createLigneDE(
         unite: parsed.data.unite,
         quantite: parsed.data.quantite,
         prixUnitaire: parsed.data.prixUnitaire,
+        estChapitre: parsed.data.estChapitre,
         ordre: nextOrdre,
       },
     })

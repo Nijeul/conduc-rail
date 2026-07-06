@@ -104,6 +104,7 @@ model LigneDE {
   unite        String
   quantite     Float
   prixUnitaire Float
+  estChapitre  Boolean  @default(false)
   ordre        Int      @default(0)
   createdAt    DateTime @default(now())
   projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
