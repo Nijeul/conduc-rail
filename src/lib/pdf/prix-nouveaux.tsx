@@ -65,14 +65,26 @@ function formatDate(d: Date | null): string {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
+export type ModeExportPN = 'interne' | 'client'
+
 interface Props {
   projetName: string
   prixNouveaux: PrixNouveau[]
+  mode?: ModeExportPN
   userLogo?: string
   nomSociete?: string
 }
 
-export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete }: Props) {
+// Le mode "client" masque les données internes : potentiel d'acceptation,
+// montant pondéré et déboursés réels.
+export function PrixNouveauxPDF({
+  projetName,
+  prixNouveaux,
+  mode = 'interne',
+  userLogo,
+  nomSociete,
+}: Props) {
+  const interne = mode !== 'client'
   const totalPresente = prixNouveaux.reduce((s, pn) => s + pn.montantPresente, 0)
   const totalAccepte = prixNouveaux.reduce((s, pn) => s + (pn.montantAccepte ?? 0), 0)
   const totalDebourse = prixNouveaux.reduce((s, pn) => s + (pn.debourseReel ?? 0), 0)
@@ -82,7 +94,7 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         <EntetePDF
-          titrePDF="SUIVI DES PRIX NOUVEAUX"
+          titrePDF={interne ? 'SUIVI DES PRIX NOUVEAUX' : 'ÉTAT DES PRIX NOUVEAUX'}
           projetName={projetName}
           date={new Date().toLocaleDateString('fr-FR')}
           logoSociete={userLogo}
@@ -94,9 +106,13 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
           <Text style={[styles.tableHeaderText, styles.colIntitule]}>Intitulé</Text>
           <Text style={[styles.tableHeaderText, styles.colDate]}>Date devis</Text>
           <Text style={[styles.tableHeaderText, styles.colMontant]}>Montant présenté</Text>
-          <Text style={[styles.tableHeaderText, styles.colPotentiel]}>Potentiel accept.</Text>
+          {interne && (
+            <Text style={[styles.tableHeaderText, styles.colPotentiel]}>Potentiel accept.</Text>
+          )}
           <Text style={[styles.tableHeaderText, styles.colMontant]}>Montant accepté</Text>
-          <Text style={[styles.tableHeaderText, styles.colMontant]}>Déboursé réel</Text>
+          {interne && (
+            <Text style={[styles.tableHeaderText, styles.colMontant]}>Déboursé réel</Text>
+          )}
           <Text style={[styles.tableHeaderText, styles.colOS]}>N° OS</Text>
           <Text style={[styles.tableHeaderText, styles.colDate]}>Date OS</Text>
           <Text style={[styles.tableHeaderText, styles.colDelai]}>Délai suppl.</Text>
@@ -123,28 +139,32 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
               <Text style={[styles.colMontant, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
                 {pdfMontantFR(pn.montantPresente)}
               </Text>
-              <View style={styles.colPotentiel}>
-                <Text
-                  style={{
-                    fontSize: 7,
-                    fontFamily: 'Helvetica-Bold',
-                    color: pot.text,
-                    backgroundColor: pot.bg,
-                    borderRadius: 2,
-                    paddingVertical: 1,
-                    paddingHorizontal: 3,
-                    textAlign: 'center',
-                  }}
-                >
-                  {pot.label}
-                </Text>
-              </View>
+              {interne && (
+                <View style={styles.colPotentiel}>
+                  <Text
+                    style={{
+                      fontSize: 7,
+                      fontFamily: 'Helvetica-Bold',
+                      color: pot.text,
+                      backgroundColor: pot.bg,
+                      borderRadius: 2,
+                      paddingVertical: 1,
+                      paddingHorizontal: 3,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {pot.label}
+                  </Text>
+                </View>
+              )}
               <Text style={[styles.colMontant, { fontSize: 7 }]}>
                 {pn.montantAccepte != null ? pdfMontantFR(pn.montantAccepte) : '-'}
               </Text>
-              <Text style={[styles.colMontant, { fontSize: 7 }]}>
-                {pn.debourseReel != null ? pdfMontantFR(pn.debourseReel) : '-'}
-              </Text>
+              {interne && (
+                <Text style={[styles.colMontant, { fontSize: 7 }]}>
+                  {pn.debourseReel != null ? pdfMontantFR(pn.debourseReel) : '-'}
+                </Text>
+              )}
               <Text style={[styles.colOS, { fontSize: 7 }]}>{pn.numeroOS || '-'}</Text>
               <Text style={[styles.colDate, { fontSize: 7 }]}>{formatDate(pn.dateOS)}</Text>
               <Text style={[styles.colDelai, { fontSize: 6.5 }]}>
@@ -178,39 +198,43 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
           <Text style={[styles.footerText, styles.colMontant]}>
             {pdfMontantFR(totalPresente)}
           </Text>
-          <Text style={[styles.footerText, styles.colPotentiel]} />
+          {interne && <Text style={[styles.footerText, styles.colPotentiel]} />}
           <Text style={[styles.footerText, styles.colMontant]}>
             {pdfMontantFR(totalAccepte)}
           </Text>
-          <Text style={[styles.footerText, styles.colMontant]}>
-            {pdfMontantFR(totalDebourse)}
-          </Text>
+          {interne && (
+            <Text style={[styles.footerText, styles.colMontant]}>
+              {pdfMontantFR(totalDebourse)}
+            </Text>
+          )}
           <Text style={[styles.footerText, styles.colOS]} />
           <Text style={[styles.footerText, styles.colDate]} />
           <Text style={[styles.footerText, styles.colDelai]} />
           <Text style={[styles.footerText, styles.colStatut]} />
         </View>
 
-        <View
-          style={{
-            marginTop: 8,
-            backgroundColor: '#E5EFF8',
-            borderWidth: 1,
-            borderColor: '#004489',
-            borderRadius: 3,
-            paddingVertical: 6,
-            paddingHorizontal: 12,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Text style={{ fontSize: 8, color: '#003370', fontFamily: 'Helvetica-Bold' }}>
-            MONTANT PONDÉRÉ PAR LE POTENTIEL D&apos;ACCEPTATION
-          </Text>
-          <Text style={{ fontSize: 10, color: '#003370', fontFamily: 'Helvetica-Bold' }}>
-            {pdfMontantFR(totalPondere)}
-          </Text>
-        </View>
+        {interne && (
+          <View
+            style={{
+              marginTop: 8,
+              backgroundColor: '#E5EFF8',
+              borderWidth: 1,
+              borderColor: '#004489',
+              borderRadius: 3,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ fontSize: 8, color: '#003370', fontFamily: 'Helvetica-Bold' }}>
+              MONTANT PONDÉRÉ PAR LE POTENTIEL D&apos;ACCEPTATION
+            </Text>
+            <Text style={{ fontSize: 10, color: '#003370', fontFamily: 'Helvetica-Bold' }}>
+              {pdfMontantFR(totalPondere)}
+            </Text>
+          </View>
+        )}
 
         <PiedPagePDF nomSociete={nomSociete} projetName={projetName} />
       </Page>

@@ -193,24 +193,46 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
           Nouveau prix
         </Button>
         {prixNouveaux.length > 0 && (
-          <Button
-            onClick={() =>
-              exportAvecGuard(async () => {
-                const { genererPrixNouveauxPDF } = await import('./PrixNouveauxPDFDownload')
-                await genererPrixNouveauxPDF(
-                  projetName,
-                  prixNouveaux,
-                  userLogo ?? undefined,
-                  nomSociete ?? undefined
-                )
-              })
-            }
-            disabled={isExporting}
-            className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            {isExporting ? 'Génération...' : 'Export PDF'}
-          </Button>
+          <>
+            <Button
+              onClick={() =>
+                exportAvecGuard(async () => {
+                  const { genererPrixNouveauxPDF } = await import('./PrixNouveauxPDFDownload')
+                  await genererPrixNouveauxPDF(
+                    projetName,
+                    prixNouveaux,
+                    userLogo ?? undefined,
+                    nomSociete ?? undefined
+                  )
+                })
+              }
+              disabled={isExporting}
+              className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              {isExporting ? 'Génération...' : 'Export PDF interne'}
+            </Button>
+            <Button
+              onClick={() =>
+                exportAvecGuard(async () => {
+                  const { genererPrixNouveauxPDF } = await import('./PrixNouveauxPDFDownload')
+                  await genererPrixNouveauxPDF(
+                    projetName,
+                    prixNouveaux,
+                    userLogo ?? undefined,
+                    nomSociete ?? undefined,
+                    'client'
+                  )
+                })
+              }
+              disabled={isExporting}
+              className="bg-white hover:bg-[#E5EFF8] text-[#004489] border border-[#004489]"
+              title="Sans potentiel d'acceptation, montant pondéré ni déboursés réels"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              {isExporting ? 'Génération...' : 'Export PDF client'}
+            </Button>
+          </>
         )}
       </div>
 
