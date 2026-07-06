@@ -39,6 +39,7 @@ model Projet {
   adresseChantier String?
   dateDebut       DateTime?
   dateFin         DateTime?
+  modulesMasques  Json     @default("[]")
   updatedAt       DateTime @updatedAt
   members         ProjetMember[]
   tableaux        TableauService[]
@@ -55,6 +56,7 @@ model Projet {
   matrices          MatriceDecisionnelle[]
   sousTraitants     SousTraitant[]
   situations        Situation[]
+  prixNouveaux      PrixNouveau[]
 }
 
 model ProjetMember {
@@ -540,4 +542,31 @@ model LigneSituation {
 
   @@unique([situationId, ligneDEId])
   @@index([situationId])
+}
+
+// ---------------------------------------------------------------------------
+// Module Prix Nouveaux (suivi des travaux supplementaires)
+// ---------------------------------------------------------------------------
+
+model PrixNouveau {
+  id                   String    @id @default(cuid())
+  projetId             String
+  numero               String?   // N° devis (ex : PN 01)
+  intitule             String
+  dateDevis            DateTime?
+  montantPresente      Float     @default(0)
+  montantAccepte       Float?
+  debourseReel         Float?
+  numeroOS             String?
+  dateOS               DateTime?
+  delaiSupplementaire  String?   // ex : "Sans impact", "3 jours ouvres"
+  potentielAcceptation Int       @default(50) // 0-100 %
+  statut               String    @default("en_cours") // a_venir | en_cours | accepte | refuse
+  commentaire          String?
+  ordre                Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  projet               Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
 }

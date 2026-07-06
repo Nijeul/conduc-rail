@@ -4,64 +4,30 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
+import { ongletsVisibles } from "@/lib/modules-projet";
 
 interface ProjetNavProps {
   projetId: string;
   projetName: string;
+  modulesMasques?: string[];
 }
 
-const ONGLETS = [
-  {
-    id: 'contractuelle',
-    label: 'Gestion Contractuelle',
-    routes: ['/infos', '/courriers', '/sous-traitants', '/suivi/journal'],
-    sousMenus: [
-      { label: 'Infos', href: 'infos' },
-      { label: 'Courriers', href: 'courriers' },
-      { label: 'Sous-traitants', href: 'sous-traitants' },
-      { label: 'Journal', href: 'suivi/journal' },
-    ],
-  },
-  {
-    id: 'financiere',
-    label: 'Gestion Financière',
-    routes: ['/detail-estimatif', '/suivi/situation', '/suivi/sous-traitants', '/suivi/arf', '/matrice'],
-    sousMenus: [
-      { label: 'Détail Estimatif', href: 'detail-estimatif' },
-      { label: 'Situations', href: 'suivi/situations' },
-      { label: 'Suivi ST', href: 'suivi/sous-traitants' },
-      { label: 'Suivi ARF', href: 'suivi/arf' },
-      { label: 'Matrice', href: 'matrice' },
-    ],
-  },
-  {
-    id: 'chantier',
-    label: 'Gestion de Chantier',
-    routes: ['/tableau-service', '/suivi/rapports', '/composition', '/suivi/sa', '/suivi/recapitulatif', '/planning'],
-    sousMenus: [
-      { label: 'Tableau de Service', href: 'tableau-service' },
-      { label: 'Rapports', href: 'suivi/rapports' },
-      { label: 'Composition TTx', href: 'composition' },
-      { label: 'SA', href: 'suivi/sa' },
-      { label: 'Récapitulatif', href: 'suivi/recapitulatif' },
-      { label: 'Planning', href: 'planning' },
-    ],
-  },
-];
-
-export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
+export function ProjetNav({ projetId, projetName, modulesMasques = [] }: ProjetNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const base = `/projets/${projetId}`;
 
-  // Determine active top-level tab
-  const activeOnglet = ONGLETS.find((o) =>
-    o.routes.some((r) => pathname.startsWith(`${base}${r}`))
-  ) ?? ONGLETS[2]; // Default to "Gestion de Chantier"
+  const onglets = ongletsVisibles(modulesMasques);
 
-  const handleOngletClick = (onglet: typeof ONGLETS[number]) => {
-    // Navigate to the first sub-menu of the clicked tab
-    router.push(`${base}/${onglet.sousMenus[0].href}`);
+  // Determine active top-level tab (fallback: last visible tab, comme avant)
+  const activeOnglet =
+    onglets.find((o) =>
+      o.modules.some((m) => pathname.startsWith(`${base}/${m.href}`))
+    ) ?? onglets[onglets.length - 1];
+
+  const handleOngletClick = (onglet: (typeof onglets)[number]) => {
+    // Navigate to the first visible module of the clicked tab
+    router.push(`${base}/${onglet.modules[0].href}`);
   };
 
   return (
@@ -90,8 +56,8 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
 
       {/* N1: Main tabs */}
       <div className="flex items-center gap-0 px-6 border-b" style={{ borderColor: '#DCDCDC' }}>
-        {ONGLETS.map((onglet) => {
-          const isActive = onglet.id === activeOnglet.id;
+        {onglets.map((onglet) => {
+          const isActive = onglet.id === activeOnglet?.id;
           return (
             <button
               key={onglet.id}
@@ -112,12 +78,12 @@ export function ProjetNav({ projetId, projetName }: ProjetNavProps) {
 
       {/* N2: Sub-menu of active tab */}
       <div className="flex items-center gap-1 px-6" style={{ backgroundColor: '#F0F0F0' }}>
-        {activeOnglet.sousMenus.map((item) => {
+        {activeOnglet?.modules.map((item) => {
           const href = `${base}/${item.href}`;
           const isActive = pathname.startsWith(href);
           return (
             <Link
-              key={item.href}
+              key={item.key}
               href={href}
               className={cn(
                 "px-4 py-2 text-sm border-b-2 transition-colors",

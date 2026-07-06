@@ -62,6 +62,7 @@ export async function getInfosProjet(projetId: string) {
       adresseChantier: true,
       dateDebut: true,
       dateFin: true,
+      modulesMasques: true,
     },
   })
 
@@ -105,5 +106,37 @@ export async function updateInfosProjet(
   } catch (error) {
     console.error('updateInfosProjet error:', error)
     return { success: false, error: 'Erreur lors de la mise a jour des infos projet' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Modules visibles du projet (onglet Infos)
+// ---------------------------------------------------------------------------
+
+const ModulesMasquesSchema = z.array(z.string().max(50)).max(50)
+
+export async function updateModulesMasques(
+  projetId: string,
+  modulesMasques: unknown
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser()
+    await checkMembership(projetId, user.id)
+
+    const parsed = ModulesMasquesSchema.safeParse(modulesMasques)
+    if (!parsed.success) {
+      return { success: false, error: 'Liste de modules invalide' }
+    }
+
+    await prisma.projet.update({
+      where: { id: projetId },
+      data: { modulesMasques: parsed.data },
+    })
+
+    revalidatePath(`/projets/${projetId}`, 'layout')
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('updateModulesMasques error:', error)
+    return { success: false, error: 'Erreur lors de la mise a jour des modules' }
   }
 }

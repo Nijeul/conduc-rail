@@ -3,6 +3,7 @@ import { getProjetMembers } from '@/actions/projets'
 import { auth } from '@/lib/auth'
 import { InfosProjetForm } from '@/components/modules/infos-projet/InfosProjetForm'
 import { ProjetMembers } from '@/components/modules/infos-projet/ProjetMembers'
+import { ModulesProjetSelector } from '@/components/modules/infos-projet/ModulesProjetSelector'
 import { notFound, redirect } from 'next/navigation'
 
 interface Props {
@@ -45,6 +46,17 @@ export default async function InfosProjetPage({ params }: Props) {
           dateFin: infos.dateFin,
         }}
       />
+
+      <div className="mt-10 max-w-4xl">
+        <ModulesProjetSelector
+          projetId={params.id}
+          modulesMasques={
+            Array.isArray(infos.modulesMasques)
+              ? (infos.modulesMasques as string[])
+              : []
+          }
+        />
+      </div>
 
       <div className="mt-10 max-w-2xl">
         <ProjetMembers

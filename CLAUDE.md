@@ -160,11 +160,15 @@ conduc-rail/
 
 ```
 GESTION CONTRACTUELLE    → Infos · Courriers · Sous-traitants · Journal
-GESTION FINANCIÈRE       → Détail Estimatif · Situations · Suivi ST · Suivi ARF
+GESTION FINANCIÈRE       → Détail Estimatif · Situations · Prix Nouveaux · Suivi ST · Suivi ARF
 GESTION DE CHANTIER      → Tableau de Service · Rapports · Composition TTx · SA
 ```
 
 Sidebar principale : Projets · Personnel · Matériel · [Nom utilisateur → /profil]
+
+Les modules visibles par projet sont configurables (checkboxes dans l'onglet Infos,
+champ Projet.modulesMasques, config partagée dans src/lib/modules-projet.ts).
+Tout nouveau module doit être déclaré dans ONGLETS_PROJET de ce fichier.
 
 ---
 
@@ -311,7 +315,7 @@ SoudureAluminothermique · CompositionTTx
 MaterielTTx · LigneFicheEcart
 EvenementChantier · FichierEvenement · CourrierChantier
 SousTraitant · AvenantSousTraitant · FacturationSousTraitant
-Situation · LigneSituation
+Situation · LigneSituation · PrixNouveau
 ```
 
 Champs ajoutés à `User` : `logoSociete · nomSociete · adresseSociete · telSociete · faxSociete · certifications`
