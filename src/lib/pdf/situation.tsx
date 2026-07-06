@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { EntetePDF, PiedPagePDF } from './pdf-entete'
+import { pdfNombreFR, pdfMontantFR } from './format'
 
 const styles = StyleSheet.create({
   page: {
@@ -38,28 +39,6 @@ const styles = StyleSheet.create({
   colMontant: { width: 70, textAlign: 'right' },
   colAvancement: { width: 55, textAlign: 'right' },
 })
-
-function formatFR(n: number, dec = 2): string {
-  return n
-    .toLocaleString('fr-FR', {
-      minimumFractionDigits: dec,
-      maximumFractionDigits: dec,
-    })
-    .replace(/ /g, ' ')
-    .replace(/ /g, ' ')
-}
-
-function formatMontantFR(n: number): string {
-  return n
-    .toLocaleString('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    .replace(/ /g, ' ')
-    .replace(/ /g, ' ')
-}
 
 function getAvancementBg(avancement: number): string {
   if (avancement >= 100) return '#E8EFDA'
@@ -173,19 +152,19 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
             <Text style={[styles.colDesignation, { fontSize: 7 }]}>{l.designation}</Text>
             <Text style={[styles.colUnite, { fontSize: 7 }]}>{l.unite}</Text>
             <Text style={[styles.colPU, { fontSize: 7 }]}>
-              {formatMontantFR(l.prixUnitaire)}
+              {pdfMontantFR(l.prixUnitaire)}
             </Text>
-            <Text style={[styles.colQte, { fontSize: 7 }]}>{formatFR(l.quantiteMarche)}</Text>
+            <Text style={[styles.colQte, { fontSize: 7 }]}>{pdfNombreFR(l.quantiteMarche)}</Text>
             <Text style={[styles.colQte, { fontSize: 7, color: '#5A5A5A' }]}>
-              {formatFR(l.quantiteAnterieure)}
+              {pdfNombreFR(l.quantiteAnterieure)}
             </Text>
             <Text style={[styles.colQte, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
-              {formatFR(l.quantite)}
+              {pdfNombreFR(l.quantite)}
             </Text>
             <Text style={[styles.colMontant, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
-              {formatMontantFR(l.montantSituation)}
+              {pdfMontantFR(l.montantSituation)}
             </Text>
-            <Text style={[styles.colQte, { fontSize: 7 }]}>{formatFR(l.quantiteCumulee)}</Text>
+            <Text style={[styles.colQte, { fontSize: 7 }]}>{pdfNombreFR(l.quantiteCumulee)}</Text>
             <View
               style={[
                 styles.colAvancement,
@@ -205,7 +184,7 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
                   fontSize: 7,
                 }}
               >
-                {formatFR(l.avancement, 1)} %
+                {pdfNombreFR(l.avancement, 1)} %
               </Text>
             </View>
           </View>
@@ -226,14 +205,14 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
           }}
         >
           <Text style={{ color: '#FFFFFF', fontSize: 8 }}>
-            Cumul antérieur : {formatMontantFR(data.totalAnterieur)}
+            Cumul antérieur : {pdfMontantFR(data.totalAnterieur)}
           </Text>
           <Text style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'Helvetica-Bold' }}>
-            SITUATION HT : {formatMontantFR(data.totalSituation)}
+            SITUATION HT : {pdfMontantFR(data.totalSituation)}
           </Text>
           <Text style={{ color: '#FFFFFF', fontSize: 8 }}>
-            Cumul : {formatMontantFR(data.totalCumule)} (
-            {formatFR(data.avancementGlobal, 1)} % du marché)
+            Cumul : {pdfMontantFR(data.totalCumule)} (
+            {pdfNombreFR(data.avancementGlobal, 1)} % du marché)
           </Text>
         </View>
 

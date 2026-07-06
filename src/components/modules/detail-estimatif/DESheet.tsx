@@ -496,6 +496,11 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
                 Chargement...
               </div>
             ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
               <table className="w-full text-left" style={{ fontSize: '12px' }}>
                 <thead className="sticky top-0 z-10">
                   <tr style={{ backgroundColor: '#004489' }}>
@@ -509,11 +514,6 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
                     <th className="px-2 py-2.5 w-8"></th>
                   </tr>
                 </thead>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
                   <SortableContext
                     items={lignes.map((l) => l.id)}
                     strategy={verticalListSortingStrategy}
@@ -545,8 +545,8 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
                       )}
                     </tbody>
                   </SortableContext>
-                </DndContext>
               </table>
+              </DndContext>
             )}
           </div>
 

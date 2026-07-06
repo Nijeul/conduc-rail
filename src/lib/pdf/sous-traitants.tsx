@@ -8,6 +8,7 @@ import {
   resteAFacturer,
 } from '@/components/modules/sous-traitants/calculs'
 import { EntetePDF, PiedPagePDF } from './pdf-entete'
+import { pdfMontantFR, pdfPctFR } from './format'
 
 const styles = StyleSheet.create({
   page: {
@@ -82,25 +83,6 @@ const styles = StyleSheet.create({
   },
 })
 
-function formatMontantFR(n: number): string {
-  return n
-    .toLocaleString('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    .replace(/ /g, ' ')
-    .replace(/ /g, ' ')
-}
-
-function formatPctFR(n: number): string {
-  return `${n
-    .toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-    .replace(/ /g, ' ')
-    .replace(/ /g, ' ')} %`
-}
-
 interface Props {
   projetName: string
   data: SousTraitantsData
@@ -142,27 +124,27 @@ export function SousTraitantsPDF({ projetName, data, userLogo, nomSociete }: Pro
         {sousTraitants.map((st, i) => (
           <View key={st.id} style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}>
             <Text style={styles.colNom}>{st.nom}</Text>
-            <Text style={styles.colDroit}>{formatMontantFR(st.montantMarche)}</Text>
+            <Text style={styles.colDroit}>{pdfMontantFR(st.montantMarche)}</Text>
             <Text style={styles.colDroit}>
-              {st.paiementDirect ? formatMontantFR(st.montantAS) : '-'}
+              {st.paiementDirect ? pdfMontantFR(st.montantAS) : '-'}
             </Text>
-            <Text style={styles.colDroit}>{formatMontantFR(montantAvenants(st))}</Text>
+            <Text style={styles.colDroit}>{pdfMontantFR(montantAvenants(st))}</Text>
             <Text style={[styles.colDroit, { fontFamily: 'Helvetica-Bold' }]}>
-              {formatMontantFR(nouveauMontantMarche(st))}
+              {pdfMontantFR(nouveauMontantMarche(st))}
             </Text>
           </View>
         ))}
         <View style={styles.footerRow}>
           <Text style={[styles.footerText, styles.colNom]}>CUMUL S/T</Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {formatMontantFR(sousTraitants.reduce((s, st) => s + st.montantMarche, 0))}
+            {pdfMontantFR(sousTraitants.reduce((s, st) => s + st.montantMarche, 0))}
           </Text>
-          <Text style={[styles.footerText, styles.colDroit]}>{formatMontantFR(cumulAS)}</Text>
+          <Text style={[styles.footerText, styles.colDroit]}>{pdfMontantFR(cumulAS)}</Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {formatMontantFR(totalAvenants)}
+            {pdfMontantFR(totalAvenants)}
           </Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {formatMontantFR(cumulNouveaux)}
+            {pdfMontantFR(cumulNouveaux)}
           </Text>
         </View>
 
@@ -178,23 +160,23 @@ export function SousTraitantsPDF({ projetName, data, userLogo, nomSociete }: Pro
         {sousTraitants.map((st, i) => (
           <View key={st.id} style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}>
             <Text style={styles.colNom}>{st.nom}</Text>
-            <Text style={styles.colDroit}>{formatMontantFR(nouveauMontantMarche(st))}</Text>
-            <Text style={styles.colDroit}>{formatMontantFR(cumulFacture(st))}</Text>
-            <Text style={styles.colDroit}>{formatPctFR(avancementPct(st))}</Text>
-            <Text style={styles.colDroit}>{formatMontantFR(resteAFacturer(st))}</Text>
+            <Text style={styles.colDroit}>{pdfMontantFR(nouveauMontantMarche(st))}</Text>
+            <Text style={styles.colDroit}>{pdfMontantFR(cumulFacture(st))}</Text>
+            <Text style={styles.colDroit}>{pdfPctFR(avancementPct(st))}</Text>
+            <Text style={styles.colDroit}>{pdfMontantFR(resteAFacturer(st))}</Text>
           </View>
         ))}
         <View style={styles.footerRow}>
           <Text style={[styles.footerText, styles.colNom]}>CUMUL S/T</Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {formatMontantFR(cumulNouveaux)}
+            {pdfMontantFR(cumulNouveaux)}
           </Text>
-          <Text style={[styles.footerText, styles.colDroit]}>{formatMontantFR(cumulFact)}</Text>
+          <Text style={[styles.footerText, styles.colDroit]}>{pdfMontantFR(cumulFact)}</Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {cumulNouveaux > 0 ? formatPctFR((cumulFact / cumulNouveaux) * 100) : '-'}
+            {cumulNouveaux > 0 ? pdfPctFR((cumulFact / cumulNouveaux) * 100) : '-'}
           </Text>
           <Text style={[styles.footerText, styles.colDroit]}>
-            {formatMontantFR(cumulNouveaux - cumulFact)}
+            {pdfMontantFR(cumulNouveaux - cumulFact)}
           </Text>
         </View>
 
@@ -202,22 +184,22 @@ export function SousTraitantsPDF({ projetName, data, userLogo, nomSociete }: Pro
         <View style={styles.synthese}>
           <View style={styles.syntheseCarte}>
             <Text style={styles.syntheseLabel}>Montant marché (Détail Estimatif)</Text>
-            <Text style={styles.syntheseValeur}>{formatMontantFR(montantMarcheTotal)}</Text>
+            <Text style={styles.syntheseValeur}>{pdfMontantFR(montantMarcheTotal)}</Text>
           </View>
           <View style={styles.syntheseCarte}>
             <Text style={styles.syntheseLabel}>Cumul marchés sous-traités</Text>
-            <Text style={styles.syntheseValeur}>{formatMontantFR(cumulNouveaux)}</Text>
+            <Text style={styles.syntheseValeur}>{pdfMontantFR(cumulNouveaux)}</Text>
           </View>
           <View style={[styles.syntheseCarte, { borderColor: '#004489', backgroundColor: '#E5EFF8' }]}>
             <Text style={styles.syntheseLabel}>Part mandataire</Text>
             <Text style={[styles.syntheseValeur, { color: '#003370' }]}>
-              {formatMontantFR(montantMarcheTotal - cumulNouveaux)}
+              {pdfMontantFR(montantMarcheTotal - cumulNouveaux)}
             </Text>
           </View>
           <View style={styles.syntheseCarte}>
             <Text style={styles.syntheseLabel}>Reste à facturer S/T</Text>
             <Text style={styles.syntheseValeur}>
-              {formatMontantFR(cumulNouveaux - cumulFact)}
+              {pdfMontantFR(cumulNouveaux - cumulFact)}
             </Text>
           </View>
         </View>

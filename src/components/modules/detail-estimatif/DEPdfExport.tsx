@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { LigneDE } from '@prisma/client'
 import { useProfilStore } from '@/stores/profil'
+import { formatNombreFR } from '@/lib/utils'
 
 interface DEPdfExportProps {
   lignes: LigneDE[]
@@ -83,7 +84,7 @@ export function DEPdfExport({ lignes, projetName, totalHT, onClose }: DEPdfExpor
         <p className="text-sm text-slate-600 mb-4">
           Detail Estimatif - {projetName}
           <br />
-          {lignes.length} ligne{lignes.length > 1 ? 's' : ''} - Total HT : {totalHT.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} &euro;
+          {lignes.length} ligne{lignes.length > 1 ? 's' : ''} - Total HT : {formatNombreFR(totalHT)} &euro;
         </p>
 
         <div className="flex items-center gap-3 justify-end">

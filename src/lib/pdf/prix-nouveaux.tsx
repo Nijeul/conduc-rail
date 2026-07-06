@@ -7,6 +7,7 @@ import {
   montantPondere,
 } from '@/components/modules/prix-nouveaux/helpers'
 import { EntetePDF, PiedPagePDF } from './pdf-entete'
+import { pdfMontantFR } from './format'
 
 const styles = StyleSheet.create({
   page: {
@@ -58,18 +59,6 @@ const styles = StyleSheet.create({
     fontSize: 7,
   },
 })
-
-function formatMontantFR(n: number): string {
-  return n
-    .toLocaleString('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    .replace(/ /g, ' ')
-    .replace(/ /g, ' ')
-}
 
 function formatDate(d: Date | null): string {
   if (!d) return '-'
@@ -132,7 +121,7 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
               </View>
               <Text style={[styles.colDate, { fontSize: 7 }]}>{formatDate(pn.dateDevis)}</Text>
               <Text style={[styles.colMontant, { fontSize: 7, fontFamily: 'Helvetica-Bold' }]}>
-                {formatMontantFR(pn.montantPresente)}
+                {pdfMontantFR(pn.montantPresente)}
               </Text>
               <View style={styles.colPotentiel}>
                 <Text
@@ -151,10 +140,10 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
                 </Text>
               </View>
               <Text style={[styles.colMontant, { fontSize: 7 }]}>
-                {pn.montantAccepte != null ? formatMontantFR(pn.montantAccepte) : '-'}
+                {pn.montantAccepte != null ? pdfMontantFR(pn.montantAccepte) : '-'}
               </Text>
               <Text style={[styles.colMontant, { fontSize: 7 }]}>
-                {pn.debourseReel != null ? formatMontantFR(pn.debourseReel) : '-'}
+                {pn.debourseReel != null ? pdfMontantFR(pn.debourseReel) : '-'}
               </Text>
               <Text style={[styles.colOS, { fontSize: 7 }]}>{pn.numeroOS || '-'}</Text>
               <Text style={[styles.colDate, { fontSize: 7 }]}>{formatDate(pn.dateOS)}</Text>
@@ -187,14 +176,14 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
           <Text style={[styles.footerText, styles.colIntitule]}>TOTAUX</Text>
           <Text style={[styles.footerText, styles.colDate]} />
           <Text style={[styles.footerText, styles.colMontant]}>
-            {formatMontantFR(totalPresente)}
+            {pdfMontantFR(totalPresente)}
           </Text>
           <Text style={[styles.footerText, styles.colPotentiel]} />
           <Text style={[styles.footerText, styles.colMontant]}>
-            {formatMontantFR(totalAccepte)}
+            {pdfMontantFR(totalAccepte)}
           </Text>
           <Text style={[styles.footerText, styles.colMontant]}>
-            {formatMontantFR(totalDebourse)}
+            {pdfMontantFR(totalDebourse)}
           </Text>
           <Text style={[styles.footerText, styles.colOS]} />
           <Text style={[styles.footerText, styles.colDate]} />
@@ -219,7 +208,7 @@ export function PrixNouveauxPDF({ projetName, prixNouveaux, userLogo, nomSociete
             MONTANT PONDÉRÉ PAR LE POTENTIEL D&apos;ACCEPTATION
           </Text>
           <Text style={{ fontSize: 10, color: '#003370', fontFamily: 'Helvetica-Bold' }}>
-            {formatMontantFR(totalPondere)}
+            {pdfMontantFR(totalPondere)}
           </Text>
         </View>
 

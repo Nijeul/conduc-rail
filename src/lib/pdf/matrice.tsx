@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf'
+import { pdfNombreFR } from './format'
 
 // ──────────────────────────────────────────────
 // Types
@@ -226,7 +227,7 @@ export async function generateMatricePDF(
     ['Site', matrice.site ?? '-'],
     ['Famille Achats', matrice.familleAchats ?? '-'],
     ['Budget theorique', matrice.budgetTheorique != null
-      ? `${matrice.budgetTheorique.toLocaleString('fr-FR')} ${matrice.devise}`
+      ? `${pdfNombreFR(matrice.budgetTheorique, 0)} ${matrice.devise}`
       : '-'],
     ['Seuil Go', `${matrice.seuilGo}%`],
     ['Date', formatDateFR(new Date())],
