@@ -57,6 +57,7 @@ model Projet {
   sousTraitants     SousTraitant[]
   situations        Situation[]
   prixNouveaux      PrixNouveau[]
+  coTraitants       CoTraitant[]
 }
 
 model ProjetMember {
@@ -105,6 +106,7 @@ model LigneDE {
   quantite     Float
   prixUnitaire Float
   estChapitre  Boolean  @default(false)
+  repartition  Json?    // PU par co-traitant : { [coTraitantId]: number }
   ordre        Int      @default(0)
   createdAt    DateTime @default(now())
   projet       Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
@@ -574,6 +576,22 @@ model PrixNouveau {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   projet               Projet    @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+}
+
+// ---------------------------------------------------------------------------
+// Co-traitance (groupement) : membres et repartition des prix du DE
+// ---------------------------------------------------------------------------
+
+model CoTraitant {
+  id            String   @id @default(cuid())
+  projetId      String
+  nom           String
+  estMandataire Boolean  @default(false)
+  ordre         Int      @default(0)
+  createdAt     DateTime @default(now())
+  projet        Projet   @relation(fields: [projetId], references: [id], onDelete: Cascade)
 
   @@index([projetId])
 }

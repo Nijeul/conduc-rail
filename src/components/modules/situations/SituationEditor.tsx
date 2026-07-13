@@ -11,6 +11,7 @@ import {
   prefillDepuisRapports,
   type SituationDetail,
 } from '@/actions/situations'
+import { upsertFacturation } from '@/actions/sous-traitants'
 import { formatMontant, formatNombreFR } from '@/lib/utils'
 import { labelMois } from '@/lib/mois'
 import {
@@ -54,6 +55,14 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
     }
     return init
   })
+  const [facturationsST, setFacturationsST] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const st of detail.sousTraitants) {
+      if (st.montantMois !== 0) init[st.id] = String(st.montantMois)
+    }
+    return init
+  })
+  const facturationTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [prefilling, setPrefilling] = useState(false)
@@ -109,6 +118,25 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [flushSave])
+
+  function handleFacturationST(sousTraitantId: string, value: string) {
+    setFacturationsST((prev) => ({ ...prev, [sousTraitantId]: value }))
+    const timeouts = facturationTimeouts.current
+    clearTimeout(timeouts.get(sousTraitantId))
+    timeouts.set(
+      sousTraitantId,
+      setTimeout(async () => {
+        const res = await upsertFacturation(projetId, {
+          sousTraitantId,
+          annee: detail.annee,
+          mois: detail.mois,
+          montant: parseQuantiteInput(value),
+        })
+        setSaveState(res.success ? 'saved' : 'error')
+        if (!res.success) setError(res.error)
+      }, 600)
+    )
+  }
 
   function handleQuantiteChange(ligneDEId: string, value: string) {
     dirtyLignes.current.add(ligneDEId)
@@ -187,6 +215,21 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
       return { ...l, quantite, montantSituation, quantiteCumulee, montantCumule, avancement }
     })
     const totalCumule = totalAnterieur + totalSituation
+    const cotraitance = detail.coTraitants.map((ct) => {
+      let montantSituationCT = 0
+      let montantAnterieurCT = 0
+      for (const l of lignes) {
+        const pu = l.repartition[ct.id] ?? 0
+        montantSituationCT += l.quantite * pu
+        montantAnterieurCT += l.quantiteAnterieure * pu
+      }
+      return {
+        ...ct,
+        montantSituation: montantSituationCT,
+        montantAnterieur: montantAnterieurCT,
+        montantCumule: montantSituationCT + montantAnterieurCT,
+      }
+    })
     return {
       lignes,
       totalSituation,
@@ -194,8 +237,9 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
       totalCumule,
       totalMarche,
       avancementGlobal: totalMarche > 0 ? (totalCumule / totalMarche) * 100 : 0,
+      cotraitance,
     }
-  }, [detail.lignes, quantites])
+  }, [detail.lignes, detail.coTraitants, quantites])
 
   return (
     <div className="space-y-4">
@@ -286,7 +330,7 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
                     mois: detail.mois,
                     statut,
                   },
-                  calculs,
+                  { ...calculs, cotraitance: calculs.cotraitance },
                   userLogo ?? undefined,
                   nomSociete ?? undefined
                 )
@@ -425,6 +469,88 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
           )}
         </table>
       </div>
+
+      {/* Répartition co-traitance de la situation */}
+      {calculs.cotraitance.length > 0 && (
+        <div className="rounded-lg border border-[#DCDCDC] bg-white p-4 max-w-3xl">
+          <p className="text-sm font-semibold text-[#004489] mb-3">
+            Répartition co-traitance
+          </p>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="bg-[#004489] text-white font-bold text-[12px]">
+                <th className="px-2 py-1.5 text-left">Co-traitant</th>
+                <th className="px-2 py-1.5 text-right">Montant situation HT</th>
+                <th className="px-2 py-1.5 text-right">Cumul antérieur</th>
+                <th className="px-2 py-1.5 text-right">Cumul HT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {calculs.cotraitance.map((ct, i) => (
+                <tr
+                  key={ct.id}
+                  className={`border-b border-[#DCDCDC] ${
+                    i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
+                  }`}
+                >
+                  <td className="px-2 py-1.5 font-medium">
+                    {ct.nom}
+                    {ct.estMandataire && (
+                      <span className="ml-1 text-[11px] text-[#5A5A5A]">(mandataire)</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-semibold">
+                    {formatMontant(ct.montantSituation)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right text-[#5A5A5A]">
+                    {formatMontant(ct.montantAnterieur)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right">{formatMontant(ct.montantCumule)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Facturation des sous-traitants du mois — synchronisée avec le Suivi ST */}
+      {detail.sousTraitants.length > 0 && (
+        <div className="rounded-lg border border-[#DCDCDC] bg-white p-4 max-w-2xl">
+          <p className="text-sm font-semibold text-[#004489]">
+            Facturation sous-traitants — {labelMois(detail.mois, detail.annee)}
+          </p>
+          <p className="text-xs text-[#5A5A5A] mb-3">
+            Montants HT acceptés du mois, reportés automatiquement dans le Suivi ST
+          </p>
+          <div className="space-y-1.5">
+            {detail.sousTraitants.map((st) => (
+              <div key={st.id} className="flex items-center gap-3">
+                <span className="w-64 text-sm font-medium truncate">{st.nom}</span>
+                <input
+                  inputMode="decimal"
+                  value={facturationsST[st.id] ?? ''}
+                  onChange={(e) => handleFacturationST(st.id, e.target.value)}
+                  placeholder="0,00"
+                  disabled={estValidee}
+                  className="w-40 text-right text-sm px-2 py-1 rounded border border-[#DCDCDC] focus:border-[#004489] focus:outline-none disabled:bg-[#F0F0F0] disabled:text-[#5A5A5A]"
+                />
+                <span className="text-xs text-[#5A5A5A]">€ HT</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-3 border-t border-[#DCDCDC] pt-2 mt-2">
+              <span className="w-64 text-sm font-bold text-[#003370]">TOTAL S/T du mois</span>
+              <span className="w-40 text-right text-sm font-bold text-[#003370]">
+                {formatMontant(
+                  detail.sousTraitants.reduce(
+                    (sum, st) => sum + parseQuantiteInput(facturationsST[st.id] ?? ''),
+                    0
+                  )
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

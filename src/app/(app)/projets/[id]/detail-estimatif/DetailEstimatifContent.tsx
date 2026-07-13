@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useTransition } from 'react'
-import { Plus, Trash2, GripVertical, FileDown, Loader2 } from 'lucide-react'
+import { Plus, Trash2, GripVertical, FileDown, Loader2, Users } from 'lucide-react'
+import Link from 'next/link'
 import { formatNombreFR } from '@/lib/utils'
 import {
   getLignesDE,
@@ -395,6 +396,7 @@ export function DetailEstimatifContent({ projetId, projetName }: DetailEstimatif
             quantite: 0,
             prixUnitaire: 0,
             estChapitre,
+            repartition: null,
             ordre: prev.length,
             createdAt: new Date(),
           },
@@ -491,6 +493,14 @@ export function DetailEstimatifContent({ projetId, projetName }: DetailEstimatif
           )}
           {isExporting ? 'Génération...' : 'Export PDF'}
         </button>
+        <Link
+          href={`/projets/${projetId}/detail-estimatif/cotraitance`}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-90"
+          style={{ backgroundColor: '#E5EFF8', color: '#003370', border: '1px solid #004489' }}
+        >
+          <Users className="h-4 w-4" />
+          Co-traitance
+        </Link>
         <h1 className="text-lg font-bold" style={{ color: '#004489' }}>
           Détail Estimatif - {projetName}
         </h1>

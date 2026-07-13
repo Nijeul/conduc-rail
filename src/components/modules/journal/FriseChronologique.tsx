@@ -7,7 +7,7 @@ import { DialogEvenement } from './DialogEvenement'
 import { resolveCatColors, type CategorieRow, type CouleursCatMap } from './categories'
 import html2canvas from 'html2canvas'
 import { useExportPDF } from '@/hooks/useExportPDF'
-import { formatDateFR } from '@/lib/utils'
+import { formatDateFR, hexToRgb } from '@/lib/utils'
 
 const LARGEUR_MOIS = 260
 const MARGE_GAUCHE = 60
@@ -422,6 +422,39 @@ export function FriseChronologique({
 
       const PAGE_W = 297, PAGE_H = 210, MARGIN = 10, HEADER_H = 18, FOOTER_H = 8
 
+      // ---- Légende des catégories (dessinée en vectoriel sous la frise) ----
+      const legendeItems = categoriesUtilisees.map((c) => ({ nom: c.nom, couleur: c.couleurPoint }))
+      pdf.setFontSize(7)
+      const mesureItem = (nom: string) => 4.5 + pdf.getTextWidth(nom) + 6
+      const largeurDispo = PAGE_W - MARGIN * 2
+      let lignesLegende = 1
+      {
+        let xMesure = 0
+        for (const it of legendeItems) {
+          const w = mesureItem(it.nom)
+          if (xMesure + w > largeurDispo) { lignesLegende++; xMesure = 0 }
+          xMesure += w
+        }
+      }
+      const LEGENDE_H = legendeItems.length > 0 ? lignesLegende * 5 + 3 : 0
+      const dessinerLegende = () => {
+        if (legendeItems.length === 0) return
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(7)
+        let x = MARGIN
+        let y = PAGE_H - FOOTER_H - LEGENDE_H + 2
+        for (const it of legendeItems) {
+          const w = mesureItem(it.nom)
+          if (x + w > PAGE_W - MARGIN) { x = MARGIN; y += 5 }
+          const rgb = hexToRgb(it.couleur) || { r: 181, g: 171, b: 161 }
+          pdf.setFillColor(rgb.r, rgb.g, rgb.b)
+          pdf.rect(x, y - 2.2, 3, 3, 'F')
+          pdf.setTextColor(0, 0, 0)
+          pdf.text(it.nom, x + 4.5, y)
+          x += w
+        }
+      }
+
       // En-tete VINCI
       pdf.setFillColor(0, 68, 137)
       pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
@@ -435,7 +468,7 @@ export function FriseChronologique({
       pdf.text(`Edite le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 5, { align: 'right' })
 
       const friseY = MARGIN + HEADER_H + 2
-      const friseH = PAGE_H - friseY - FOOTER_H - 4
+      const friseH = PAGE_H - friseY - FOOTER_H - 4 - LEGENDE_H
       const friseW = PAGE_W - MARGIN * 2
 
       const imgW_mm = (canvas.width / 2) / (96 / 25.4)
@@ -480,6 +513,8 @@ export function FriseChronologique({
 
           pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', MARGIN, sliceImgY, sliceFinalW, sliceFinalH)
 
+          dessinerLegende()
+
           pdf.setFillColor(0, 51, 112)
           pdf.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H, 'F')
           pdf.setFont('helvetica', 'normal')
@@ -489,6 +524,8 @@ export function FriseChronologique({
         }
       } else {
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', MARGIN, imgY, finalW, finalH)
+
+        dessinerLegende()
 
         pdf.setFillColor(0, 51, 112)
         pdf.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H, 'F')

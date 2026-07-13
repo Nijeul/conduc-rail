@@ -92,6 +92,15 @@ export interface SituationPDFLigne {
   avancement: number
 }
 
+export interface SituationPDFCoTraitant {
+  id: string
+  nom: string
+  estMandataire: boolean
+  montantSituation: number
+  montantAnterieur: number
+  montantCumule: number
+}
+
 export interface SituationPDFData {
   lignes: SituationPDFLigne[]
   totalSituation: number
@@ -99,6 +108,7 @@ export interface SituationPDFData {
   totalCumule: number
   totalMarche: number
   avancementGlobal: number
+  cotraitance?: SituationPDFCoTraitant[]
 }
 
 interface Props {
@@ -239,6 +249,51 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
             {pdfNombreFR(data.avancementGlobal, 1)} % du marché)
           </Text>
         </View>
+
+        {/* Répartition co-traitance */}
+        {data.cotraitance && data.cotraitance.length > 0 && (
+          <View style={{ marginTop: 10 }} wrap={false}>
+            <Text
+              style={{
+                fontSize: 8,
+                fontFamily: 'Helvetica-Bold',
+                color: '#004489',
+                marginBottom: 3,
+              }}
+            >
+              Répartition co-traitance
+            </Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Co-traitant</Text>
+              <Text style={[styles.tableHeaderText, { width: 100, textAlign: 'right' }]}>
+                Montant situation HT
+              </Text>
+              <Text style={[styles.tableHeaderText, { width: 100, textAlign: 'right' }]}>
+                Cumul antérieur
+              </Text>
+              <Text style={[styles.tableHeaderText, { width: 100, textAlign: 'right' }]}>
+                Cumul HT
+              </Text>
+            </View>
+            {data.cotraitance.map((ct, i) => (
+              <View key={ct.id} style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}>
+                <Text style={{ flex: 1, fontSize: 7 }}>
+                  {ct.nom}
+                  {ct.estMandataire ? ' (mandataire)' : ''}
+                </Text>
+                <Text style={{ width: 100, textAlign: 'right', fontSize: 7, fontFamily: 'Helvetica-Bold' }}>
+                  {pdfMontantFR(ct.montantSituation)}
+                </Text>
+                <Text style={{ width: 100, textAlign: 'right', fontSize: 7, color: '#5A5A5A' }}>
+                  {pdfMontantFR(ct.montantAnterieur)}
+                </Text>
+                <Text style={{ width: 100, textAlign: 'right', fontSize: 7 }}>
+                  {pdfMontantFR(ct.montantCumule)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <PiedPagePDF nomSociete={nomSociete} projetName={projetName} />
       </Page>

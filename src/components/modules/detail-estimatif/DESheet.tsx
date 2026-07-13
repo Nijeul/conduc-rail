@@ -417,6 +417,7 @@ export function DESheet({ open, onOpenChange, projetId, projetName }: DESheetPro
             quantite: 0,
             prixUnitaire: 0,
             estChapitre,
+            repartition: null,
             ordre: prev.length,
             createdAt: new Date(),
           },

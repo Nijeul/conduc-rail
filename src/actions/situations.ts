@@ -46,6 +46,7 @@ export interface SituationResume {
 export interface SituationLigneDetail {
   ligneDEId: string
   estChapitre: boolean
+  repartition: Record<string, number>
   code: string
   designation: string
   unite: string
@@ -54,6 +55,18 @@ export interface SituationLigneDetail {
   quantiteAnterieure: number
   montantAnterieur: number
   quantite: number
+}
+
+export interface SituationSousTraitant {
+  id: string
+  nom: string
+  montantMois: number
+}
+
+export interface SituationCoTraitant {
+  id: string
+  nom: string
+  estMandataire: boolean
 }
 
 export interface SituationDetail {
@@ -65,6 +78,8 @@ export interface SituationDetail {
   statut: string
   commentaire: string | null
   lignes: SituationLigneDetail[]
+  sousTraitants: SituationSousTraitant[]
+  coTraitants: SituationCoTraitant[]
 }
 
 async function getAuthUser() {
@@ -141,14 +156,33 @@ export async function getSituationDetail(
   })
   if (!situation || situation.projetId !== projetId) return null
 
-  const [lignesDE, lignesAnterieures] = await Promise.all([
+  const [lignesDE, lignesAnterieures, sousTraitants, coTraitants] = await Promise.all([
     prisma.ligneDE.findMany({ where: { projetId }, orderBy: { ordre: 'asc' } }),
     prisma.ligneSituation.findMany({
       where: {
         situation: { projetId, numero: { lt: situation.numero } },
       },
     }),
+    prisma.sousTraitant.findMany({
+      where: { projetId },
+      orderBy: { ordre: 'asc' },
+      include: {
+        facturations: {
+          where: { annee: situation.annee, mois: situation.mois },
+        },
+      },
+    }),
+    prisma.coTraitant.findMany({ where: { projetId }, orderBy: { ordre: 'asc' } }),
   ])
+
+  function repartitionDe(value: unknown): Record<string, number> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+    const out: Record<string, number> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof v === 'number' && !isNaN(v)) out[k] = v
+    }
+    return out
+  }
 
   const anterieurParLigne = new Map<string, { qte: number; montant: number }>()
   for (const l of lignesAnterieures) {
@@ -171,11 +205,22 @@ export async function getSituationDetail(
     mois: situation.mois,
     statut: situation.statut,
     commentaire: situation.commentaire,
+    sousTraitants: sousTraitants.map((st) => ({
+      id: st.id,
+      nom: st.nom,
+      montantMois: st.facturations[0]?.montant ?? 0,
+    })),
+    coTraitants: coTraitants.map((ct) => ({
+      id: ct.id,
+      nom: ct.nom,
+      estMandataire: ct.estMandataire,
+    })),
     lignes: lignesDE.map((l) => {
       const ant = anterieurParLigne.get(l.id) || { qte: 0, montant: 0 }
       return {
         ligneDEId: l.id,
         estChapitre: l.estChapitre,
+        repartition: repartitionDe(l.repartition),
         code: l.code,
         designation: l.designation,
         unite: l.unite,
