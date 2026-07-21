@@ -330,7 +330,15 @@ export function SituationEditor({ projetId, projetName, initialDetail }: Props) 
                     mois: detail.mois,
                     statut,
                   },
-                  { ...calculs, cotraitance: calculs.cotraitance },
+                  {
+                    ...calculs,
+                    cotraitance: calculs.cotraitance,
+                    sousTraitants: detail.sousTraitants.map((st) => ({
+                      id: st.id,
+                      nom: st.nom,
+                      montantMois: parseQuantiteInput(facturationsST[st.id] ?? ''),
+                    })),
+                  },
                   userLogo ?? undefined,
                   nomSociete ?? undefined
                 )

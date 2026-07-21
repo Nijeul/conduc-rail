@@ -101,6 +101,12 @@ export interface SituationPDFCoTraitant {
   montantCumule: number
 }
 
+export interface SituationPDFSousTraitant {
+  id: string
+  nom: string
+  montantMois: number
+}
+
 export interface SituationPDFData {
   lignes: SituationPDFLigne[]
   totalSituation: number
@@ -109,6 +115,7 @@ export interface SituationPDFData {
   totalMarche: number
   avancementGlobal: number
   cotraitance?: SituationPDFCoTraitant[]
+  sousTraitants?: SituationPDFSousTraitant[]
 }
 
 interface Props {
@@ -292,6 +299,61 @@ export function SituationPDF({ projetName, meta, data, userLogo, nomSociete }: P
                 </Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Facturation sous-traitants du mois */}
+        {data.sousTraitants && data.sousTraitants.length > 0 && (
+          <View style={{ marginTop: 10 }} wrap={false}>
+            <Text
+              style={{
+                fontSize: 8,
+                fontFamily: 'Helvetica-Bold',
+                color: '#004489',
+                marginBottom: 3,
+              }}
+            >
+              Facturation sous-traitants — {MOIS_FR[meta.mois - 1] ?? ''} {meta.annee}
+            </Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Sous-traitant</Text>
+              <Text style={[styles.tableHeaderText, { width: 120, textAlign: 'right' }]}>
+                Montant HT du mois
+              </Text>
+            </View>
+            {data.sousTraitants.map((st, i) => (
+              <View key={st.id} style={[styles.tableRow, i % 2 !== 0 ? styles.rowAlt : {}]}>
+                <Text style={{ flex: 1, fontSize: 7 }}>{st.nom}</Text>
+                <Text style={{ width: 120, textAlign: 'right', fontSize: 7, fontFamily: 'Helvetica-Bold' }}>
+                  {pdfMontantFR(st.montantMois)}
+                </Text>
+              </View>
+            ))}
+            <View
+              style={{
+                flexDirection: 'row',
+                backgroundColor: '#003370',
+                paddingVertical: 5,
+                paddingHorizontal: 4,
+              }}
+            >
+              <Text style={{ flex: 1, fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#FFFFFF' }}>
+                TOTAL S/T du mois
+              </Text>
+              <Text
+                style={{
+                  width: 120,
+                  textAlign: 'right',
+                  fontSize: 7,
+                  fontFamily: 'Helvetica-Bold',
+                  color: '#FFFFFF',
+                }}
+              >
+                {pdfMontantFR(
+                  data.sousTraitants.reduce((sum, st) => sum + st.montantMois, 0)
+                )}
+              </Text>
+            </View>
           </View>
         )}
 
