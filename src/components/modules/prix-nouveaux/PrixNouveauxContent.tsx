@@ -1,8 +1,25 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PrixNouveau } from '@prisma/client'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,9 +41,10 @@ import {
   createPrixNouveau,
   updatePrixNouveau,
   deletePrixNouveau,
+  reorderPrixNouveaux,
 } from '@/actions/prix-nouveaux'
 import { formatMontant, formatDateFR } from '@/lib/utils'
-import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, GripVertical } from 'lucide-react'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { useProfilStore } from '@/stores/profil'
 import {
@@ -85,6 +103,7 @@ function dateToInput(d: Date | null): string {
 
 export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Props) {
   const router = useRouter()
+  const [items, setItems] = useState<PrixNouveau[]>(prixNouveaux)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<FormState>(FORM_VIDE)
   const [saving, setSaving] = useState(false)
@@ -94,13 +113,40 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
   const userLogo = useProfilStore((s) => s.logoSociete)
   const nomSociete = useProfilStore((s) => s.nomSociete)
 
-  const totaux = useMemo(() => {
-    const presente = prixNouveaux.reduce((s, pn) => s + pn.montantPresente, 0)
-    const accepte = prixNouveaux.reduce((s, pn) => s + (pn.montantAccepte ?? 0), 0)
-    const debourse = prixNouveaux.reduce((s, pn) => s + (pn.debourseReel ?? 0), 0)
-    const pondere = prixNouveaux.reduce((s, pn) => s + montantPondere(pn), 0)
-    return { presente, accepte, debourse, pondere }
+  useEffect(() => {
+    setItems(prixNouveaux)
   }, [prixNouveaux])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setItems((prev) => {
+      const oldIndex = prev.findIndex((pn) => pn.id === active.id)
+      const newIndex = prev.findIndex((pn) => pn.id === over.id)
+      const newOrder = arrayMove(prev, oldIndex, newIndex)
+
+      reorderPrixNouveaux(
+        projetId,
+        newOrder.map((pn) => pn.id)
+      ).catch(console.error)
+
+      return newOrder
+    })
+  }
+
+  const totaux = useMemo(() => {
+    const presente = items.reduce((s, pn) => s + pn.montantPresente, 0)
+    const accepte = items.reduce((s, pn) => s + (pn.montantAccepte ?? 0), 0)
+    const debourse = items.reduce((s, pn) => s + (pn.debourseReel ?? 0), 0)
+    const pondere = items.reduce((s, pn) => s + montantPondere(pn), 0)
+    return { presente, accepte, debourse, pondere }
+  }, [items])
 
   function ouvrirCreation() {
     setForm(FORM_VIDE)
@@ -192,7 +238,7 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
           <Plus className="h-4 w-4 mr-1" />
           Nouveau prix
         </Button>
-        {prixNouveaux.length > 0 && (
+        {items.length > 0 && (
           <>
             <Button
               onClick={() =>
@@ -200,7 +246,7 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
                   const { genererPrixNouveauxPDF } = await import('./PrixNouveauxPDFDownload')
                   await genererPrixNouveauxPDF(
                     projetName,
-                    prixNouveaux,
+                    items,
                     userLogo ?? undefined,
                     nomSociete ?? undefined
                   )
@@ -218,7 +264,7 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
                   const { genererPrixNouveauxPDF } = await import('./PrixNouveauxPDFDownload')
                   await genererPrixNouveauxPDF(
                     projetName,
-                    prixNouveaux,
+                    items,
                     userLogo ?? undefined,
                     nomSociete ?? undefined,
                     'client'
@@ -238,9 +284,15 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-[#004489] text-white font-bold text-[12px]">
+              <th className="px-1 py-2 w-8" />
               <th className="px-2 py-2 text-left">N° devis</th>
               <th className="px-2 py-2 text-left min-w-52">Intitulé</th>
               <th className="px-2 py-2 text-left">Date devis</th>
@@ -255,93 +307,33 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
               <th className="px-2 py-2 text-center w-20">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {prixNouveaux.map((pn, i) => {
-              const pot = potentielStyle(pn)
-              return (
-                <tr
+          <SortableContext
+            items={items.map((pn) => pn.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <tbody>
+              {items.map((pn, i) => (
+                <SortableRow
                   key={pn.id}
-                  className={`border-b border-[#DCDCDC] ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
-                  }`}
-                >
-                  <td className="px-2 py-2 font-mono text-[12px]">{pn.numero || '—'}</td>
-                  <td className="px-2 py-2">
-                    {pn.intitule}
-                    {pn.commentaire && (
-                      <p className="text-[11px] text-[#5A5A5A]">{pn.commentaire}</p>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-[12px]">
-                    {pn.dateDevis ? formatDateFR(new Date(pn.dateDevis)) : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-right font-medium">
-                    {formatMontant(pn.montantPresente)}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold"
-                      style={{ backgroundColor: pot.bg, color: pot.text }}
-                    >
-                      {pot.label}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {pn.montantAccepte != null ? formatMontant(pn.montantAccepte) : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {pn.debourseReel != null ? formatMontant(pn.debourseReel) : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-center text-[12px]">
-                    {pn.numeroOS || '—'}
-                  </td>
-                  <td className="px-2 py-2 text-[12px]">
-                    {pn.dateOS ? formatDateFR(new Date(pn.dateOS)) : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-[12px]">
-                    {pn.delaiSupplementaire || '—'}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <span
-                      className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold"
-                      style={STATUT_STYLES[pn.statut] || STATUT_STYLES.en_cours}
-                    >
-                      {STATUT_LABELS[pn.statut] || pn.statut}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => ouvrirEdition(pn)}
-                        className="p-1.5 rounded hover:bg-[#E5EFF8] text-[#004489]"
-                        title="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(pn)}
-                        className="p-1.5 rounded hover:bg-[#FDEAED] text-[#E20025]"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  pn={pn}
+                  index={i}
+                  onEdit={ouvrirEdition}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={13} className="px-3 py-8 text-center text-gray-400">
+                    Aucun prix nouveau — cliquez sur « Nouveau prix » pour commencer
                   </td>
                 </tr>
-              )
-            })}
-            {prixNouveaux.length === 0 && (
-              <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-gray-400">
-                  Aucun prix nouveau — cliquez sur « Nouveau prix » pour commencer
-                </td>
-              </tr>
-            )}
-          </tbody>
-          {prixNouveaux.length > 0 && (
+              )}
+            </tbody>
+          </SortableContext>
+          {items.length > 0 && (
             <tfoot>
               <tr className="bg-[#003370] font-bold text-white text-[12px]">
-                <td colSpan={3} className="px-2 py-3 text-right">
+                <td colSpan={4} className="px-2 py-3 text-right">
                   TOTAUX :
                 </td>
                 <td className="px-2 py-3 text-right">{formatMontant(totaux.presente)}</td>
@@ -355,6 +347,7 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
             </tfoot>
           )}
         </table>
+        </DndContext>
       </div>
 
       {/* Dialog création / édition */}
@@ -528,6 +521,103 @@ export function PrixNouveauxContent({ projetId, projetName, prixNouveaux }: Prop
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function SortableRow({
+  pn,
+  index,
+  onEdit,
+  onDelete,
+}: {
+  pn: PrixNouveau
+  index: number
+  onEdit: (pn: PrixNouveau) => void
+  onDelete: (pn: PrixNouveau) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: pn.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    backgroundColor: isDragging ? '#E5EFF8' : index % 2 === 0 ? '#FFFFFF' : '#F0F0F0',
+    opacity: isDragging ? 0.8 : 1,
+  }
+
+  const pot = potentielStyle(pn)
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b border-[#DCDCDC]">
+      <td className="px-1 py-2 w-8">
+        <button
+          className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600"
+          title="Déplacer"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </td>
+      <td className="px-2 py-2 font-mono text-[12px]">{pn.numero || '—'}</td>
+      <td className="px-2 py-2">
+        {pn.intitule}
+        {pn.commentaire && (
+          <p className="text-[11px] text-[#5A5A5A]">{pn.commentaire}</p>
+        )}
+      </td>
+      <td className="px-2 py-2 text-[12px]">
+        {pn.dateDevis ? formatDateFR(new Date(pn.dateDevis)) : '—'}
+      </td>
+      <td className="px-2 py-2 text-right font-medium">
+        {formatMontant(pn.montantPresente)}
+      </td>
+      <td className="px-2 py-2 text-center">
+        <span
+          className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold"
+          style={{ backgroundColor: pot.bg, color: pot.text }}
+        >
+          {pot.label}
+        </span>
+      </td>
+      <td className="px-2 py-2 text-right">
+        {pn.montantAccepte != null ? formatMontant(pn.montantAccepte) : '—'}
+      </td>
+      <td className="px-2 py-2 text-right">
+        {pn.debourseReel != null ? formatMontant(pn.debourseReel) : '—'}
+      </td>
+      <td className="px-2 py-2 text-center text-[12px]">{pn.numeroOS || '—'}</td>
+      <td className="px-2 py-2 text-[12px]">
+        {pn.dateOS ? formatDateFR(new Date(pn.dateOS)) : '—'}
+      </td>
+      <td className="px-2 py-2 text-[12px]">{pn.delaiSupplementaire || '—'}</td>
+      <td className="px-2 py-2 text-center">
+        <span
+          className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold"
+          style={STATUT_STYLES[pn.statut] || STATUT_STYLES.en_cours}
+        >
+          {STATUT_LABELS[pn.statut] || pn.statut}
+        </span>
+      </td>
+      <td className="px-2 py-2">
+        <div className="flex items-center justify-center gap-1">
+          <button
+            onClick={() => onEdit(pn)}
+            className="p-1.5 rounded hover:bg-[#E5EFF8] text-[#004489]"
+            title="Modifier"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDelete(pn)}
+            className="p-1.5 rounded hover:bg-[#FDEAED] text-[#E20025]"
+            title="Supprimer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
   )
 }
 

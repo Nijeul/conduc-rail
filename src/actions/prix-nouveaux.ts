@@ -136,6 +136,31 @@ export async function updatePrixNouveau(
   }
 }
 
+export async function reorderPrixNouveaux(
+  projetId: string,
+  orderedIds: string[]
+): Promise<ActionResult> {
+  try {
+    const user = await getAuthUser()
+    await checkMembership(projetId, user.id)
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.prixNouveau.updateMany({
+          where: { id, projetId },
+          data: { ordre: index },
+        })
+      )
+    )
+
+    revalidatePath(`/projets/${projetId}/suivi/prix-nouveaux`)
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('reorderPrixNouveaux error:', error)
+    return { success: false, error: 'Erreur lors du reordonnement' }
+  }
+}
+
 export async function deletePrixNouveau(
   projetId: string,
   id: string
