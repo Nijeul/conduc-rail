@@ -374,11 +374,30 @@ export async function deleteSituation(
   try {
     const user = await getAuthUser()
     await checkMembership(projetId, user.id)
-    await checkSituation(projetId, situationId)
+    const situation = await checkSituation(projetId, situationId)
 
-    await prisma.situation.delete({ where: { id: situationId } })
+    await prisma.$transaction(async (tx) => {
+      await tx.situation.delete({ where: { id: situationId } })
+
+      // Les facturations ST du mois sont saisies depuis la situation (synchronisées
+      // avec le Suivi ST) : on les supprime aussi, sauf si une autre situation
+      // couvre encore le même mois.
+      const autreSituationMois = await tx.situation.findFirst({
+        where: { projetId, annee: situation.annee, mois: situation.mois },
+      })
+      if (!autreSituationMois) {
+        await tx.facturationSousTraitant.deleteMany({
+          where: {
+            sousTraitant: { projetId },
+            annee: situation.annee,
+            mois: situation.mois,
+          },
+        })
+      }
+    })
 
     revalidatePath(`/projets/${projetId}/suivi/situations`)
+    revalidatePath(`/projets/${projetId}/suivi/sous-traitants`)
     return { success: true, data: undefined }
   } catch (error) {
     console.error('deleteSituation error:', error)
