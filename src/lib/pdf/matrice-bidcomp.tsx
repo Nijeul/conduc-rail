@@ -150,29 +150,33 @@ export function BidCompPDF({
         {/* Bloc d'identification */}
         <View style={styles.infoBloc}>
           <View style={styles.infoCarte}>
-            <Text style={styles.infoLabel}>Acheteur</Text>
+            <Text style={styles.infoLabel}>Agence</Text>
             <Text style={styles.infoValeur}>{entete.acheteur || '-'}</Text>
           </View>
           <View style={styles.infoCarte}>
-            <Text style={styles.infoLabel}>Site</Text>
+            <Text style={styles.infoLabel}>Secteur</Text>
             <Text style={styles.infoValeur}>{entete.site || '-'}</Text>
           </View>
           <View style={styles.infoCarte}>
-            <Text style={styles.infoLabel}>Famille d&apos;achats</Text>
-            <Text style={styles.infoValeur}>{entete.familleAchats || '-'}</Text>
-          </View>
-          <View style={styles.infoCarte}>
-            <Text style={styles.infoLabel}>Budget théorique</Text>
+            <Text style={styles.infoLabel}>Budget (€)</Text>
             <Text style={styles.infoValeur}>
               {entete.budgetTheorique != null ? pdfMontantFR(entete.budgetTheorique) : '-'}
             </Text>
+          </View>
+          <View style={styles.infoCarte}>
+            <Text style={styles.infoLabel}>Chantier</Text>
+            <Text style={styles.infoValeur}>{entete.familleAchats || '-'}</Text>
+          </View>
+          <View style={styles.infoCarte}>
+            <Text style={styles.infoLabel}>Typologie achat</Text>
+            <Text style={styles.infoValeur}>{data.typologieAchat || '-'}</Text>
           </View>
         </View>
 
         {/* En-tête de la grille */}
         <View style={styles.headerRow}>
           <Text style={[styles.headerText, styles.colLibelle]}>Critère</Text>
-          <Text style={[styles.headerText, styles.colBesoin]}>Besoin</Text>
+          <Text style={[styles.headerText, styles.colBesoin]}>Votre besoin</Text>
           {fournisseurs.map((f) => (
             <Text key={f.id} style={[styles.headerText, styles.colFournisseur]}>
               {f.nom}
@@ -237,10 +241,10 @@ export function BidCompPDF({
         {/* Écart vs budget */}
         <View style={styles.row}>
           <Text style={[styles.colLibelle, { fontFamily: 'Helvetica-Bold', fontSize: 7 }]}>
-            Écart vs budget (€)
+            Économie (€)
           </Text>
           <Text style={[styles.colBesoin, { fontSize: 6, color: '#5A5A5A' }]}>
-            négatif = économie
+            Total − budget (négatif = sous le budget)
           </Text>
           {fournisseurs.map((f) => {
             const ecart =
@@ -295,21 +299,24 @@ export function BidCompPDF({
           })}
         </View>
 
-        {/* Conclusions et signatures */}
-        <View style={styles.blocTexte} wrap={false}>
-          <Text style={styles.blocTitre}>Conclusions / Recommandations</Text>
-          <Text style={{ fontSize: 7 }}>{data.conclusions || '-'}</Text>
-          <Text style={[styles.blocTitre, { marginTop: 6 }]}>
-            Pourquoi moins de 3 fournisseurs consultés ?
-          </Text>
-          <Text style={{ fontSize: 7 }}>{data.pourquoiPasTroisFournisseurs || '-'}</Text>
-          <View style={{ flexDirection: 'row', gap: 20, marginTop: 8 }}>
-            <Text style={{ fontSize: 7 }}>
-              Signature Sourcing : {data.signatureSourcing || '____________________'}
-            </Text>
-            <Text style={{ fontSize: 7 }}>
-              Signature Projet : {data.signatureProjet || '____________________'}
-            </Text>
+        {/* Opportunités / Risques / Recommandation */}
+        <View style={{ flexDirection: 'row', gap: 8 }} wrap={false}>
+          <View style={[styles.blocTexte, { flex: 1 }]}>
+            <Text style={[styles.blocTitre, { color: '#5E8019' }]}>Opportunités</Text>
+            <Text style={{ fontSize: 7 }}>{data.opportunites || '-'}</Text>
+          </View>
+          <View style={[styles.blocTexte, { flex: 1 }]}>
+            <Text style={[styles.blocTitre, { color: '#E20025' }]}>Risques</Text>
+            <Text style={{ fontSize: 7 }}>{data.risques || '-'}</Text>
+          </View>
+          <View
+            style={[
+              styles.blocTexte,
+              { flex: 1, borderColor: '#004489', backgroundColor: '#E5EFF8' },
+            ]}
+          >
+            <Text style={styles.blocTitre}>Recommandation / Décision</Text>
+            <Text style={{ fontSize: 7 }}>{data.recommandation || '-'}</Text>
           </View>
         </View>
 

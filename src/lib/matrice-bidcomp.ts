@@ -1,6 +1,7 @@
-// Structure de la grille "Bid Comp" (matrice décisionnelle fournisseurs),
-// calquée sur le fichier Excel « Matrice Décisionnelle » (feuille Bid Comp).
-// Les valeurs des cellules sont indexées par l'id du FournisseurCandidat.
+// Structure de la grille de la matrice décisionnelle fournisseurs,
+// calquée sur le fichier Excel « Matrice Décisionnelle d'Offres Fournisseurs »
+// (feuille « Matrice »). Les valeurs des cellules sont indexées par l'id
+// du FournisseurCandidat.
 
 export interface LigneBidComp {
   id: string
@@ -18,29 +19,34 @@ export interface SectionBidComp {
 
 export interface BidCompData {
   sections: SectionBidComp[]
+  // Typologie d'achat de l'en-tête (FOURNITURE / PRESTATION / SOUS-TRAITANCE)
+  typologieAchat?: string
+  // Blocs de synthèse du bas de la feuille Excel
+  opportunites?: string
+  risques?: string
+  recommandation?: string
+  // Champs hérités des anciennes matrices (conservés pour compatibilité)
   conclusions: string
   pourquoiPasTroisFournisseurs: string
   signatureSourcing: string
   signatureProjet: string
 }
 
-function ligne(id: string, libelle: string): LigneBidComp {
-  return { id, libelle, besoin: '', valeurs: {} }
+function ligne(id: string, libelle: string, besoin = ''): LigneBidComp {
+  return { id, libelle, besoin, valeurs: {} }
 }
 
-/** Gabarit par défaut, fidèle à la feuille Excel « Bid Comp » */
+/** Gabarit par défaut, fidèle à la feuille Excel « Matrice » */
 export function bidCompParDefaut(): BidCompData {
   return {
     sections: [
       {
-        id: 'fournisseur',
-        titre: 'Fournisseur',
+        id: 'offre',
+        titre: 'Offre fournisseur',
         type: 'texte',
         lignes: [
-          ligne('offre-ref', 'Offre : référence / date'),
-          ligne('offre-validite', "Validité de l'offre"),
-          ligne('pays-fab', 'Pays de fabrication'),
-          ligne('pct-low-cost', '% fabriqué en pays à bas coût'),
+          ligne('offre-ref', 'N° offre fournisseur et date', 'N° OFFRE ET DATE'),
+          ligne('offre-validite', "Validité de l'offre", 'DATE'),
         ],
       },
       {
@@ -48,30 +54,40 @@ export function bidCompParDefaut(): BidCompData {
         titre: 'Conditions financières',
         type: 'texte',
         lignes: [
-          ligne('etat-financier', 'État financier du fournisseur'),
-          ligne('monnaie', "Monnaie de l'offre"),
-          ligne('incoterm', 'Incoterm (2020)'),
-          ligne('paiement', 'Conditions de paiement'),
-          ligne('cautions', 'Cautions'),
-          ligne('duree-contrat', 'Durée du contrat'),
-          ligne('revision', 'Formule de révision'),
+          ligne('paiement', 'Terme de paiement', 'DÉLAI DE PAIEMENT CHOISI'),
+          ligne('acomptes', 'Acomptes ?', 'OUI / NON et %'),
+          ligne('caution', 'Caution bancaire fournisseur ?', 'OUI / NON et %'),
+          ligne('revision', 'Formule de révision ?', 'OUI / NON'),
         ],
       },
       {
-        id: 'achats-responsables',
-        titre: 'Achats responsables',
+        id: 'delais',
+        titre: 'Évaluation délais',
         type: 'texte',
         lignes: [
-          ligne('iso-9001', 'ISO 9001'),
-          ligne('iso-14001', 'ISO 14001'),
-          ligne('iso-45001', 'ISO 45001'),
-          ligne('fin-de-vie', 'Fin de vie du produit / recyclage'),
-          ligne('anti-corruption', 'Charte anti-corruption'),
-          ligne('ethique', "Charte d'éthique"),
-          ligne('dependance', 'Dépendance ETF du fournisseur'),
-          ligne('capacite', 'Capacité de production'),
-          ligne('rex-qualite', 'REX Qualité'),
-          ligne('rex-delais', 'REX Délais'),
+          ligne('incoterm', 'Incoterm fournisseur', 'INCOTERM DU CHANTIER CHOISI'),
+          ligne('premier-besoin', 'Date du premier besoin', 'DATE'),
+          ligne('dernier-besoin', 'Date du dernier besoin', 'DATE'),
+        ],
+      },
+      {
+        id: 'juridique',
+        titre: 'Évaluation juridique',
+        type: 'texte',
+        lignes: [
+          ligne('penalites', 'Pénalités', 'OUI / NON'),
+          ligne('responsabilite', 'Responsabilité', '% DU MONTANT / ILLIMITÉE'),
+          ligne('garantie', 'Garantie', 'DURÉE'),
+          ligne('attestation-legale', 'Plateforme Attestation Légale acceptée ?', 'OUI / NON'),
+        ],
+      },
+      {
+        id: 'qualite',
+        titre: 'Qualité et prévention',
+        type: 'texte',
+        lignes: [
+          ligne('normes', 'Normes et standards à respecter', 'NORMES APPLICABLES'),
+          ligne('secufer', 'SECUFER accepté ?', 'OUI / NON / NON APPLICABLE'),
         ],
       },
       {
@@ -79,43 +95,48 @@ export function bidCompParDefaut(): BidCompData {
         titre: 'Évaluation technique',
         type: 'texte',
         lignes: [
-          ligne('tolerance', 'Tolérance +/- %'),
-          ligne('rails-courts', '% rails courts'),
-          ligne('normes', 'Conformité aux normes et agréments'),
+          ligne('capacite', 'Capacité de production'),
+          ligne('tolerances', 'Tolérances techniques'),
         ],
       },
       {
-        id: 'jalons',
-        titre: 'Jalons',
+        id: 'csrd',
+        titre: 'Évaluation CSRD — business > 200 k€',
         type: 'texte',
         lignes: [
-          ligne('design-acceptance', 'Acceptation du design'),
-          ligne('fai', 'FAI — Inspection premier article'),
-          ligne('fat', 'FAT — Réception en usine'),
-          ligne('sat', 'SAT — Réception sur site'),
-          ligne('lead-time', 'Délai de production'),
-          ligne('premier-besoin', 'Date du premier besoin'),
+          ligne('adit', 'Enquête de compliance ADIT ?', 'OUI / NON'),
+          ligne('defaillance', 'Risque de défaillance financière', 'TRÈS FAIBLE / FAIBLE / MOYEN / FORT'),
+          ligne('rse', 'Questionnaire auto-évaluation RSE ?', 'OUI / NON'),
+          ligne('rex', 'A-t-on un REX fournisseur ?', 'OUI / NON'),
+          ligne('carbone', "Fourniture de l'empreinte carbone ?", 'OUI / NON'),
         ],
       },
       {
-        id: 'couts-fixes',
-        titre: 'Coûts fixes (non récurrents)',
+        id: 'couts',
+        titre: 'Détail des coûts',
         type: 'cout',
-        lignes: [ligne('design', 'Design'), ligne('inspections', 'Inspections')],
-      },
-      {
-        id: 'couts-variables',
-        titre: 'Coûts variables (récurrents)',
-        type: 'cout',
-        lignes: [ligne('prestations', 'Prestations selon cahier des charges ETF')],
+        lignes: [
+          ligne('couts-fixes', 'Coûts fixes'),
+          ligne('couts-variables', 'Coûts variables'),
+        ],
       },
       {
         id: 'options',
         titre: 'Options',
         type: 'cout',
-        lignes: [ligne('option-1', 'Option 1')],
+        lignes: [
+          ligne('livrables', 'Livrables', 'INCLUS / NON INCLUS'),
+          ligne('transport', 'Transport', 'INCLUS / NON INCLUS'),
+          ligne('taxes', 'Impôts et taxes', 'OUI / NON'),
+          ligne('change', 'Risques de change', 'OUI / NON'),
+          ligne('autres-risques', 'Autres risques', 'À PRÉCISER'),
+        ],
       },
     ],
+    typologieAchat: '',
+    opportunites: '',
+    risques: '',
+    recommandation: '',
     conclusions: '',
     pourquoiPasTroisFournisseurs: '',
     signatureSourcing: '',
@@ -128,6 +149,25 @@ export function estBidCompValide(data: unknown): data is BidCompData {
   if (!data || typeof data !== 'object') return false
   const d = data as BidCompData
   return Array.isArray(d.sections) && d.sections.length > 0
+}
+
+/**
+ * Complète un bidComp existant avec les champs ajoutés depuis (typologie,
+ * opportunités, risques, recommandation) — les anciennes conclusions
+ * deviennent la recommandation si elle est vide.
+ */
+export function normaliserBidComp(data: BidCompData): BidCompData {
+  return {
+    ...data,
+    typologieAchat: data.typologieAchat ?? '',
+    opportunites: data.opportunites ?? '',
+    risques: data.risques ?? '',
+    recommandation: data.recommandation ?? data.conclusions ?? '',
+    conclusions: data.conclusions ?? '',
+    pourquoiPasTroisFournisseurs: data.pourquoiPasTroisFournisseurs ?? '',
+    signatureSourcing: data.signatureSourcing ?? '',
+    signatureProjet: data.signatureProjet ?? '',
+  }
 }
 
 /** "12 345,67 €", "inclus", "12345.5" → nombre (0 si non numérique) */

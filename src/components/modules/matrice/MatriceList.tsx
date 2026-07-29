@@ -94,7 +94,7 @@ export function MatriceList({ projetId, matrices }: MatriceListProps) {
                 Titre
               </th>
               <th className="px-4 py-2 text-left text-white font-bold">
-                Acheteur
+                Agence
               </th>
               <th className="px-4 py-2 text-right text-white font-bold">
                 Budget

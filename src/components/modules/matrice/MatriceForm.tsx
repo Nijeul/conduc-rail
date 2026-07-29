@@ -115,7 +115,7 @@ export function MatriceForm({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="acheteur">Acheteur</Label>
+              <Label htmlFor="acheteur">Agence</Label>
               <Input
                 id="acheteur"
                 value={acheteur}
@@ -123,7 +123,7 @@ export function MatriceForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="site">Site</Label>
+              <Label htmlFor="site">Secteur</Label>
               <Input
                 id="site"
                 value={site}
@@ -132,7 +132,7 @@ export function MatriceForm({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="familleAchats">Famille d&apos;achats</Label>
+            <Label htmlFor="familleAchats">Chantier</Label>
             <Input
               id="familleAchats"
               value={familleAchats}
@@ -141,7 +141,7 @@ export function MatriceForm({
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget theorique</Label>
+              <Label htmlFor="budget">Budget (€)</Label>
               <Input
                 id="budget"
                 type="number"

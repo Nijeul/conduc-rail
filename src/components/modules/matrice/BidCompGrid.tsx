@@ -21,12 +21,13 @@ import {
 import {
   bidCompParDefaut,
   estBidCompValide,
+  normaliserBidComp,
   parseMontantCellule,
   totauxBidComp,
   type BidCompData,
 } from '@/lib/matrice-bidcomp'
 import { formatMontant } from '@/lib/utils'
-import { Plus, Trash2, FileText, UserPlus } from 'lucide-react'
+import { Plus, Trash2, FileText, UserPlus, RotateCcw } from 'lucide-react'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { useProfilStore } from '@/stores/profil'
 
@@ -77,7 +78,9 @@ export function BidCompGrid({
 }: Props) {
   const router = useRouter()
   const [data, setData] = useState<BidCompData>(() =>
-    estBidCompValide(bidCompInitial) ? (bidCompInitial as BidCompData) : bidCompParDefaut()
+    normaliserBidComp(
+      estBidCompValide(bidCompInitial) ? (bidCompInitial as BidCompData) : bidCompParDefaut()
+    )
   )
   const [fournisseurs, setFournisseurs] = useState<FournisseurLite[]>(fournisseursInitiaux)
   const [entete, setEntete] = useState({
@@ -147,6 +150,21 @@ export function BidCompGrid({
     })
   }
 
+  function appliquerGabarit() {
+    if (
+      !confirm(
+        'Remplacer les critères actuels par le gabarit de la matrice Excel ? ' +
+          'Les valeurs saisies dans les lignes actuelles seront perdues ' +
+          '(les fournisseurs et les blocs du bas sont conservés).'
+      )
+    )
+      return
+    mutate((d) => {
+      d.sections = bidCompParDefaut().sections
+      return d
+    })
+  }
+
   function ajouterLigne(sectionId: string) {
     mutate((d) => {
       const s = d.sections.find((x) => x.id === sectionId)
@@ -171,7 +189,7 @@ export function BidCompGrid({
   }
 
   function setChampTexte(
-    champ: 'conclusions' | 'pourquoiPasTroisFournisseurs' | 'signatureSourcing' | 'signatureProjet',
+    champ: 'typologieAchat' | 'opportunites' | 'risques' | 'recommandation',
     valeur: string
   ) {
     mutate((d) => {
@@ -252,27 +270,33 @@ export function BidCompGrid({
   return (
     <div className="space-y-4">
       {/* En-tête d'identification (comme le bloc du haut de l'Excel) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <ChampEntete
-          label="Acheteur"
+          label="Agence"
           value={entete.acheteur}
           onChange={(v) => handleEnteteChange('acheteur', v)}
         />
         <ChampEntete
-          label="Site"
+          label="Secteur"
           value={entete.site}
           onChange={(v) => handleEnteteChange('site', v)}
         />
         <ChampEntete
-          label="Famille d'achats"
+          label="Budget (€)"
+          value={entete.budgetTheorique}
+          onChange={(v) => handleEnteteChange('budgetTheorique', v)}
+          inputMode="decimal"
+        />
+        <ChampEntete
+          label="Chantier"
           value={entete.familleAchats}
           onChange={(v) => handleEnteteChange('familleAchats', v)}
         />
         <ChampEntete
-          label="Budget théorique (€)"
-          value={entete.budgetTheorique}
-          onChange={(v) => handleEnteteChange('budgetTheorique', v)}
-          inputMode="decimal"
+          label="Typologie achat"
+          value={data.typologieAchat ?? ''}
+          onChange={(v) => setChampTexte('typologieAchat', v)}
+          placeholder="FOURNITURE / PRESTATION / SOUS-TRAITANCE"
         />
       </div>
 
@@ -313,6 +337,14 @@ export function BidCompGrid({
           <FileText className="h-4 w-4 mr-1" />
           {isExporting ? 'Génération...' : 'Export PDF'}
         </Button>
+        <Button
+          onClick={appliquerGabarit}
+          className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+          title="Remplace les critères par ceux du modèle Excel"
+        >
+          <RotateCcw className="h-4 w-4 mr-1" />
+          Appliquer le gabarit Excel
+        </Button>
         <span className="text-xs text-[#5A5A5A]">
           {saveState === 'saving' && 'Enregistrement...'}
           {saveState === 'saved' && 'Modifications enregistrées'}
@@ -331,7 +363,7 @@ export function BidCompGrid({
               <th className="px-2 py-2 text-left min-w-56 sticky left-0 bg-[#004489] z-10">
                 Critère
               </th>
-              <th className="px-2 py-2 text-left min-w-40">Besoin</th>
+              <th className="px-2 py-2 text-left min-w-40">Votre besoin</th>
               {fournisseurs.map((f) => (
                 <th key={f.id} className="px-1 py-1.5 min-w-44">
                   <div className="flex items-center gap-1">
@@ -386,13 +418,13 @@ export function BidCompGrid({
               ))}
             </tr>
 
-            {/* Écart vs budget */}
+            {/* Économie vs budget */}
             <tr className="bg-white border-b border-[#DCDCDC]">
               <td className="px-2 py-2 font-semibold sticky left-0 bg-white z-10">
-                Écart vs budget (€)
+                Économie (€)
               </td>
               <td className="px-2 py-2 text-[12px] text-[#5A5A5A]">
-                négatif = économie
+                Total − budget (négatif = sous le budget)
               </td>
               {fournisseurs.map((f) => {
                 const ecart = budgetLocal != null ? (totaux[f.id] ?? 0) - budgetLocal : null
@@ -447,55 +479,39 @@ export function BidCompGrid({
         </table>
       </div>
 
-      {/* Conclusions et signatures (bas de la feuille Excel) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {/* Opportunités / Risques / Recommandation (bas de la feuille Excel) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="rounded-lg border border-[#DCDCDC] bg-white p-4">
-          <p className="text-sm font-semibold text-[#004489] mb-2">
-            Conclusions / Recommandations
-          </p>
+          <p className="text-sm font-semibold text-[#5E8019] mb-2">Opportunités</p>
           <textarea
-            value={data.conclusions}
-            onChange={(e) => setChampTexte('conclusions', e.target.value)}
-            rows={4}
+            value={data.opportunites ?? ''}
+            onChange={(e) => setChampTexte('opportunites', e.target.value)}
+            rows={5}
             className="w-full text-sm border border-[#DCDCDC] rounded px-3 py-2 focus:border-[#004489] focus:outline-none resize-y"
-            placeholder="Ex : FOURNISSEUR 2 RETENU — MEILLEURE OFFRE TECHNIQUE ET FINANCIÈRE"
+            placeholder={'- ...\n- ...'}
           />
         </div>
-        <div className="rounded-lg border border-[#DCDCDC] bg-white p-4 space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-[#004489] mb-2">
-              Pourquoi moins de 3 fournisseurs consultés ?
-            </p>
-            <textarea
-              value={data.pourquoiPasTroisFournisseurs}
-              onChange={(e) => setChampTexte('pourquoiPasTroisFournisseurs', e.target.value)}
-              rows={2}
-              className="w-full text-sm border border-[#DCDCDC] rounded px-3 py-2 focus:border-[#004489] focus:outline-none resize-y"
-              placeholder="Ex : 4 fournisseurs consultés — 2 retours — 1 offre validée"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs font-semibold text-[#5A5A5A] mb-1">
-                Signature Sourcing
-              </p>
-              <Input
-                value={data.signatureSourcing}
-                onChange={(e) => setChampTexte('signatureSourcing', e.target.value)}
-                placeholder="Nom, date"
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#5A5A5A] mb-1">
-                Signature Projet
-              </p>
-              <Input
-                value={data.signatureProjet}
-                onChange={(e) => setChampTexte('signatureProjet', e.target.value)}
-                placeholder="Nom, date"
-              />
-            </div>
-          </div>
+        <div className="rounded-lg border border-[#DCDCDC] bg-white p-4">
+          <p className="text-sm font-semibold text-[#E20025] mb-2">Risques</p>
+          <textarea
+            value={data.risques ?? ''}
+            onChange={(e) => setChampTexte('risques', e.target.value)}
+            rows={5}
+            className="w-full text-sm border border-[#DCDCDC] rounded px-3 py-2 focus:border-[#004489] focus:outline-none resize-y"
+            placeholder={'- ...\n- ...'}
+          />
+        </div>
+        <div className="rounded-lg border border-[#004489] bg-[#E5EFF8] p-4">
+          <p className="text-sm font-semibold text-[#004489] mb-2">
+            Recommandation / Décision
+          </p>
+          <textarea
+            value={data.recommandation ?? ''}
+            onChange={(e) => setChampTexte('recommandation', e.target.value)}
+            rows={5}
+            className="w-full text-sm border border-[#DCDCDC] rounded px-3 py-2 bg-white focus:border-[#004489] focus:outline-none resize-y"
+            placeholder="Ex : FOURNISSEUR 2 RETENU — MEILLEURE OFFRE TECHNIQUE ET FINANCIÈRE"
+          />
         </div>
       </div>
     </div>
@@ -606,11 +622,13 @@ function ChampEntete({
   value,
   onChange,
   inputMode,
+  placeholder,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   inputMode?: 'decimal'
+  placeholder?: string
 }) {
   return (
     <div className="rounded-lg border border-[#DCDCDC] bg-white p-2.5">
@@ -619,6 +637,7 @@ function ChampEntete({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode={inputMode}
+        placeholder={placeholder}
         className="h-8 text-sm"
       />
     </div>
