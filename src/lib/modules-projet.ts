@@ -51,12 +51,43 @@ export const ONGLETS_PROJET: OngletProjet[] = [
   },
 ]
 
+/**
+ * Profils utilisateurs (User.role) :
+ * - 'admin' / 'user'      → profil « conducteur de travaux » : accès à tout
+ * - 'chef_chantier'       → accès uniquement à l'onglet Gestion de Chantier
+ */
+export const ROLE_CHEF_CHANTIER = 'chef_chantier'
+
+/** Onglets accessibles selon le profil de l'utilisateur */
+export function ongletsPourRole(role?: string | null): OngletProjet[] {
+  if (role === ROLE_CHEF_CHANTIER) {
+    return ONGLETS_PROJET.filter((o) => o.id === 'chantier')
+  }
+  return ONGLETS_PROJET
+}
+
+/**
+ * Préfixes d'URL (relatifs à /projets/[id]/) autorisés pour un profil.
+ * Renvoie null quand tout est autorisé.
+ */
+export function hrefsAutorisesPourRole(role?: string | null): string[] | null {
+  if (role === ROLE_CHEF_CHANTIER) {
+    return ongletsPourRole(role).flatMap((o) => o.modules.map((m) => m.href))
+  }
+  return null
+}
+
 /** Onglets avec uniquement les modules visibles ; les onglets vides sont retirés */
-export function ongletsVisibles(modulesMasques: string[]): OngletProjet[] {
-  return ONGLETS_PROJET.map((o) => ({
-    ...o,
-    modules: o.modules.filter(
-      (m) => !m.toggleable || !modulesMasques.includes(m.key)
-    ),
-  })).filter((o) => o.modules.length > 0)
+export function ongletsVisibles(
+  modulesMasques: string[],
+  role?: string | null
+): OngletProjet[] {
+  return ongletsPourRole(role)
+    .map((o) => ({
+      ...o,
+      modules: o.modules.filter(
+        (m) => !m.toggleable || !modulesMasques.includes(m.key)
+      ),
+    }))
+    .filter((o) => o.modules.length > 0)
 }

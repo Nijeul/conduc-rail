@@ -10,14 +10,20 @@ interface ProjetNavProps {
   projetId: string;
   projetName: string;
   modulesMasques?: string[];
+  role?: string;
 }
 
-export function ProjetNav({ projetId, projetName, modulesMasques = [] }: ProjetNavProps) {
+export function ProjetNav({
+  projetId,
+  projetName,
+  modulesMasques = [],
+  role,
+}: ProjetNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const base = `/projets/${projetId}`;
 
-  const onglets = ongletsVisibles(modulesMasques);
+  const onglets = ongletsVisibles(modulesMasques, role);
 
   // Determine active top-level tab (fallback: last visible tab, comme avant)
   const activeOnglet =
