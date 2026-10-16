@@ -60,6 +60,15 @@ function parseHeureFlexible(input: string): string | null {
 
 type EditableHeureField = 'heureDebutPrevue' | 'heureFinPrevue' | 'heureDebut' | 'heureFin' | 'heureRestituee'
 
+/** Numéro de semaine ISO (S1 à S53) */
+function numeroSemaine(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const jour = date.getUTCDay() || 7
+  date.setUTCDate(date.getUTCDate() + 4 - jour)
+  const debutAnnee = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+  return Math.ceil(((date.getTime() - debutAnnee.getTime()) / 86400000 + 1) / 7)
+}
+
 function computeRow(row: ARFRow) {
   const finEffective = row.heureRestituee || row.heureFin
   let dureeReelleMin: number | null = null
@@ -335,6 +344,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-[#004489] text-white font-bold">
+              <th className="px-2 py-2 text-center">Sem.</th>
               <th className="px-3 py-2 text-left">Jour</th>
               <th className="px-3 py-2 text-center">Poste</th>
               <th className="px-3 py-2 text-center">Voie</th>
@@ -364,6 +374,9 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                   key={row.id}
                   className={`border-b border-[#DCDCDC] ${rowBg}`}
                 >
+                  <td className="px-2 py-2 text-center font-semibold text-[#004489]">
+                    S{numeroSemaine(new Date(row.date))}
+                  </td>
                   <td className="px-3 py-2">
                     {isManuelle && (
                       <Pencil className="inline h-3 w-3 mr-1 text-[#F2AB1B]" />
@@ -497,7 +510,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={12}
+                  colSpan={13}
                   className="px-3 py-8 text-center text-gray-400"
                 >
                   Aucun rapport journalier
@@ -507,7 +520,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-[#F0F0F0] font-bold border-t-2 border-[#004489]">
-              <td colSpan={9} className="px-3 py-3 text-right">
+              <td colSpan={10} className="px-3 py-3 text-right">
                 Total cumule :
               </td>
               <td className="px-3 py-3 text-right text-[#004489]">
@@ -605,6 +618,9 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
       <table className="w-full text-[13px]">
         <thead>
           <tr className="bg-[#004489] text-white font-bold">
+            <th rowSpan={2} className="px-2 py-2 text-center align-bottom">
+              Sem.
+            </th>
             <th rowSpan={2} className="px-3 py-2 text-left align-bottom">
               Jour
             </th>
@@ -637,6 +653,9 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                 i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
               }`}
             >
+              <td className="px-2 py-1.5 text-center font-semibold text-[#004489]">
+                S{numeroSemaine(new Date(d))}
+              </td>
               <td className="px-3 py-1.5 whitespace-nowrap font-medium">
                 {formatDateFR(new Date(d))}
               </td>
@@ -660,7 +679,7 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
         </tbody>
         <tfoot>
           <tr className="bg-[#003370] text-white font-bold border-t-2 border-[#004489]">
-            <td className="px-3 py-2 text-right">Cumul :</td>
+            <td colSpan={2} className="px-3 py-2 text-right">Cumul :</td>
             {colonnes.flatMap((c) => {
               const cells = [
                 <td key={`${c.voie}-v`} className="px-2 py-2 text-center border-l border-[#0056B3]">
