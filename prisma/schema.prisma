@@ -294,6 +294,8 @@ model LigneARFManuelle {
   projetId         String
   date             DateTime
   posteNuit        Boolean  @default(true)
+  voie             String?
+  typeFermeture    String   @default("voie") // voie | catenaire
   heureDebutPrevue String?
   heureFinPrevue   String?
   heureDebut       String?

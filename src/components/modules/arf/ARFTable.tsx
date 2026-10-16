@@ -186,6 +186,8 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
   const handleAddManuelle = async (formData: {
     date: string
     posteNuit: boolean
+    voie: string | null
+    typeFermeture: 'voie' | 'catenaire'
     heureDebutPrevue: string | null
     heureFinPrevue: string | null
     heureDebut: string | null
@@ -201,6 +203,8 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
         source: 'manuelle',
         date: new Date(formData.date).toISOString(),
         posteNuit: formData.posteNuit,
+        voie: formData.voie,
+        typeFermeture: formData.typeFermeture,
         heureDebutPrevue: formData.heureDebutPrevue,
         heureFinPrevue: formData.heureFinPrevue,
         heureDebut: formData.heureDebut,
@@ -307,6 +311,8 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             <tr className="bg-[#004489] text-white font-bold">
               <th className="px-3 py-2 text-left">Jour</th>
               <th className="px-3 py-2 text-center">Poste</th>
+              <th className="px-3 py-2 text-center">Voie</th>
+              <th className="px-3 py-2 text-center">Type</th>
               <th className="px-3 py-2 text-center">Debut prevu</th>
               <th className="px-3 py-2 text-center">Fin prevue</th>
               <th className="px-3 py-2 text-center">Debut reel</th>
@@ -340,6 +346,58 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                   </td>
                   <td className="px-3 py-2 text-center text-lg">
                     {row.posteNuit ? '\u{1F319}' : '\u{2600}\u{FE0F}'}
+                  </td>
+
+                  {/* Voie (groupement de voies) */}
+                  <td className="px-3 py-1 text-center">
+                    {isManuelle ? (
+                      <input
+                        type="text"
+                        defaultValue={row.voie ?? ''}
+                        placeholder="V1/VZ"
+                        onBlur={(e) => {
+                          const v = e.target.value.trim() || null
+                          if (v !== (row.voie ?? null)) {
+                            setRows((prev) =>
+                              prev.map((r) => (r.id === row.id ? { ...r, voie: v } : r))
+                            )
+                            scheduleSaveManuelle(row.id, { voie: v })
+                          }
+                        }}
+                        className="w-20 px-1 py-0.5 text-center text-[13px] font-semibold rounded bg-[#F0F0F0] hover:bg-[#E0E0E0] border border-transparent focus:border-[#004489] focus:bg-white focus:outline-none"
+                      />
+                    ) : (
+                      <span className="font-semibold">{row.voie || '\u2014'}</span>
+                    )}
+                  </td>
+
+                  {/* Type : fermeture de voie ou consignation catenaire */}
+                  <td className="px-3 py-1 text-center">
+                    {isManuelle ? (
+                      <button
+                        onClick={() => {
+                          const next = row.typeFermeture === 'catenaire' ? 'voie' : 'catenaire'
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === row.id ? { ...r, typeFermeture: next } : r
+                            )
+                          )
+                          scheduleSaveManuelle(row.id, { typeFermeture: next })
+                        }}
+                        title="Basculer Voie / Catenaire"
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          row.typeFermeture === 'catenaire'
+                            ? 'bg-[#FFF7D1] text-[#DD9412]'
+                            : 'bg-[#E5EFF8] text-[#004489]'
+                        }`}
+                      >
+                        {row.typeFermeture === 'catenaire' ? 'Catenaire' : 'Voie'}
+                      </button>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#E5EFF8] text-[#004489]">
+                        Voie
+                      </span>
+                    )}
                   </td>
 
                   {/* Debut prevu */}
@@ -413,7 +471,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={12}
                   className="px-3 py-8 text-center text-gray-400"
                 >
                   Aucun rapport journalier
@@ -423,7 +481,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-[#F0F0F0] font-bold border-t-2 border-[#004489]">
-              <td colSpan={7} className="px-3 py-3 text-right">
+              <td colSpan={9} className="px-3 py-3 text-right">
                 Total cumule :
               </td>
               <td className="px-3 py-3 text-right text-[#004489]">
@@ -458,6 +516,8 @@ function AddLigneDialog({
   onSubmit: (data: {
     date: string
     posteNuit: boolean
+    voie: string | null
+    typeFermeture: 'voie' | 'catenaire'
     heureDebutPrevue: string | null
     heureFinPrevue: string | null
     heureDebut: string | null
@@ -468,6 +528,8 @@ function AddLigneDialog({
 }) {
   const [date, setDate] = useState('')
   const [posteNuit, setPosteNuit] = useState(true)
+  const [voie, setVoie] = useState('')
+  const [typeFermeture, setTypeFermeture] = useState<'voie' | 'catenaire'>('voie')
   const [heureDebutPrevue, setHeureDebutPrevue] = useState('')
   const [heureFinPrevue, setHeureFinPrevue] = useState('')
   const [heureDebut, setHeureDebut] = useState('')
@@ -483,6 +545,8 @@ function AddLigneDialog({
     await onSubmit({
       date,
       posteNuit,
+      voie: voie.trim() || null,
+      typeFermeture,
       heureDebutPrevue: parse(heureDebutPrevue),
       heureFinPrevue: parse(heureFinPrevue),
       heureDebut: parse(heureDebut),
@@ -566,6 +630,47 @@ function AddLigneDialog({
               >
                 Jour
               </button>
+            </div>
+          </div>
+
+          {/* Voie + type */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-[#000000]">Voie</label>
+              <input
+                type="text"
+                value={voie}
+                onChange={(e) => setVoie(e.target.value)}
+                placeholder="Ex : V1/VZ, V2/V4"
+                className="mt-1 w-full px-3 py-2 border border-[#DCDCDC] rounded focus:border-[#004489] focus:outline-none text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-[#000000]">Type</label>
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setTypeFermeture('voie')}
+                  className={`flex-1 py-2 rounded text-sm font-medium border ${
+                    typeFermeture === 'voie'
+                      ? 'bg-[#004489] text-white border-[#004489]'
+                      : 'bg-white text-[#000000] border-[#DCDCDC]'
+                  }`}
+                >
+                  Voie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTypeFermeture('catenaire')}
+                  className={`flex-1 py-2 rounded text-sm font-medium border ${
+                    typeFermeture === 'catenaire'
+                      ? 'bg-[#F2AB1B] text-white border-[#F2AB1B]'
+                      : 'bg-white text-[#000000] border-[#DCDCDC]'
+                  }`}
+                >
+                  Catenaire
+                </button>
+              </div>
             </div>
           </div>
 

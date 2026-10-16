@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
   },
   colJour: { width: 70 },
   colPoste: { width: 40, textAlign: 'center' },
+  colVoie: { width: 55, textAlign: 'center' },
+  colType: { width: 50, textAlign: 'center' },
   colHeure: { width: 55, textAlign: 'center' },
   colDuree: { width: 55, textAlign: 'right' },
   colPct: { width: 55, textAlign: 'right' },
@@ -188,6 +190,8 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete, u
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, styles.colJour]}>Jour</Text>
           <Text style={[styles.tableHeaderText, styles.colPoste]}>Poste</Text>
+          <Text style={[styles.tableHeaderText, styles.colVoie]}>Voie</Text>
+          <Text style={[styles.tableHeaderText, styles.colType]}>Type</Text>
           <Text style={[styles.tableHeaderText, styles.colHeure]}>
             Debut prevu
           </Text>
@@ -229,6 +233,17 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete, u
               </Text>
               <Text style={styles.colPoste}>
                 {row.posteNuit ? 'Nuit' : 'Jour'}
+              </Text>
+              <Text style={[styles.colVoie, { fontWeight: 'bold' }]}>
+                {row.voie || '\u2014'}
+              </Text>
+              <Text
+                style={[
+                  styles.colType,
+                  { color: row.typeFermeture === 'catenaire' ? '#DD9412' : '#004489' },
+                ]}
+              >
+                {row.typeFermeture === 'catenaire' ? 'Catenaire' : 'Voie'}
               </Text>
               <Text style={styles.colHeure}>
                 {row.heureDebutPrevue || '\u2014'}

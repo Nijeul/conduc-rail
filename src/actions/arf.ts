@@ -28,6 +28,8 @@ export interface ARFRow {
   rapportId?: string
   date: string
   posteNuit: boolean
+  voie?: string | null
+  typeFermeture?: string
   heureDebutPrevue: string | null
   heureFinPrevue: string | null
   heureDebut: string | null
@@ -116,6 +118,8 @@ export async function getARFData(projetId: string): Promise<ARFRow[]> {
       source: 'manuelle' as const,
       date: l.date.toISOString(),
       posteNuit: l.posteNuit,
+      voie: l.voie,
+      typeFermeture: l.typeFermeture,
       heureDebutPrevue: l.heureDebutPrevue,
       heureFinPrevue: l.heureFinPrevue,
       heureDebut: l.heureDebut,
@@ -176,6 +180,8 @@ export async function updateHeuresPrevues(
 const CreateLigneARFManuelleSchema = z.object({
   date: z.string().min(1, 'La date est requise'),
   posteNuit: z.boolean(),
+  voie: z.string().max(100).nullable().optional(),
+  typeFermeture: z.enum(['voie', 'catenaire']).optional(),
   heureDebutPrevue: z.string().nullable().optional(),
   heureFinPrevue: z.string().nullable().optional(),
   heureDebut: z.string().nullable().optional(),
@@ -202,6 +208,8 @@ export async function createLigneARFManuelle(
         projetId,
         date: new Date(parsed.data.date),
         posteNuit: parsed.data.posteNuit,
+        voie: parsed.data.voie ?? null,
+        typeFermeture: parsed.data.typeFermeture ?? 'voie',
         heureDebutPrevue: parsed.data.heureDebutPrevue ?? null,
         heureFinPrevue: parsed.data.heureFinPrevue ?? null,
         heureDebut: parsed.data.heureDebut ?? null,
@@ -220,6 +228,8 @@ export async function createLigneARFManuelle(
 }
 
 const UpdateLigneARFManuelleSchema = z.object({
+  voie: z.string().max(100).nullable().optional(),
+  typeFermeture: z.enum(['voie', 'catenaire']).optional(),
   heureDebutPrevue: z.string().nullable().optional(),
   heureFinPrevue: z.string().nullable().optional(),
   heureDebut: z.string().nullable().optional(),
@@ -245,6 +255,8 @@ export async function updateLigneARFManuelle(
     }
 
     const updateData: Record<string, unknown> = {}
+    if (parsed.data.voie !== undefined) updateData.voie = parsed.data.voie
+    if (parsed.data.typeFermeture !== undefined) updateData.typeFermeture = parsed.data.typeFermeture
     if (parsed.data.heureDebutPrevue !== undefined) updateData.heureDebutPrevue = parsed.data.heureDebutPrevue
     if (parsed.data.heureFinPrevue !== undefined) updateData.heureFinPrevue = parsed.data.heureFinPrevue
     if (parsed.data.heureDebut !== undefined) updateData.heureDebut = parsed.data.heureDebut
