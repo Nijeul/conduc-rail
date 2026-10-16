@@ -107,6 +107,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
   } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [vue, setVue] = useState<'voies' | 'liste'>('voies')
   const { exportAvecGuard, isExporting } = useExportPDF()
   const userLogo = useProfilStore((s) => s.logoSociete)
   const nomSociete = useProfilStore((s) => s.nomSociete)
@@ -302,9 +303,34 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           <FileText className="h-4 w-4 mr-1" />
           {isExporting ? 'Generation...' : 'Export PDF'}
         </Button>
+        <div className="flex rounded-md border border-[#DCDCDC] overflow-hidden ml-auto">
+          <button
+            onClick={() => setVue('voies')}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              vue === 'voies'
+                ? 'bg-[#004489] text-white'
+                : 'bg-white text-[#5A5A5A] hover:text-[#004489]'
+            }`}
+          >
+            Par voie
+          </button>
+          <button
+            onClick={() => setVue('liste')}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              vue === 'liste'
+                ? 'bg-[#004489] text-white'
+                : 'bg-white text-[#5A5A5A] hover:text-[#004489]'
+            }`}
+          >
+            Liste (saisie)
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
+      {vue === 'voies' && <VueParVoie rows={rows} />}
+
+      {/* Table liste détaillée (saisie) */}
+      {vue === 'liste' && (
       <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
         <table className="w-full text-[13px]">
           <thead>
@@ -492,6 +518,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           </tfoot>
         </table>
       </div>
+      )}
 
       {/* Dialog d'ajout de ligne manuelle */}
       {showAddDialog && (
@@ -499,6 +526,235 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           onClose={() => setShowAddDialog(false)}
           onSubmit={handleAddManuelle}
         />
+      )}
+    </div>
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Vue croisée : une ligne par jour, une colonne par voie / groupement de voies
+// (sous-colonne Caténaire quand des consignations existent pour cette voie)
+// ---------------------------------------------------------------------------
+
+const ORDRE_VOIES_PREF = ['V1/VZ', 'V2/V4', 'VT']
+
+function VueParVoie({ rows }: { rows: ARFRow[] }) {
+  const avecVoie = rows.filter((r) => r.voie)
+  const sansVoie = rows.filter((r) => !r.voie)
+
+  const voies = Array.from(new Set(avecVoie.map((r) => r.voie as string))).sort(
+    (a, b) => {
+      const ia = ORDRE_VOIES_PREF.indexOf(a)
+      const ib = ORDRE_VOIES_PREF.indexOf(b)
+      return (
+        (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b)
+      )
+    }
+  )
+
+  const colonnes = voies.map((voie) => ({
+    voie,
+    avecCat: avecVoie.some(
+      (r) => r.voie === voie && r.typeFermeture === 'catenaire'
+    ),
+  }))
+  const aAutres = sansVoie.length > 0
+
+  const dates = Array.from(new Set(rows.map((r) => r.date.slice(0, 10)))).sort()
+
+  const parCle = new Map<string, ARFRow[]>()
+  for (const r of avecVoie) {
+    const cle = `${r.date.slice(0, 10)}|${r.voie}|${
+      r.typeFermeture === 'catenaire' ? 'cat' : 'voie'
+    }`
+    const liste = parCle.get(cle) || []
+    liste.push(r)
+    parCle.set(cle, liste)
+  }
+  const autresParDate = new Map<string, ARFRow[]>()
+  for (const r of sansVoie) {
+    const cle = r.date.slice(0, 10)
+    const liste = autresParDate.get(cle) || []
+    liste.push(r)
+    autresParDate.set(cle, liste)
+  }
+
+  // Cumuls de durée réelle par colonne
+  const cumul = (filtre: (r: ARFRow) => boolean) => {
+    let total = 0
+    for (const r of rows) {
+      if (!filtre(r)) continue
+      const { dureeReelleMin } = computeRow(r)
+      if (dureeReelleMin !== null) total += dureeReelleMin
+    }
+    return total
+  }
+
+  if (voies.length === 0) {
+    return (
+      <div className="rounded-lg border border-[#DCDCDC] bg-white px-3 py-8 text-center text-gray-400 text-sm">
+        Aucune ligne avec une voie renseignée — passez en vue « Liste (saisie) »
+        pour renseigner la colonne Voie
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr className="bg-[#004489] text-white font-bold">
+            <th rowSpan={2} className="px-3 py-2 text-left align-bottom">
+              Jour
+            </th>
+            {colonnes.map((c) => (
+              <th
+                key={c.voie}
+                colSpan={c.avecCat ? 2 : 1}
+                className="px-3 py-1.5 text-center border-l border-[#0056B3]"
+              >
+                {c.voie}
+              </th>
+            ))}
+            {aAutres && (
+              <th rowSpan={2} className="px-3 py-2 text-center align-bottom border-l border-[#0056B3]">
+                Sans voie / RJ
+              </th>
+            )}
+          </tr>
+          <tr className="bg-[#003370] text-white text-[11px] font-bold">
+            {colonnes.map((c) => (
+              <WrapSousColonnes key={c.voie} avecCat={c.avecCat} />
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {dates.map((d, i) => (
+            <tr
+              key={d}
+              className={`border-b border-[#DCDCDC] ${
+                i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
+              }`}
+            >
+              <td className="px-3 py-1.5 whitespace-nowrap font-medium">
+                {formatDateFR(new Date(d))}
+              </td>
+              {colonnes.map((c) => (
+                <CellulesVoie
+                  key={c.voie}
+                  entreesVoie={parCle.get(`${d}|${c.voie}|voie`)}
+                  entreesCat={c.avecCat ? parCle.get(`${d}|${c.voie}|cat`) : undefined}
+                  avecCat={c.avecCat}
+                />
+              ))}
+              {aAutres && (
+                <td className="px-2 py-1.5 border-l border-[#DCDCDC] align-top">
+                  {(autresParDate.get(d) || []).map((e) => (
+                    <EntreeCellule key={e.id} entree={e} />
+                  ))}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="bg-[#003370] text-white font-bold border-t-2 border-[#004489]">
+            <td className="px-3 py-2 text-right">Cumul :</td>
+            {colonnes.flatMap((c) => {
+              const cells = [
+                <td key={`${c.voie}-v`} className="px-2 py-2 text-center border-l border-[#0056B3]">
+                  {formatDuree(
+                    cumul((r) => r.voie === c.voie && r.typeFermeture !== 'catenaire')
+                  )}
+                </td>,
+              ]
+              if (c.avecCat) {
+                cells.push(
+                  <td key={`${c.voie}-c`} className="px-2 py-2 text-center">
+                    {formatDuree(
+                      cumul((r) => r.voie === c.voie && r.typeFermeture === 'catenaire')
+                    )}
+                  </td>
+                )
+              }
+              return cells
+            })}
+            {aAutres && (
+              <td className="px-2 py-2 text-center border-l border-[#0056B3]">
+                {formatDuree(cumul((r) => !r.voie))}
+              </td>
+            )}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )
+}
+
+function WrapSousColonnes({ avecCat }: { avecCat: boolean }) {
+  return (
+    <>
+      <th className="px-2 py-1 text-center border-l border-[#0056B3] min-w-32">ARF voie</th>
+      {avecCat && <th className="px-2 py-1 text-center text-[#F2AB1B] min-w-32">Caténaire</th>}
+    </>
+  )
+}
+
+function CellulesVoie({
+  entreesVoie,
+  entreesCat,
+  avecCat,
+}: {
+  entreesVoie?: ARFRow[]
+  entreesCat?: ARFRow[]
+  avecCat: boolean
+}) {
+  return (
+    <>
+      <td className="px-2 py-1.5 text-center border-l border-[#DCDCDC] align-top">
+        {(entreesVoie || []).map((e) => (
+          <EntreeCellule key={e.id} entree={e} />
+        ))}
+        {!entreesVoie?.length && <span className="text-[#DCDCDC]">—</span>}
+      </td>
+      {avecCat && (
+        <td className="px-2 py-1.5 text-center align-top bg-[#FFF7D1]/30">
+          {(entreesCat || []).map((e) => (
+            <EntreeCellule key={e.id} entree={e} />
+          ))}
+          {!entreesCat?.length && <span className="text-[#DCDCDC]">—</span>}
+        </td>
+      )}
+    </>
+  )
+}
+
+function EntreeCellule({ entree }: { entree: ARFRow }) {
+  const { dureeReelleMin, pourcentTemps } = computeRow(entree)
+  const fin = entree.heureRestituee || entree.heureFin
+  return (
+    <div
+      className="py-0.5 [&+&]:border-t [&+&]:border-[#DCDCDC]"
+      title={entree.commentaire || undefined}
+    >
+      <div className="font-semibold whitespace-nowrap">
+        {entree.heureDebut || '—'} → {fin || '…'}
+      </div>
+      {(entree.heureDebutPrevue || entree.heureFinPrevue) && (
+        <div className="text-[11px] text-[#5A5A5A] whitespace-nowrap">
+          prévu {entree.heureDebutPrevue || '—'}–{entree.heureFinPrevue || '—'}
+        </div>
+      )}
+      {dureeReelleMin !== null && (
+        <div className="text-[11px] whitespace-nowrap">
+          {formatDuree(dureeReelleMin)}
+          {pourcentTemps !== null && (
+            <span className={`ml-1 font-semibold ${getPourcentColor(pourcentTemps)}`}>
+              {pourcentTemps.toFixed(0)} %
+            </span>
+          )}
+        </div>
       )}
     </div>
   )
