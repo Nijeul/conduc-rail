@@ -570,6 +570,33 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
 
 const ORDRE_VOIES_PREF = ['V1/VZ', 'V2/V4', 'VT']
 
+function plus30min(h: string): string {
+  const [hh, mm] = h.split(':').map(Number)
+  const t = hh * 60 + mm + 30
+  return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+
+/**
+ * Prévu d'une consignation caténaire non renseigné : dérivé de l'ARF de la
+ * voie concernée le même jour (obtention voie + 30 min → même fin prévue).
+ */
+function avecPrevuCatenaire(e: ARFRow, tous: ARFRow[]): ARFRow {
+  if (e.typeFermeture !== 'catenaire' || e.heureDebutPrevue) return e
+  const voie = tous.find(
+    (r) =>
+      r.typeFermeture !== 'catenaire' &&
+      r.voie === e.voie &&
+      r.date.slice(0, 10) === e.date.slice(0, 10) &&
+      r.heureDebutPrevue
+  )
+  if (!voie?.heureDebutPrevue) return e
+  return {
+    ...e,
+    heureDebutPrevue: plus30min(voie.heureDebutPrevue),
+    heureFinPrevue: e.heureFinPrevue ?? voie.heureFinPrevue,
+  }
+}
+
 function finComptabilisee(e: ARFRow): string | null {
   const finReelle = e.heureRestituee || e.heureFin
   if (finReelle && e.heureFinAccordee)
@@ -578,7 +605,9 @@ function finComptabilisee(e: ARFRow): string | null {
 }
 
 function VueParVoie({ rows }: { rows: ARFRow[] }) {
-  const avecVoie = rows.filter((r) => r.voie)
+  const avecVoie = rows
+    .filter((r) => r.voie)
+    .map((r) => avecPrevuCatenaire(r, rows))
 
   if (avecVoie.length === 0) {
     return (
@@ -643,33 +672,33 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
   }
 
   const cellPrevu = 'px-2 py-1 text-center bg-[#E5EFF8] text-[#003370]'
-  const cellReel = 'px-2 py-1 text-center bg-[#F9E9D9]'
+  const cellReel = 'px-2 py-1 text-center'
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
       <table className="w-full text-[13px]">
         <thead>
-          <tr className="text-white font-bold">
-            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Semaine</th>
-            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Date</th>
-            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Voie</th>
-            <th colSpan={3} className="px-2 py-1.5 bg-[#004489] border-l-2 border-white">
+          <tr className="bg-[#004489] text-white font-bold">
+            <th rowSpan={2} className="px-2 py-1.5">Semaine</th>
+            <th rowSpan={2} className="px-2 py-1.5">Date</th>
+            <th rowSpan={2} className="px-2 py-1.5">Voie</th>
+            <th colSpan={3} className="px-2 py-1.5 border-l border-[#0056B3]">
               Prévu marché (ITC)
             </th>
-            <th colSpan={3} className="px-2 py-1.5 bg-[#C26A32] border-l-2 border-white">
+            <th colSpan={3} className="px-2 py-1.5 border-l border-[#0056B3]">
               Réel
             </th>
-            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A] border-l-2 border-white">
+            <th rowSpan={2} className="px-2 py-1.5 border-l border-[#0056B3]">
               Delta
             </th>
           </tr>
-          <tr className="text-white font-bold text-[12px]">
-            <th className="px-2 py-1 bg-[#0056B3] border-l-2 border-white">Obtention</th>
-            <th className="px-2 py-1 bg-[#0056B3]">Restitution</th>
-            <th className="px-2 py-1 bg-[#0056B3]">Temps total</th>
-            <th className="px-2 py-1 bg-[#DD9412] border-l-2 border-white">Obtention</th>
-            <th className="px-2 py-1 bg-[#DD9412]">Restitution</th>
-            <th className="px-2 py-1 bg-[#DD9412]">Temps total</th>
+          <tr className="bg-[#003370] text-white font-bold text-[12px]">
+            <th className="px-2 py-1 border-l border-[#0056B3]">Obtention</th>
+            <th className="px-2 py-1">Restitution</th>
+            <th className="px-2 py-1">Temps total</th>
+            <th className="px-2 py-1 border-l border-[#0056B3]">Obtention</th>
+            <th className="px-2 py-1">Restitution</th>
+            <th className="px-2 py-1">Temps total</th>
           </tr>
         </thead>
         <tbody>
@@ -678,6 +707,7 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
               const entrees = parDate.get(d) || []
               const nb = lignesParDate(d)
               const lignes = entrees.length > 0 ? entrees : [null]
+              const altJour = dates.indexOf(d) % 2 !== 0 ? 'bg-[#F0F0F0]' : 'bg-white'
               return lignes.map((e, iLigne) => {
                 const calc = e ? computeRow(e) : null
                 const finCompta = e ? finComptabilisee(e) : null
@@ -686,12 +716,12 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                 return (
                   <tr
                     key={`${d}-${e?.id ?? 'vide'}`}
-                    className={`border-b border-[#DCDCDC] ${bordSemaine}`}
+                    className={`border-b border-[#DCDCDC] ${altJour} ${bordSemaine}`}
                   >
                     {iJour === 0 && iLigne === 0 && (
                       <td
                         rowSpan={sem.dates.reduce((s2, dd) => s2 + lignesParDate(dd), 0)}
-                        className={`px-2 py-1 text-center font-bold text-[#004489] bg-white border-r border-[#DCDCDC] ${bordSemaine}`}
+                        className={`px-2 py-1 text-center font-bold text-[#004489] border-r border-[#DCDCDC] ${bordSemaine}`}
                       >
                         S{sem.num}
                       </td>
@@ -699,7 +729,7 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                     {iLigne === 0 && (
                       <td
                         rowSpan={nb}
-                        className={`px-2 py-1 text-center whitespace-nowrap bg-white border-r border-[#DCDCDC] ${bordSemaine}`}
+                        className={`px-2 py-1 text-center whitespace-nowrap border-r border-[#DCDCDC] ${bordSemaine}`}
                       >
                         {formatDateFR(new Date(d))}
                       </td>
@@ -736,15 +766,19 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                     }>
                       {finCompta || ''}
                     </td>
-                    <td className={`${cellReel} font-bold text-[#E20025]`}>
+                    <td className={`${cellReel} font-bold`}>
                       {calc?.dureeReelleMin != null
                         ? formatDuree(calc.dureeReelleMin)
-                        : '0h'}
+                        : '—'}
                     </td>
-                    <td className="px-2 py-1 text-center font-bold">
+                    <td
+                      className={`px-2 py-1 text-center font-bold ${getPourcentColor(
+                        calc?.pourcentTemps ?? null
+                      )}`}
+                    >
                       {calc?.pourcentTemps != null
                         ? `${calc.pourcentTemps.toFixed(0)} %`
-                        : '0 %'}
+                        : '—'}
                     </td>
                   </tr>
                 )
