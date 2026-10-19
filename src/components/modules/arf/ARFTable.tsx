@@ -563,65 +563,24 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
 
 
 // ---------------------------------------------------------------------------
-// Vue croisée : une ligne par jour, une colonne par voie / groupement de voies
-// (sous-colonne Caténaire quand des consignations existent pour cette voie)
+// Vue « suivi » type Excel : une ligne par voie et par jour ouvré,
+// bloc Prévu marché (ITC) en bleu, bloc Réel en orange, Delta en %.
+// Réel restitution = plus tardif entre fin accordée et restitution effective.
 // ---------------------------------------------------------------------------
 
 const ORDRE_VOIES_PREF = ['V1/VZ', 'V2/V4', 'VT']
 
+function finComptabilisee(e: ARFRow): string | null {
+  const finReelle = e.heureRestituee || e.heureFin
+  if (finReelle && e.heureFinAccordee)
+    return e.heureFinAccordee > finReelle ? e.heureFinAccordee : finReelle
+  return finReelle || e.heureFinAccordee || null
+}
+
 function VueParVoie({ rows }: { rows: ARFRow[] }) {
   const avecVoie = rows.filter((r) => r.voie)
-  const sansVoie = rows.filter((r) => !r.voie)
 
-  const voies = Array.from(new Set(avecVoie.map((r) => r.voie as string))).sort(
-    (a, b) => {
-      const ia = ORDRE_VOIES_PREF.indexOf(a)
-      const ib = ORDRE_VOIES_PREF.indexOf(b)
-      return (
-        (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b)
-      )
-    }
-  )
-
-  const colonnes = voies.map((voie) => ({
-    voie,
-    avecCat: avecVoie.some(
-      (r) => r.voie === voie && r.typeFermeture === 'catenaire'
-    ),
-  }))
-  const aAutres = sansVoie.length > 0
-
-  const dates = Array.from(new Set(rows.map((r) => r.date.slice(0, 10)))).sort()
-
-  const parCle = new Map<string, ARFRow[]>()
-  for (const r of avecVoie) {
-    const cle = `${r.date.slice(0, 10)}|${r.voie}|${
-      r.typeFermeture === 'catenaire' ? 'cat' : 'voie'
-    }`
-    const liste = parCle.get(cle) || []
-    liste.push(r)
-    parCle.set(cle, liste)
-  }
-  const autresParDate = new Map<string, ARFRow[]>()
-  for (const r of sansVoie) {
-    const cle = r.date.slice(0, 10)
-    const liste = autresParDate.get(cle) || []
-    liste.push(r)
-    autresParDate.set(cle, liste)
-  }
-
-  // Cumuls de durée réelle par colonne
-  const cumul = (filtre: (r: ARFRow) => boolean) => {
-    let total = 0
-    for (const r of rows) {
-      if (!filtre(r)) continue
-      const { dureeReelleMin } = computeRow(r)
-      if (dureeReelleMin !== null) total += dureeReelleMin
-    }
-    return total
-  }
-
-  if (voies.length === 0) {
+  if (avecVoie.length === 0) {
     return (
       <div className="rounded-lg border border-[#DCDCDC] bg-white px-3 py-8 text-center text-gray-400 text-sm">
         Aucune ligne avec une voie renseignée — passez en vue « Liste (saisie) »
@@ -630,174 +589,184 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
     )
   }
 
+  // Tous les jours ouvrés entre la première et la dernière date
+  const datesAvecDonnees = avecVoie.map((r) => r.date.slice(0, 10)).sort()
+  const dates: string[] = []
+  {
+    const d = new Date(datesAvecDonnees[0] + 'T00:00:00Z')
+    const fin = new Date(datesAvecDonnees[datesAvecDonnees.length - 1] + 'T00:00:00Z')
+    while (d <= fin) {
+      const jour = d.getUTCDay()
+      if (jour !== 0 && jour !== 6) dates.push(d.toISOString().slice(0, 10))
+      d.setUTCDate(d.getUTCDate() + 1)
+    }
+  }
+
+  const parDate = new Map<string, ARFRow[]>()
+  for (const r of avecVoie) {
+    const cle = r.date.slice(0, 10)
+    const liste = parDate.get(cle) || []
+    liste.push(r)
+    parDate.set(cle, liste)
+  }
+  for (const liste of Array.from(parDate.values())) {
+    liste.sort((a: ARFRow, b: ARFRow) => {
+      const ta = a.typeFermeture === 'catenaire' ? 1 : 0
+      const tb = b.typeFermeture === 'catenaire' ? 1 : 0
+      if (ta !== tb) return ta - tb
+      const ia = ORDRE_VOIES_PREF.indexOf(a.voie as string)
+      const ib = ORDRE_VOIES_PREF.indexOf(b.voie as string)
+      return (
+        (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) ||
+        (a.heureDebut || '').localeCompare(b.heureDebut || '')
+      )
+    })
+  }
+
+  // Groupes par semaine pour le rowSpan
+  const semaines: { num: number; dates: string[] }[] = []
+  for (const d of dates) {
+    const num = numeroSemaine(new Date(d))
+    const dernier = semaines[semaines.length - 1]
+    if (dernier && dernier.num === num) dernier.dates.push(d)
+    else semaines.push({ num, dates: [d] })
+  }
+  const lignesParDate = (d: string) => Math.max(parDate.get(d)?.length ?? 1, 1)
+
+  // Totaux
+  let totalPrevu = 0
+  let totalReel = 0
+  for (const r of avecVoie) {
+    const { dureeReelleMin, dureePrevueMin } = computeRow(r)
+    if (dureePrevueMin !== null) totalPrevu += dureePrevueMin
+    if (dureeReelleMin !== null) totalReel += dureeReelleMin
+  }
+
+  const cellPrevu = 'px-2 py-1 text-center bg-[#E5EFF8] text-[#003370]'
+  const cellReel = 'px-2 py-1 text-center bg-[#F9E9D9]'
+
   return (
     <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
       <table className="w-full text-[13px]">
         <thead>
-          <tr className="bg-[#004489] text-white font-bold">
-            <th rowSpan={2} className="px-2 py-2 text-center align-bottom">
-              Sem.
+          <tr className="text-white font-bold">
+            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Semaine</th>
+            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Date</th>
+            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A]">Voie</th>
+            <th colSpan={3} className="px-2 py-1.5 bg-[#004489] border-l-2 border-white">
+              Prévu marché (ITC)
             </th>
-            <th rowSpan={2} className="px-3 py-2 text-left align-bottom">
-              Jour
+            <th colSpan={3} className="px-2 py-1.5 bg-[#C26A32] border-l-2 border-white">
+              Réel
             </th>
-            {colonnes.map((c) => (
-              <th
-                key={c.voie}
-                colSpan={c.avecCat ? 2 : 1}
-                className="px-3 py-1.5 text-center border-l border-[#0056B3]"
-              >
-                {c.voie}
-              </th>
-            ))}
-            {aAutres && (
-              <th rowSpan={2} className="px-3 py-2 text-center align-bottom border-l border-[#0056B3]">
-                Sans voie / RJ
-              </th>
-            )}
+            <th rowSpan={2} className="px-2 py-1.5 bg-[#5A5A5A] border-l-2 border-white">
+              Delta
+            </th>
           </tr>
-          <tr className="bg-[#003370] text-white text-[11px] font-bold">
-            {colonnes.map((c) => (
-              <WrapSousColonnes key={c.voie} avecCat={c.avecCat} />
-            ))}
+          <tr className="text-white font-bold text-[12px]">
+            <th className="px-2 py-1 bg-[#0056B3] border-l-2 border-white">Obtention</th>
+            <th className="px-2 py-1 bg-[#0056B3]">Restitution</th>
+            <th className="px-2 py-1 bg-[#0056B3]">Temps total</th>
+            <th className="px-2 py-1 bg-[#DD9412] border-l-2 border-white">Obtention</th>
+            <th className="px-2 py-1 bg-[#DD9412]">Restitution</th>
+            <th className="px-2 py-1 bg-[#DD9412]">Temps total</th>
           </tr>
         </thead>
         <tbody>
-          {dates.map((d, i) => (
-            <tr
-              key={d}
-              className={`border-b border-[#DCDCDC] ${
-                i % 2 === 0 ? 'bg-white' : 'bg-[#F0F0F0]'
-              }`}
-            >
-              <td className="px-2 py-1.5 text-center font-semibold text-[#004489]">
-                S{numeroSemaine(new Date(d))}
-              </td>
-              <td className="px-3 py-1.5 whitespace-nowrap font-medium">
-                {formatDateFR(new Date(d))}
-              </td>
-              {colonnes.map((c) => (
-                <CellulesVoie
-                  key={c.voie}
-                  entreesVoie={parCle.get(`${d}|${c.voie}|voie`)}
-                  entreesCat={c.avecCat ? parCle.get(`${d}|${c.voie}|cat`) : undefined}
-                  avecCat={c.avecCat}
-                />
-              ))}
-              {aAutres && (
-                <td className="px-2 py-1.5 border-l border-[#DCDCDC] align-top">
-                  {(autresParDate.get(d) || []).map((e) => (
-                    <EntreeCellule key={e.id} entree={e} />
-                  ))}
-                </td>
-              )}
-            </tr>
-          ))}
+          {semaines.map((sem) =>
+            sem.dates.map((d, iJour) => {
+              const entrees = parDate.get(d) || []
+              const nb = lignesParDate(d)
+              const lignes = entrees.length > 0 ? entrees : [null]
+              return lignes.map((e, iLigne) => {
+                const calc = e ? computeRow(e) : null
+                const finCompta = e ? finComptabilisee(e) : null
+                const bordSemaine =
+                  iJour === 0 && iLigne === 0 ? 'border-t-2 border-t-[#004489]' : ''
+                return (
+                  <tr
+                    key={`${d}-${e?.id ?? 'vide'}`}
+                    className={`border-b border-[#DCDCDC] ${bordSemaine}`}
+                  >
+                    {iJour === 0 && iLigne === 0 && (
+                      <td
+                        rowSpan={sem.dates.reduce((s2, dd) => s2 + lignesParDate(dd), 0)}
+                        className={`px-2 py-1 text-center font-bold text-[#004489] bg-white border-r border-[#DCDCDC] ${bordSemaine}`}
+                      >
+                        S{sem.num}
+                      </td>
+                    )}
+                    {iLigne === 0 && (
+                      <td
+                        rowSpan={nb}
+                        className={`px-2 py-1 text-center whitespace-nowrap bg-white border-r border-[#DCDCDC] ${bordSemaine}`}
+                      >
+                        {formatDateFR(new Date(d))}
+                      </td>
+                    )}
+                    <td
+                      className="px-2 py-1 text-center font-semibold whitespace-nowrap"
+                      title={e?.commentaire || undefined}
+                    >
+                      {e ? (
+                        <>
+                          {e.voie}
+                          {e.typeFermeture === 'catenaire' && (
+                            <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-semibold bg-[#FFF7D1] text-[#DD9412]">
+                              Cat.
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[#DCDCDC]">—</span>
+                      )}
+                    </td>
+                    <td className={cellPrevu}>{e?.heureDebutPrevue || '—'}</td>
+                    <td className={cellPrevu}>{e?.heureFinPrevue || '—'}</td>
+                    <td className={`${cellPrevu} font-semibold`}>
+                      {calc?.dureePrevueMin != null
+                        ? formatDuree(calc.dureePrevueMin)
+                        : '—'}
+                    </td>
+                    <td className={cellReel}>{e?.heureDebut || ''}</td>
+                    <td className={cellReel} title={
+                      e && finCompta && (e.heureRestituee || e.heureFin) !== finCompta
+                        ? `rendu ${e.heureRestituee || e.heureFin}`
+                        : undefined
+                    }>
+                      {finCompta || ''}
+                    </td>
+                    <td className={`${cellReel} font-bold text-[#E20025]`}>
+                      {calc?.dureeReelleMin != null
+                        ? formatDuree(calc.dureeReelleMin)
+                        : '0h'}
+                    </td>
+                    <td className="px-2 py-1 text-center font-bold">
+                      {calc?.pourcentTemps != null
+                        ? `${calc.pourcentTemps.toFixed(0)} %`
+                        : '0 %'}
+                    </td>
+                  </tr>
+                )
+              })
+            })
+          )}
         </tbody>
         <tfoot>
           <tr className="bg-[#003370] text-white font-bold border-t-2 border-[#004489]">
-            <td colSpan={2} className="px-3 py-2 text-right">Cumul :</td>
-            {colonnes.flatMap((c) => {
-              const cells = [
-                <td key={`${c.voie}-v`} className="px-2 py-2 text-center border-l border-[#0056B3]">
-                  {formatDuree(
-                    cumul((r) => r.voie === c.voie && r.typeFermeture !== 'catenaire')
-                  )}
-                </td>,
-              ]
-              if (c.avecCat) {
-                cells.push(
-                  <td key={`${c.voie}-c`} className="px-2 py-2 text-center">
-                    {formatDuree(
-                      cumul((r) => r.voie === c.voie && r.typeFermeture === 'catenaire')
-                    )}
-                  </td>
-                )
-              }
-              return cells
-            })}
-            {aAutres && (
-              <td className="px-2 py-2 text-center border-l border-[#0056B3]">
-                {formatDuree(cumul((r) => !r.voie))}
-              </td>
-            )}
+            <td colSpan={3} className="px-2 py-2 text-right">TOTAL :</td>
+            <td colSpan={3} className="px-2 py-2 text-center">
+              {formatDuree(totalPrevu)}
+            </td>
+            <td colSpan={3} className="px-2 py-2 text-center">
+              {formatDuree(totalReel)}
+            </td>
+            <td className="px-2 py-2 text-center">
+              {totalPrevu > 0 ? `${((totalReel / totalPrevu) * 100).toFixed(0)} %` : '—'}
+            </td>
           </tr>
         </tfoot>
       </table>
-    </div>
-  )
-}
-
-function WrapSousColonnes({ avecCat }: { avecCat: boolean }) {
-  return (
-    <>
-      <th className="px-2 py-1 text-center border-l border-[#0056B3] min-w-32">ARF voie</th>
-      {avecCat && <th className="px-2 py-1 text-center text-[#F2AB1B] min-w-32">Caténaire</th>}
-    </>
-  )
-}
-
-function CellulesVoie({
-  entreesVoie,
-  entreesCat,
-  avecCat,
-}: {
-  entreesVoie?: ARFRow[]
-  entreesCat?: ARFRow[]
-  avecCat: boolean
-}) {
-  return (
-    <>
-      <td className="px-2 py-1.5 text-center border-l border-[#DCDCDC] align-top">
-        {(entreesVoie || []).map((e) => (
-          <EntreeCellule key={e.id} entree={e} />
-        ))}
-        {!entreesVoie?.length && <span className="text-[#DCDCDC]">—</span>}
-      </td>
-      {avecCat && (
-        <td className="px-2 py-1.5 text-center align-top bg-[#FFF7D1]/30">
-          {(entreesCat || []).map((e) => (
-            <EntreeCellule key={e.id} entree={e} />
-          ))}
-          {!entreesCat?.length && <span className="text-[#DCDCDC]">—</span>}
-        </td>
-      )}
-    </>
-  )
-}
-
-function EntreeCellule({ entree }: { entree: ARFRow }) {
-  const { dureeReelleMin, pourcentTemps } = computeRow(entree)
-  const fin = entree.heureRestituee || entree.heureFin
-  return (
-    <div
-      className="py-0.5 [&+&]:border-t [&+&]:border-[#DCDCDC]"
-      title={entree.commentaire || undefined}
-    >
-      <div className="font-semibold whitespace-nowrap">
-        {entree.heureDebut || '—'} →{' '}
-        {entree.heureFinAccordee && fin && entree.heureFinAccordee > fin
-          ? entree.heureFinAccordee
-          : fin || entree.heureFinAccordee || '…'}
-      </div>
-      {fin && entree.heureFinAccordee && entree.heureFinAccordee > fin && (
-        <div className="text-[11px] text-[#5A5A5A] whitespace-nowrap">rendu {fin}</div>
-      )}
-      {(entree.heureDebutPrevue || entree.heureFinPrevue) && (
-        <div className="text-[11px] text-[#5A5A5A] whitespace-nowrap">
-          prévu {entree.heureDebutPrevue || '—'}–{entree.heureFinPrevue || '—'}
-        </div>
-      )}
-      {dureeReelleMin !== null && (
-        <div className="text-[11px] whitespace-nowrap">
-          {formatDuree(dureeReelleMin)}
-          {pourcentTemps !== null && (
-            <span className={`ml-1 font-semibold ${getPourcentColor(pourcentTemps)}`}>
-              {pourcentTemps.toFixed(0)} %
-            </span>
-          )}
-        </div>
-      )}
     </div>
   )
 }
