@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { Fragment, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   updateHeuresPrevues,
@@ -618,6 +618,21 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
     )
   }
 
+  const voies = Array.from(new Set(avecVoie.map((r) => r.voie as string))).sort(
+    (a, b) => {
+      const ia = ORDRE_VOIES_PREF.indexOf(a)
+      const ib = ORDRE_VOIES_PREF.indexOf(b)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b)
+    }
+  )
+  const colonnes = voies.map((voie) => ({
+    voie,
+    avecCat: avecVoie.some(
+      (r) => r.voie === voie && r.typeFermeture === 'catenaire'
+    ),
+  }))
+  const nbColsVoie = (c: { avecCat: boolean }) => 4 + (c.avecCat ? 2 : 0)
+
   // Tous les jours ouvrés entre la première et la dernière date
   const datesAvecDonnees = avecVoie.map((r) => r.date.slice(0, 10)).sort()
   const dates: string[] = []
@@ -631,28 +646,17 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
     }
   }
 
-  const parDate = new Map<string, ARFRow[]>()
+  const parCle = new Map<string, ARFRow[]>()
   for (const r of avecVoie) {
-    const cle = r.date.slice(0, 10)
-    const liste = parDate.get(cle) || []
+    const cle = `${r.date.slice(0, 10)}|${r.voie}|${
+      r.typeFermeture === 'catenaire' ? 'cat' : 'voie'
+    }`
+    const liste = parCle.get(cle) || []
     liste.push(r)
-    parDate.set(cle, liste)
-  }
-  for (const liste of Array.from(parDate.values())) {
-    liste.sort((a: ARFRow, b: ARFRow) => {
-      const ta = a.typeFermeture === 'catenaire' ? 1 : 0
-      const tb = b.typeFermeture === 'catenaire' ? 1 : 0
-      if (ta !== tb) return ta - tb
-      const ia = ORDRE_VOIES_PREF.indexOf(a.voie as string)
-      const ib = ORDRE_VOIES_PREF.indexOf(b.voie as string)
-      return (
-        (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) ||
-        (a.heureDebut || '').localeCompare(b.heureDebut || '')
-      )
-    })
+    parCle.set(cle, liste)
   }
 
-  // Groupes par semaine pour le rowSpan
+  // Groupes par semaine (rowSpan de la colonne Semaine)
   const semaines: { num: number; dates: string[] }[] = []
   for (const d of dates) {
     const num = numeroSemaine(new Date(d))
@@ -660,144 +664,226 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
     if (dernier && dernier.num === num) dernier.dates.push(d)
     else semaines.push({ num, dates: [d] })
   }
-  const lignesParDate = (d: string) => Math.max(parDate.get(d)?.length ?? 1, 1)
 
-  // Totaux
-  let totalPrevu = 0
-  let totalReel = 0
-  for (const r of avecVoie) {
-    const { dureeReelleMin, dureePrevueMin } = computeRow(r)
-    if (dureePrevueMin !== null) totalPrevu += dureePrevueMin
-    if (dureeReelleMin !== null) totalReel += dureeReelleMin
+  // Cumuls par colonne
+  const cumul = (voie: string, cat: boolean) => {
+    let reel = 0
+    let prevu = 0
+    for (const r of avecVoie) {
+      if (r.voie !== voie) continue
+      if ((r.typeFermeture === 'catenaire') !== cat) continue
+      const { dureeReelleMin, dureePrevueMin } = computeRow(r)
+      if (dureeReelleMin !== null) reel += dureeReelleMin
+      if (dureePrevueMin !== null) prevu += dureePrevueMin
+    }
+    return { reel, prevu, delta: prevu > 0 ? (reel / prevu) * 100 : null }
   }
-
-  const cellPrevu = 'px-2 py-1 text-center bg-[#E5EFF8] text-[#003370]'
-  const cellReel = 'px-2 py-1 text-center'
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-[12px]">
         <thead>
-          <tr className="bg-[#004489] text-white font-bold">
-            <th rowSpan={2} className="px-2 py-1.5">Semaine</th>
+          <tr className="bg-[#004489] text-white font-bold text-[13px]">
+            <th rowSpan={2} className="px-2 py-1.5">Sem.</th>
             <th rowSpan={2} className="px-2 py-1.5">Date</th>
-            <th rowSpan={2} className="px-2 py-1.5">Voie</th>
-            <th colSpan={3} className="px-2 py-1.5 border-l border-[#0056B3]">
-              Prévu marché (ITC)
-            </th>
-            <th colSpan={3} className="px-2 py-1.5 border-l border-[#0056B3]">
-              Réel
-            </th>
-            <th rowSpan={2} className="px-2 py-1.5 border-l border-[#0056B3]">
-              Delta
-            </th>
+            {colonnes.map((c) => (
+              <th
+                key={c.voie}
+                colSpan={nbColsVoie(c)}
+                className="px-2 py-1.5 border-l-2 border-[#0056B3]"
+              >
+                {c.voie}
+              </th>
+            ))}
           </tr>
-          <tr className="bg-[#003370] text-white font-bold text-[12px]">
-            <th className="px-2 py-1 border-l border-[#0056B3]">Obtention</th>
-            <th className="px-2 py-1">Restitution</th>
-            <th className="px-2 py-1">Temps total</th>
-            <th className="px-2 py-1 border-l border-[#0056B3]">Obtention</th>
-            <th className="px-2 py-1">Restitution</th>
-            <th className="px-2 py-1">Temps total</th>
+          <tr className="bg-[#003370] text-white font-bold text-[11px]">
+            {colonnes.map((c) => (
+              <Fragment key={c.voie}>
+                <th className="px-2 py-1 border-l-2 border-[#0056B3] bg-[#0056B3]">
+                  Prévu ITC
+                </th>
+                <th className="px-2 py-1">Réel</th>
+                <th className="px-2 py-1">Temps</th>
+                <th className="px-2 py-1">Delta</th>
+                {c.avecCat && (
+                  <>
+                    <th className="px-2 py-1 border-l border-[#0056B3] text-[#F2AB1B]">
+                      Caténaire
+                    </th>
+                    <th className="px-2 py-1 text-[#F2AB1B]">Delta</th>
+                  </>
+                )}
+              </Fragment>
+            ))}
           </tr>
         </thead>
         <tbody>
           {semaines.map((sem) =>
             sem.dates.map((d, iJour) => {
-              const entrees = parDate.get(d) || []
-              const nb = lignesParDate(d)
-              const lignes = entrees.length > 0 ? entrees : [null]
               const altJour = dates.indexOf(d) % 2 !== 0 ? 'bg-[#F0F0F0]' : 'bg-white'
-              return lignes.map((e, iLigne) => {
-                const calc = e ? computeRow(e) : null
-                const finCompta = e ? finComptabilisee(e) : null
-                const bordSemaine =
-                  iJour === 0 && iLigne === 0 ? 'border-t-2 border-t-[#004489]' : ''
-                return (
-                  <tr
-                    key={`${d}-${e?.id ?? 'vide'}`}
-                    className={`border-b border-[#DCDCDC] ${altJour} ${bordSemaine}`}
-                  >
-                    {iJour === 0 && iLigne === 0 && (
-                      <td
-                        rowSpan={sem.dates.reduce((s2, dd) => s2 + lignesParDate(dd), 0)}
-                        className={`px-2 py-1 text-center font-bold text-[#004489] border-r border-[#DCDCDC] ${bordSemaine}`}
-                      >
-                        S{sem.num}
-                      </td>
-                    )}
-                    {iLigne === 0 && (
-                      <td
-                        rowSpan={nb}
-                        className={`px-2 py-1 text-center whitespace-nowrap border-r border-[#DCDCDC] ${bordSemaine}`}
-                      >
-                        {formatDateFR(new Date(d))}
-                      </td>
-                    )}
+              const bordSemaine = iJour === 0 ? 'border-t-2 border-t-[#004489]' : ''
+              return (
+                <tr key={d} className={`border-b border-[#DCDCDC] ${altJour} ${bordSemaine}`}>
+                  {iJour === 0 && (
                     <td
-                      className="px-2 py-1 text-center font-semibold whitespace-nowrap"
-                      title={e?.commentaire || undefined}
+                      rowSpan={sem.dates.length}
+                      className={`px-2 py-1 text-center font-bold text-[#004489] border-r border-[#DCDCDC] bg-white ${bordSemaine}`}
                     >
-                      {e ? (
-                        <>
-                          {e.voie}
-                          {e.typeFermeture === 'catenaire' && (
-                            <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-semibold bg-[#FFF7D1] text-[#DD9412]">
-                              Cat.
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-[#DCDCDC]">—</span>
-                      )}
+                      S{sem.num}
                     </td>
-                    <td className={cellPrevu}>{e?.heureDebutPrevue || '—'}</td>
-                    <td className={cellPrevu}>{e?.heureFinPrevue || '—'}</td>
-                    <td className={`${cellPrevu} font-semibold`}>
-                      {calc?.dureePrevueMin != null
-                        ? formatDuree(calc.dureePrevueMin)
-                        : '—'}
-                    </td>
-                    <td className={cellReel}>{e?.heureDebut || ''}</td>
-                    <td className={cellReel} title={
-                      e && finCompta && (e.heureRestituee || e.heureFin) !== finCompta
-                        ? `rendu ${e.heureRestituee || e.heureFin}`
-                        : undefined
-                    }>
-                      {finCompta || ''}
-                    </td>
-                    <td className={`${cellReel} font-bold`}>
-                      {calc?.dureeReelleMin != null
-                        ? formatDuree(calc.dureeReelleMin)
-                        : '—'}
-                    </td>
-                    <td
-                      className={`px-2 py-1 text-center font-bold ${getPourcentColor(
-                        calc?.pourcentTemps ?? null
-                      )}`}
-                    >
-                      {calc?.pourcentTemps != null
-                        ? `${calc.pourcentTemps.toFixed(0)} %`
-                        : '—'}
-                    </td>
-                  </tr>
-                )
-              })
+                  )}
+                  <td className="px-2 py-1 text-center whitespace-nowrap border-r border-[#DCDCDC]">
+                    {formatDateFR(new Date(d))}
+                  </td>
+                  {colonnes.map((c) => {
+                    const eVoie = parCle.get(`${d}|${c.voie}|voie`) || []
+                    const eCat = parCle.get(`${d}|${c.voie}|cat`) || []
+                    return (
+                      <Fragment key={c.voie}>
+                        {/* Prévu ITC */}
+                        <td className="px-2 py-1 text-center whitespace-nowrap bg-[#E5EFF8] text-[#003370] border-l-2 border-[#DCDCDC]">
+                          {eVoie.map((e) => (
+                            <div key={e.id}>
+                              {e.heureDebutPrevue && e.heureFinPrevue
+                                ? `${e.heureDebutPrevue} – ${e.heureFinPrevue}`
+                                : '—'}
+                            </div>
+                          ))}
+                          {eVoie.length === 0 && <span className="text-[#B2D4FC]">—</span>}
+                        </td>
+                        {/* Réel (fin = plus tardif entre accordée et restitution) */}
+                        <td className="px-2 py-1 text-center whitespace-nowrap font-semibold">
+                          {eVoie.map((e) => {
+                            const fin = finComptabilisee(e)
+                            const rendu = e.heureRestituee || e.heureFin
+                            return (
+                              <div
+                                key={e.id}
+                                title={[
+                                  rendu && fin !== rendu ? `rendu ${rendu}` : null,
+                                  e.commentaire,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' — ') || undefined}
+                              >
+                                {e.heureDebut || '—'} → {fin || '…'}
+                              </div>
+                            )
+                          })}
+                          {eVoie.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                        </td>
+                        {/* Temps réel */}
+                        <td className="px-2 py-1 text-center whitespace-nowrap font-bold">
+                          {eVoie.map((e) => {
+                            const { dureeReelleMin } = computeRow(e)
+                            return (
+                              <div key={e.id}>
+                                {dureeReelleMin !== null ? formatDuree(dureeReelleMin) : '—'}
+                              </div>
+                            )
+                          })}
+                          {eVoie.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                        </td>
+                        {/* Delta */}
+                        <td className="px-2 py-1 text-center whitespace-nowrap">
+                          {eVoie.map((e) => {
+                            const { pourcentTemps } = computeRow(e)
+                            return (
+                              <div
+                                key={e.id}
+                                className={`font-bold ${getPourcentColor(pourcentTemps)}`}
+                              >
+                                {pourcentTemps !== null
+                                  ? `${pourcentTemps.toFixed(0)} %`
+                                  : '—'}
+                              </div>
+                            )
+                          })}
+                          {eVoie.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                        </td>
+                        {/* Caténaire : réel + delta (prévu = ARF voie + 30 min, au survol) */}
+                        {c.avecCat && (
+                          <>
+                            <td className="px-2 py-1 text-center whitespace-nowrap bg-[#FFF7D1]/40">
+                              {eCat.map((e) => {
+                                const fin = finComptabilisee(e)
+                                const rendu = e.heureRestituee || e.heureFin
+                                return (
+                                  <div
+                                    key={e.id}
+                                    className="font-semibold"
+                                    title={[
+                                      e.heureDebutPrevue && e.heureFinPrevue
+                                        ? `prévu ${e.heureDebutPrevue} – ${e.heureFinPrevue}`
+                                        : null,
+                                      rendu && fin !== rendu ? `rendu ${rendu}` : null,
+                                      e.commentaire,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' — ') || undefined}
+                                  >
+                                    {e.heureDebut || '—'} → {fin || '…'}
+                                  </div>
+                                )
+                              })}
+                              {eCat.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                            </td>
+                            <td className="px-2 py-1 text-center whitespace-nowrap bg-[#FFF7D1]/40">
+                              {eCat.map((e) => {
+                                const { pourcentTemps } = computeRow(e)
+                                return (
+                                  <div
+                                    key={e.id}
+                                    className={`font-bold ${getPourcentColor(pourcentTemps)}`}
+                                  >
+                                    {pourcentTemps !== null
+                                      ? `${pourcentTemps.toFixed(0)} %`
+                                      : '—'}
+                                  </div>
+                                )
+                              })}
+                              {eCat.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                            </td>
+                          </>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tr>
+              )
             })
           )}
         </tbody>
         <tfoot>
           <tr className="bg-[#003370] text-white font-bold border-t-2 border-[#004489]">
-            <td colSpan={3} className="px-2 py-2 text-right">TOTAL :</td>
-            <td colSpan={3} className="px-2 py-2 text-center">
-              {formatDuree(totalPrevu)}
-            </td>
-            <td colSpan={3} className="px-2 py-2 text-center">
-              {formatDuree(totalReel)}
-            </td>
-            <td className="px-2 py-2 text-center">
-              {totalPrevu > 0 ? `${((totalReel / totalPrevu) * 100).toFixed(0)} %` : '—'}
-            </td>
+            <td colSpan={2} className="px-2 py-2 text-right">TOTAL :</td>
+            {colonnes.map((c) => {
+              const tv = cumul(c.voie, false)
+              const tc = c.avecCat ? cumul(c.voie, true) : null
+              return (
+                <Fragment key={c.voie}>
+                  <td className="px-2 py-2 text-center border-l-2 border-[#0056B3]">
+                    {formatDuree(tv.prevu)}
+                  </td>
+                  <td colSpan={2} className="px-2 py-2 text-center">
+                    {formatDuree(tv.reel)}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {tv.delta !== null ? `${tv.delta.toFixed(0)} %` : '—'}
+                  </td>
+                  {c.avecCat && tc && (
+                    <>
+                      <td className="px-2 py-2 text-center border-l border-[#0056B3]">
+                        {formatDuree(tc.reel)}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {tc.delta !== null ? `${tc.delta.toFixed(0)} %` : '—'}
+                      </td>
+                    </>
+                  )}
+                </Fragment>
+              )
+            })}
           </tr>
         </tfoot>
       </table>
