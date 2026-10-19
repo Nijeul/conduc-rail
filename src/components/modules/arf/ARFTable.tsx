@@ -576,25 +576,42 @@ function plus30min(h: string): string {
   return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 
+function minutesDe(h: string): number {
+  const [H, M] = h.split(':').map(Number)
+  return H * 60 + M
+}
+
 /**
- * Prévu d'une consignation caténaire non renseigné : dérivé de l'ARF de la
- * voie concernée le même jour (obtention voie + 30 min → même fin prévue).
+ * Caténaire attendue = ARF réelle de la voie concernée + 30 minutes.
+ * Renvoie l'heure attendue et l'écart (minutes, >0 = en retard) avec
+ * l'obtention réelle de la consignation.
  */
-function avecPrevuCatenaire(e: ARFRow, tous: ARFRow[]): ARFRow {
-  if (e.typeFermeture !== 'catenaire' || e.heureDebutPrevue) return e
+function ecartCatenaire(
+  e: ARFRow,
+  tous: ARFRow[]
+): { attendue: string; ecart: number } | null {
+  if (e.typeFermeture !== 'catenaire' || !e.heureDebut) return null
   const voie = tous.find(
     (r) =>
       r.typeFermeture !== 'catenaire' &&
       r.voie === e.voie &&
       r.date.slice(0, 10) === e.date.slice(0, 10) &&
-      r.heureDebutPrevue
+      r.heureDebut
   )
-  if (!voie?.heureDebutPrevue) return e
-  return {
-    ...e,
-    heureDebutPrevue: plus30min(voie.heureDebutPrevue),
-    heureFinPrevue: e.heureFinPrevue ?? voie.heureFinPrevue,
-  }
+  if (!voie?.heureDebut) return null
+  const attendue = plus30min(voie.heureDebut)
+  return { attendue, ecart: minutesDe(e.heureDebut) - minutesDe(attendue) }
+}
+
+function formatEcart(min: number): string {
+  if (min === 0) return '0'
+  return `${min > 0 ? '+' : '−'}${formatDuree(Math.abs(min))}`
+}
+
+function getEcartColor(min: number): string {
+  if (min <= 0) return 'text-[#7AA536]'
+  if (min <= 30) return 'text-[#F2AB1B]'
+  return 'text-[#E20025]'
 }
 
 function finComptabilisee(e: ARFRow): string | null {
@@ -605,9 +622,7 @@ function finComptabilisee(e: ARFRow): string | null {
 }
 
 function VueParVoie({ rows }: { rows: ARFRow[] }) {
-  const avecVoie = rows
-    .filter((r) => r.voie)
-    .map((r) => avecPrevuCatenaire(r, rows))
+  const avecVoie = rows.filter((r) => r.voie)
 
   if (avecVoie.length === 0) {
     return (
@@ -710,7 +725,7 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                     <th className="px-2 py-1 border-l border-[#0056B3] text-[#F2AB1B]">
                       Caténaire
                     </th>
-                    <th className="px-2 py-1 text-[#F2AB1B]">Delta</th>
+                    <th className="px-2 py-1 text-[#F2AB1B]">Écart</th>
                   </>
                 )}
               </Fragment>
@@ -808,14 +823,13 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                               {eCat.map((e) => {
                                 const fin = finComptabilisee(e)
                                 const rendu = e.heureRestituee || e.heureFin
+                                const ec = ecartCatenaire(e, avecVoie)
                                 return (
                                   <div
                                     key={e.id}
                                     className="font-semibold"
                                     title={[
-                                      e.heureDebutPrevue && e.heureFinPrevue
-                                        ? `prévu ${e.heureDebutPrevue} – ${e.heureFinPrevue}`
-                                        : null,
+                                      ec ? `attendue ${ec.attendue} (ARF voie + 30 min)` : null,
                                       rendu && fin !== rendu ? `rendu ${rendu}` : null,
                                       e.commentaire,
                                     ]
@@ -830,15 +844,14 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                             </td>
                             <td className="px-2 py-1 text-center whitespace-nowrap bg-[#FFF7D1]/40">
                               {eCat.map((e) => {
-                                const { pourcentTemps } = computeRow(e)
+                                const ec = ecartCatenaire(e, avecVoie)
                                 return (
                                   <div
                                     key={e.id}
-                                    className={`font-bold ${getPourcentColor(pourcentTemps)}`}
+                                    className={`font-bold ${ec ? getEcartColor(ec.ecart) : ''}`}
+                                    title={ec ? `attendue ${ec.attendue}` : undefined}
                                   >
-                                    {pourcentTemps !== null
-                                      ? `${pourcentTemps.toFixed(0)} %`
-                                      : '—'}
+                                    {ec ? formatEcart(ec.ecart) : '—'}
                                   </div>
                                 )
                               })}
@@ -859,7 +872,6 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
             <td colSpan={2} className="px-2 py-2 text-right">TOTAL :</td>
             {colonnes.map((c) => {
               const tv = cumul(c.voie, false)
-              const tc = c.avecCat ? cumul(c.voie, true) : null
               return (
                 <Fragment key={c.voie}>
                   <td className="px-2 py-2 text-center border-l-2 border-[#0056B3]">
@@ -871,13 +883,21 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                   <td className="px-2 py-2 text-center">
                     {tv.delta !== null ? `${tv.delta.toFixed(0)} %` : '—'}
                   </td>
-                  {c.avecCat && tc && (
+                  {c.avecCat && (
                     <>
                       <td className="px-2 py-2 text-center border-l border-[#0056B3]">
-                        {formatDuree(tc.reel)}
+                        {formatDuree(cumul(c.voie, true).reel)}
                       </td>
-                      <td className="px-2 py-2 text-center">
-                        {tc.delta !== null ? `${tc.delta.toFixed(0)} %` : '—'}
+                      <td className="px-2 py-2 text-center" title="Somme des retards d'obtention">
+                        {(() => {
+                          const retard = avecVoie
+                            .filter((r) => r.voie === c.voie && r.typeFermeture === 'catenaire')
+                            .reduce((somme, r) => {
+                              const ec = ecartCatenaire(r, avecVoie)
+                              return somme + (ec && ec.ecart > 0 ? ec.ecart : 0)
+                            }, 0)
+                          return retard > 0 ? `+${formatDuree(retard)}` : '0'
+                        })()}
                       </td>
                     </>
                   )}
