@@ -194,6 +194,59 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
     }
   }
 
+  // Saisie directe depuis la vue par voie
+  const handlePivotUpdate = useCallback(
+    (id: string, field: 'heureDebut' | 'heureRestituee', value: string | null) => {
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+      scheduleSaveManuelle(id, { [field]: value })
+    },
+    [scheduleSaveManuelle]
+  )
+
+  const handlePivotCreate = useCallback(
+    async (dateISO: string, voie: string, typeFermeture: 'voie' | 'catenaire') => {
+      // Prévu ITC par défaut : 1er groupement du jour 9h55-15h55, 2e 12h00-16h00
+      const premierDuJour = !rows.some(
+        (r) =>
+          r.date.slice(0, 10) === dateISO && r.voie && r.typeFermeture !== 'catenaire'
+      )
+      const prevus =
+        typeFermeture === 'voie'
+          ? premierDuJour
+            ? { heureDebutPrevue: '09:55', heureFinPrevue: '15:55' }
+            : { heureDebutPrevue: '12:00', heureFinPrevue: '16:00' }
+          : {}
+      const result = await createLigneARFManuelle(projetId, {
+        date: dateISO,
+        posteNuit: false,
+        voie,
+        typeFermeture,
+        ...prevus,
+      })
+      if (result.success && result.data) {
+        const nouvelle: ARFRow = {
+          id: result.data.id,
+          source: 'manuelle',
+          date: new Date(dateISO).toISOString(),
+          posteNuit: false,
+          voie,
+          typeFermeture,
+          heureDebutPrevue: ('heureDebutPrevue' in prevus && prevus.heureDebutPrevue) || null,
+          heureFinPrevue: ('heureFinPrevue' in prevus && prevus.heureFinPrevue) || null,
+          heureDebut: null,
+          heureFin: null,
+          heureRestituee: null,
+        }
+        setRows((prev) =>
+          [...prev, nouvelle].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          )
+        )
+      }
+    },
+    [rows, projetId]
+  )
+
   const handleDeleteManuelle = async (ligneId: string) => {
     // Optimistic removal
     setRows((prev) => prev.filter((r) => r.id !== ligneId))
@@ -345,7 +398,13 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
         </div>
       </div>
 
-      {vue === 'voies' && <VueParVoie rows={rows} />}
+      {vue === 'voies' && (
+        <VueParVoie
+          rows={rows}
+          onUpdate={handlePivotUpdate}
+          onCreate={handlePivotCreate}
+        />
+      )}
 
       {/* Table liste détaillée (saisie) */}
       {vue === 'liste' && (
@@ -626,8 +685,70 @@ function finComptabilisee(e: ARFRow): string | null {
   return finReelle || e.heureFinAccordee || null
 }
 
-function VueParVoie({ rows }: { rows: ARFRow[] }) {
+function VueParVoie({
+  rows,
+  onUpdate,
+  onCreate,
+}: {
+  rows: ARFRow[]
+  onUpdate: (id: string, field: 'heureDebut' | 'heureRestituee', value: string | null) => void
+  onCreate: (dateISO: string, voie: string, typeFermeture: 'voie' | 'catenaire') => void
+}) {
   const avecVoie = rows.filter((r) => r.voie)
+  const [edition, setEdition] = useState<{
+    id: string
+    field: 'heureDebut' | 'heureRestituee'
+  } | null>(null)
+  const [valeur, setValeur] = useState('')
+
+  const validerEdition = () => {
+    if (!edition) return
+    onUpdate(edition.id, edition.field, valeur.trim() ? parseHeureFlexible(valeur) : null)
+    setEdition(null)
+  }
+
+  const heureEditable = (
+    e: ARFRow,
+    field: 'heureDebut' | 'heureRestituee',
+    affichage: string | null
+  ) => {
+    if (edition && edition.id === e.id && edition.field === field) {
+      return (
+        <input
+          autoFocus
+          value={valeur}
+          onChange={(ev) => setValeur(ev.target.value)}
+          onBlur={validerEdition}
+          onKeyDown={(ev) => {
+            if (ev.key === 'Enter') validerEdition()
+            else if (ev.key === 'Escape') setEdition(null)
+          }}
+          className="w-14 px-0.5 py-0 text-center text-[12px] border border-[#004489] rounded bg-white focus:outline-none"
+        />
+      )
+    }
+    return (
+      <span
+        className="cursor-pointer rounded px-0.5 hover:bg-[#E5EFF8] hover:text-[#004489]"
+        onClick={() => {
+          setEdition({ id: e.id, field })
+          setValeur(e[field] || '')
+        }}
+      >
+        {affichage || '—'}
+      </span>
+    )
+  }
+
+  const boutonAjout = (d: string, voie: string, type: 'voie' | 'catenaire') => (
+    <button
+      onClick={() => onCreate(d, voie, type)}
+      className="text-[#DCDCDC] hover:text-[#004489] font-bold px-2"
+      title={`Saisir une prise ${type === 'catenaire' ? 'caténaire ' : ''}${voie}`}
+    >
+      +
+    </button>
+  )
 
   if (avecVoie.length === 0) {
     return (
@@ -786,11 +907,12 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                                   .filter(Boolean)
                                   .join(' — ') || undefined}
                               >
-                                {e.heureDebut || '—'} → {fin || '…'}
+                                {heureEditable(e, 'heureDebut', e.heureDebut)} →{' '}
+                                {heureEditable(e, 'heureRestituee', fin)}
                               </div>
                             )
                           })}
-                          {eVoie.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                          {eVoie.length === 0 && boutonAjout(d, c.voie, 'voie')}
                         </td>
                         {/* Temps réel */}
                         <td className="px-2 py-1 text-center whitespace-nowrap font-bold">
@@ -841,11 +963,12 @@ function VueParVoie({ rows }: { rows: ARFRow[] }) {
                                       .filter(Boolean)
                                       .join(' — ') || undefined}
                                   >
-                                    {e.heureDebut || '—'} → {fin || '…'}
+                                    {heureEditable(e, 'heureDebut', e.heureDebut)} →{' '}
+                                    {heureEditable(e, 'heureRestituee', fin)}
                                   </div>
                                 )
                               })}
-                              {eCat.length === 0 && <span className="text-[#DCDCDC]">—</span>}
+                              {eCat.length === 0 && boutonAjout(d, c.voie, 'catenaire')}
                             </td>
                             <td className="px-2 py-1 text-center whitespace-nowrap bg-[#FFF7D1]/40">
                               {eCat.map((e) => {
