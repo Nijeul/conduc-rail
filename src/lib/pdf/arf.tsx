@@ -125,15 +125,13 @@ function computeRow(row: ARFRow) {
   let dureePrevueMin: number | null = null
   let pourcentTemps: number | null = null
 
-  // Durée comptabilisée : jusqu'au plus tardif entre fin accordée et restitution
-  if (row.heureDebut && finReelle) {
-    dureeReelleMin = calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit)
-    if (row.heureFinPrevue) {
-      dureeReelleMin = Math.max(
-        dureeReelleMin,
-        calcDureeMinutes(row.heureDebut, row.heureFinPrevue, row.posteNuit)
-      )
-    }
+  // Réel comptabilisé : jusqu'au plus tardif entre fin accordée et restitution
+  if (row.heureDebut && (finReelle || row.heureFinAccordee)) {
+    const fins: number[] = []
+    if (finReelle) fins.push(calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit))
+    if (row.heureFinAccordee)
+      fins.push(calcDureeMinutes(row.heureDebut, row.heureFinAccordee, row.posteNuit))
+    dureeReelleMin = Math.max(...fins)
   }
   if (row.heureDebutPrevue && row.heureFinPrevue) {
     dureePrevueMin = calcDureeMinutes(
@@ -206,6 +204,9 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete, u
             Fin prevue
           </Text>
           <Text style={[styles.tableHeaderText, styles.colHeure]}>
+            Fin accordee
+          </Text>
+          <Text style={[styles.tableHeaderText, styles.colHeure]}>
             Debut reel
           </Text>
           <Text style={[styles.tableHeaderText, styles.colHeure]}>
@@ -257,6 +258,9 @@ export function ARFPDF({ projetName, rows, totalMinutes, userLogo, nomSociete, u
               </Text>
               <Text style={styles.colHeure}>
                 {row.heureFinPrevue || '\u2014'}
+              </Text>
+              <Text style={styles.colHeure}>
+                {row.heureFinAccordee || '\u2014'}
               </Text>
               <Text style={styles.colHeure}>
                 {row.heureDebut || '\u2014'}

@@ -32,6 +32,7 @@ export interface ARFRow {
   typeFermeture?: string
   heureDebutPrevue: string | null
   heureFinPrevue: string | null
+  heureFinAccordee?: string | null
   heureDebut: string | null
   heureFin: string | null
   heureRestituee: string | null
@@ -47,6 +48,7 @@ function computeRowDurations(row: {
   heureRestituee: string | null
   heureDebutPrevue: string | null
   heureFinPrevue: string | null
+  heureFinAccordee?: string | null
   posteNuit: boolean
 }) {
   const finReelle = row.heureRestituee || row.heureFin
@@ -54,15 +56,15 @@ function computeRowDurations(row: {
   let dureePrevueMin: number | null = null
   let pourcentage: number | null = null
 
-  // Durée comptabilisée : jusqu'au plus tardif entre fin accordée et restitution
-  if (row.heureDebut && finReelle) {
-    dureeReelleMin = calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit)
-    if (row.heureFinPrevue) {
-      dureeReelleMin = Math.max(
-        dureeReelleMin,
-        calcDureeMinutes(row.heureDebut, row.heureFinPrevue, row.posteNuit)
-      )
-    }
+  // Réel comptabilisé : du début réel au plus tardif entre la fin ACCORDÉE
+  // du jour et la restitution effective. Le prévu, lui, est la fenêtre ITC
+  // du marché — le % mesure réel accordé vs prévu marché.
+  if (row.heureDebut && (finReelle || row.heureFinAccordee)) {
+    const fins: number[] = []
+    if (finReelle) fins.push(calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit))
+    if (row.heureFinAccordee)
+      fins.push(calcDureeMinutes(row.heureDebut, row.heureFinAccordee, row.posteNuit))
+    dureeReelleMin = Math.max(...fins)
   }
   if (row.heureDebutPrevue && row.heureFinPrevue) {
     dureePrevueMin = calcDureeMinutes(row.heureDebutPrevue, row.heureFinPrevue, row.posteNuit)
@@ -129,6 +131,7 @@ export async function getARFData(projetId: string): Promise<ARFRow[]> {
       typeFermeture: l.typeFermeture,
       heureDebutPrevue: l.heureDebutPrevue,
       heureFinPrevue: l.heureFinPrevue,
+      heureFinAccordee: l.heureFinAccordee,
       heureDebut: l.heureDebut,
       heureFin: l.heureFin,
       heureRestituee: l.heureRestituee,
@@ -191,6 +194,7 @@ const CreateLigneARFManuelleSchema = z.object({
   typeFermeture: z.enum(['voie', 'catenaire']).optional(),
   heureDebutPrevue: z.string().nullable().optional(),
   heureFinPrevue: z.string().nullable().optional(),
+  heureFinAccordee: z.string().nullable().optional(),
   heureDebut: z.string().nullable().optional(),
   heureFin: z.string().nullable().optional(),
   heureRestituee: z.string().nullable().optional(),
@@ -219,6 +223,7 @@ export async function createLigneARFManuelle(
         typeFermeture: parsed.data.typeFermeture ?? 'voie',
         heureDebutPrevue: parsed.data.heureDebutPrevue ?? null,
         heureFinPrevue: parsed.data.heureFinPrevue ?? null,
+        heureFinAccordee: parsed.data.heureFinAccordee ?? null,
         heureDebut: parsed.data.heureDebut ?? null,
         heureFin: parsed.data.heureFin ?? null,
         heureRestituee: parsed.data.heureRestituee ?? null,
@@ -239,6 +244,7 @@ const UpdateLigneARFManuelleSchema = z.object({
   typeFermeture: z.enum(['voie', 'catenaire']).optional(),
   heureDebutPrevue: z.string().nullable().optional(),
   heureFinPrevue: z.string().nullable().optional(),
+  heureFinAccordee: z.string().nullable().optional(),
   heureDebut: z.string().nullable().optional(),
   heureFin: z.string().nullable().optional(),
   heureRestituee: z.string().nullable().optional(),
@@ -266,6 +272,7 @@ export async function updateLigneARFManuelle(
     if (parsed.data.typeFermeture !== undefined) updateData.typeFermeture = parsed.data.typeFermeture
     if (parsed.data.heureDebutPrevue !== undefined) updateData.heureDebutPrevue = parsed.data.heureDebutPrevue
     if (parsed.data.heureFinPrevue !== undefined) updateData.heureFinPrevue = parsed.data.heureFinPrevue
+    if (parsed.data.heureFinAccordee !== undefined) updateData.heureFinAccordee = parsed.data.heureFinAccordee
     if (parsed.data.heureDebut !== undefined) updateData.heureDebut = parsed.data.heureDebut
     if (parsed.data.heureFin !== undefined) updateData.heureFin = parsed.data.heureFin
     if (parsed.data.heureRestituee !== undefined) updateData.heureRestituee = parsed.data.heureRestituee

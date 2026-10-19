@@ -58,7 +58,7 @@ function parseHeureFlexible(input: string): string | null {
   return null
 }
 
-type EditableHeureField = 'heureDebutPrevue' | 'heureFinPrevue' | 'heureDebut' | 'heureFin' | 'heureRestituee'
+type EditableHeureField = 'heureDebutPrevue' | 'heureFinPrevue' | 'heureFinAccordee' | 'heureDebut' | 'heureFin' | 'heureRestituee'
 
 /** Numéro de semaine ISO (S1 à S53) */
 function numeroSemaine(d: Date): number {
@@ -75,17 +75,15 @@ function computeRow(row: ARFRow) {
   let dureePrevueMin: number | null = null
   let pourcentTemps: number | null = null
 
-  // Durée comptabilisée : du début réel au plus tardif entre la fin
-  // accordée (prévue) et la restitution réelle — une restitution en avance
-  // compte jusqu'à la fin accordée, une restitution en retard compte le retard.
-  if (row.heureDebut && finReelle) {
-    dureeReelleMin = calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit)
-    if (row.heureFinPrevue) {
-      dureeReelleMin = Math.max(
-        dureeReelleMin,
-        calcDureeMinutes(row.heureDebut, row.heureFinPrevue, row.posteNuit)
-      )
-    }
+  // Réel comptabilisé : du début réel au plus tardif entre la fin ACCORDÉE du
+  // jour et la restitution effective. Le prévu est la fenêtre ITC du marché ;
+  // le % compare le réel accordé au prévu marché.
+  if (row.heureDebut && (finReelle || row.heureFinAccordee)) {
+    const fins: number[] = []
+    if (finReelle) fins.push(calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit))
+    if (row.heureFinAccordee)
+      fins.push(calcDureeMinutes(row.heureDebut, row.heureFinAccordee, row.posteNuit))
+    dureeReelleMin = Math.max(...fins)
   }
 
   if (row.heureDebutPrevue && row.heureFinPrevue) {
@@ -209,6 +207,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
     typeFermeture: 'voie' | 'catenaire'
     heureDebutPrevue: string | null
     heureFinPrevue: string | null
+    heureFinAccordee: string | null
     heureDebut: string | null
     heureFin: string | null
     heureRestituee: string | null
@@ -226,6 +225,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
         typeFermeture: formData.typeFermeture,
         heureDebutPrevue: formData.heureDebutPrevue,
         heureFinPrevue: formData.heureFinPrevue,
+        heureFinAccordee: formData.heureFinAccordee,
         heureDebut: formData.heureDebut,
         heureFin: formData.heureFin,
         heureRestituee: formData.heureRestituee,
@@ -283,7 +283,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
       return (
         <span
           className={`inline-block w-20 px-1 py-0.5 rounded cursor-pointer ${bgClass}`}
-          onClick={() => handleStartEdit(row.id, field, value)}
+          onClick={() => handleStartEdit(row.id, field, value ?? null)}
         >
           {value || '\u2014'}
         </span>
@@ -360,6 +360,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
               <th className="px-3 py-2 text-center">Type</th>
               <th className="px-3 py-2 text-center">Debut prevu</th>
               <th className="px-3 py-2 text-center">Fin prevue</th>
+              <th className="px-3 py-2 text-center">Fin accordee</th>
               <th className="px-3 py-2 text-center">Debut reel</th>
               <th className="px-3 py-2 text-center">Fin reelle</th>
               <th className="px-3 py-2 text-center">Restitution</th>
@@ -458,6 +459,13 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
                     {renderHeureCell(row, 'heureFinPrevue', isEditableField(row, 'heureFinPrevue'))}
                   </td>
 
+                  {/* Fin accordee */}
+                  <td className="px-3 py-1 text-center">
+                    {row.source === 'manuelle'
+                      ? renderHeureCell(row, 'heureFinAccordee', true)
+                      : '\u2014'}
+                  </td>
+
                   {/* Debut reel */}
                   <td className="px-3 py-1 text-center">
                     {renderHeureCell(row, 'heureDebut', isEditableField(row, 'heureDebut'))}
@@ -519,7 +527,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={13}
+                  colSpan={14}
                   className="px-3 py-8 text-center text-gray-400"
                 >
                   Aucun rapport journalier
@@ -529,7 +537,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-[#F0F0F0] font-bold border-t-2 border-[#004489]">
-              <td colSpan={10} className="px-3 py-3 text-right">
+              <td colSpan={11} className="px-3 py-3 text-right">
                 Total cumule :
               </td>
               <td className="px-3 py-3 text-right text-[#004489]">
@@ -767,8 +775,14 @@ function EntreeCellule({ entree }: { entree: ARFRow }) {
       title={entree.commentaire || undefined}
     >
       <div className="font-semibold whitespace-nowrap">
-        {entree.heureDebut || '—'} → {fin || '…'}
+        {entree.heureDebut || '—'} →{' '}
+        {entree.heureFinAccordee && fin && entree.heureFinAccordee > fin
+          ? entree.heureFinAccordee
+          : fin || entree.heureFinAccordee || '…'}
       </div>
+      {fin && entree.heureFinAccordee && entree.heureFinAccordee > fin && (
+        <div className="text-[11px] text-[#5A5A5A] whitespace-nowrap">rendu {fin}</div>
+      )}
       {(entree.heureDebutPrevue || entree.heureFinPrevue) && (
         <div className="text-[11px] text-[#5A5A5A] whitespace-nowrap">
           prévu {entree.heureDebutPrevue || '—'}–{entree.heureFinPrevue || '—'}
@@ -804,6 +818,7 @@ function AddLigneDialog({
     typeFermeture: 'voie' | 'catenaire'
     heureDebutPrevue: string | null
     heureFinPrevue: string | null
+    heureFinAccordee: string | null
     heureDebut: string | null
     heureFin: string | null
     heureRestituee: string | null
@@ -816,6 +831,7 @@ function AddLigneDialog({
   const [typeFermeture, setTypeFermeture] = useState<'voie' | 'catenaire'>('voie')
   const [heureDebutPrevue, setHeureDebutPrevue] = useState('')
   const [heureFinPrevue, setHeureFinPrevue] = useState('')
+  const [heureFinAccordee, setHeureFinAccordee] = useState('')
   const [heureDebut, setHeureDebut] = useState('')
   const [heureFin, setHeureFin] = useState('')
   const [heureRestituee, setHeureRestituee] = useState('')
@@ -833,6 +849,7 @@ function AddLigneDialog({
       typeFermeture,
       heureDebutPrevue: parse(heureDebutPrevue),
       heureFinPrevue: parse(heureFinPrevue),
+      heureFinAccordee: parse(heureFinAccordee),
       heureDebut: parse(heureDebut),
       heureFin: parse(heureFin),
       heureRestituee: parse(heureRestituee),
@@ -977,6 +994,16 @@ function AddLigneDialog({
                 value={heureFinPrevue}
                 onChange={(e) => setHeureFinPrevue(e.target.value)}
                 placeholder="06:00"
+                className="mt-1 w-full px-3 py-2 border border-[#DCDCDC] rounded focus:border-[#004489] focus:outline-none text-sm"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="text-sm font-medium text-[#000000]">Fin accordee (du jour)</label>
+              <input
+                type="text"
+                value={heureFinAccordee}
+                onChange={(e) => setHeureFinAccordee(e.target.value)}
+                placeholder="15:55"
                 className="mt-1 w-full px-3 py-2 border border-[#DCDCDC] rounded focus:border-[#004489] focus:outline-none text-sm"
               />
             </div>

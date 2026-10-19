@@ -298,6 +298,7 @@ model LigneARFManuelle {
   typeFermeture    String   @default("voie") // voie | catenaire
   heureDebutPrevue String?
   heureFinPrevue   String?
+  heureFinAccordee String?
   heureDebut       String?
   heureFin         String?
   heureRestituee   String?
