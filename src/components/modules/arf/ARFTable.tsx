@@ -70,13 +70,22 @@ function numeroSemaine(d: Date): number {
 }
 
 function computeRow(row: ARFRow) {
-  const finEffective = row.heureRestituee || row.heureFin
+  const finReelle = row.heureRestituee || row.heureFin
   let dureeReelleMin: number | null = null
   let dureePrevueMin: number | null = null
   let pourcentTemps: number | null = null
 
-  if (row.heureDebut && finEffective) {
-    dureeReelleMin = calcDureeMinutes(row.heureDebut, finEffective, row.posteNuit)
+  // Durée comptabilisée : du début réel au plus tardif entre la fin
+  // accordée (prévue) et la restitution réelle — une restitution en avance
+  // compte jusqu'à la fin accordée, une restitution en retard compte le retard.
+  if (row.heureDebut && finReelle) {
+    dureeReelleMin = calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit)
+    if (row.heureFinPrevue) {
+      dureeReelleMin = Math.max(
+        dureeReelleMin,
+        calcDureeMinutes(row.heureDebut, row.heureFinPrevue, row.posteNuit)
+      )
+    }
   }
 
   if (row.heureDebutPrevue && row.heureFinPrevue) {

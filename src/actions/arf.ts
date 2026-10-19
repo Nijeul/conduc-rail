@@ -49,13 +49,20 @@ function computeRowDurations(row: {
   heureFinPrevue: string | null
   posteNuit: boolean
 }) {
-  const finEffective = row.heureRestituee || row.heureFin
+  const finReelle = row.heureRestituee || row.heureFin
   let dureeReelleMin: number | null = null
   let dureePrevueMin: number | null = null
   let pourcentage: number | null = null
 
-  if (row.heureDebut && finEffective) {
-    dureeReelleMin = calcDureeMinutes(row.heureDebut, finEffective, row.posteNuit)
+  // Durée comptabilisée : jusqu'au plus tardif entre fin accordée et restitution
+  if (row.heureDebut && finReelle) {
+    dureeReelleMin = calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit)
+    if (row.heureFinPrevue) {
+      dureeReelleMin = Math.max(
+        dureeReelleMin,
+        calcDureeMinutes(row.heureDebut, row.heureFinPrevue, row.posteNuit)
+      )
+    }
   }
   if (row.heureDebutPrevue && row.heureFinPrevue) {
     dureePrevueMin = calcDureeMinutes(row.heureDebutPrevue, row.heureFinPrevue, row.posteNuit)
