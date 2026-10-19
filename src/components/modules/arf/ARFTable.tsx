@@ -15,6 +15,15 @@ import {
   formatDuree,
 } from '@/lib/utils'
 import { FileText, Plus, Pencil, Trash2, ClipboardList } from 'lucide-react'
+import {
+  ORDRE_VOIES_PREF,
+  numeroSemaine,
+  finComptabilisee,
+  prevuCatenaire,
+  deltaCatenaire,
+  cumulColonne,
+  calculsLigneARF as computeRow,
+} from '@/lib/arf-calculs'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { useProfilStore } from '@/stores/profil'
 
@@ -60,46 +69,7 @@ function parseHeureFlexible(input: string): string | null {
 
 type EditableHeureField = 'heureDebutPrevue' | 'heureFinPrevue' | 'heureFinAccordee' | 'heureDebut' | 'heureFin' | 'heureRestituee'
 
-/** Numéro de semaine ISO (S1 à S53) */
-function numeroSemaine(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-  const jour = date.getUTCDay() || 7
-  date.setUTCDate(date.getUTCDate() + 4 - jour)
-  const debutAnnee = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
-  return Math.ceil(((date.getTime() - debutAnnee.getTime()) / 86400000 + 1) / 7)
-}
 
-function computeRow(row: ARFRow) {
-  const finReelle = row.heureRestituee || row.heureFin
-  let dureeReelleMin: number | null = null
-  let dureePrevueMin: number | null = null
-  let pourcentTemps: number | null = null
-
-  // Réel comptabilisé : du début réel au plus tardif entre la fin ACCORDÉE du
-  // jour et la restitution effective. Le prévu est la fenêtre ITC du marché ;
-  // le % compare le réel accordé au prévu marché.
-  if (row.heureDebut && (finReelle || row.heureFinAccordee)) {
-    const fins: number[] = []
-    if (finReelle) fins.push(calcDureeMinutes(row.heureDebut, finReelle, row.posteNuit))
-    if (row.heureFinAccordee)
-      fins.push(calcDureeMinutes(row.heureDebut, row.heureFinAccordee, row.posteNuit))
-    dureeReelleMin = Math.max(...fins)
-  }
-
-  if (row.heureDebutPrevue && row.heureFinPrevue) {
-    dureePrevueMin = calcDureeMinutes(
-      row.heureDebutPrevue,
-      row.heureFinPrevue,
-      row.posteNuit
-    )
-  }
-
-  if (dureeReelleMin !== null && dureePrevueMin !== null && dureePrevueMin > 0) {
-    pourcentTemps = (dureeReelleMin / dureePrevueMin) * 100
-  }
-
-  return { dureeReelleMin, dureePrevueMin, pourcentTemps }
-}
 
 function getDureeBg(minutes: number | null): string {
   if (minutes === null) return ''
@@ -627,63 +597,11 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
 // Réel restitution = plus tardif entre fin accordée et restitution effective.
 // ---------------------------------------------------------------------------
 
-const ORDRE_VOIES_PREF = ['V1/VZ', 'V2/V4', 'VT']
 
-function plus30min(h: string): string {
-  const [hh, mm] = h.split(':').map(Number)
-  const t = hh * 60 + mm + 30
-  return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
-}
 
-function minutesDe(h: string): number {
-  const [H, M] = h.split(':').map(Number)
-  return H * 60 + M
-}
 
-function moins30min(h: string): string {
-  const [H, M] = h.split(':').map(Number)
-  const t = (H * 60 + M - 30 + 24 * 60) % (24 * 60)
-  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
-}
 
-/**
- * Prévu d'une consignation caténaire : ARF réelle de la voie concernée
- * + 30 minutes au début, fin accordée (ou prévue) de la voie − 30 minutes.
- */
-function prevuCatenaire(
-  e: ARFRow,
-  tous: ARFRow[]
-): { debut: string; fin: string } | null {
-  if (e.typeFermeture !== 'catenaire') return null
-  const voie = tous.find(
-    (r) =>
-      r.typeFermeture !== 'catenaire' &&
-      r.voie === e.voie &&
-      r.date.slice(0, 10) === e.date.slice(0, 10) &&
-      r.heureDebut
-  )
-  if (!voie?.heureDebut) return null
-  const finRef = voie.heureFinAccordee || voie.heureFinPrevue
-  if (!finRef) return null
-  return { debut: plus30min(voie.heureDebut), fin: moins30min(finRef) }
-}
 
-function deltaCatenaire(e: ARFRow, tous: ARFRow[]): number | null {
-  const prevu = prevuCatenaire(e, tous)
-  if (!prevu || !e.heureDebut) return null
-  const { dureeReelleMin } = computeRow(e)
-  if (dureeReelleMin === null) return null
-  const dureePrevue = minutesDe(prevu.fin) - minutesDe(prevu.debut)
-  if (dureePrevue <= 0) return null
-  return (dureeReelleMin / dureePrevue) * 100
-}
-
-function finComptabilisee(e: ARFRow): string | null {
-  const finReelle = e.heureRestituee || e.heureFin
-  if (finReelle && e.heureFinAccordee)
-    return e.heureFinAccordee > finReelle ? e.heureFinAccordee : finReelle
-  return finReelle || e.heureFinAccordee || null
-}
 
 function VueParVoie({
   rows,
@@ -806,19 +724,6 @@ function VueParVoie({
     else semaines.push({ num, dates: [d] })
   }
 
-  // Cumuls par colonne
-  const cumul = (voie: string, cat: boolean) => {
-    let reel = 0
-    let prevu = 0
-    for (const r of avecVoie) {
-      if (r.voie !== voie) continue
-      if ((r.typeFermeture === 'catenaire') !== cat) continue
-      const { dureeReelleMin, dureePrevueMin } = computeRow(r)
-      if (dureeReelleMin !== null) reel += dureeReelleMin
-      if (dureePrevueMin !== null) prevu += dureePrevueMin
-    }
-    return { reel, prevu, delta: prevu > 0 ? (reel / prevu) * 100 : null }
-  }
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#DCDCDC]">
@@ -1000,7 +905,7 @@ function VueParVoie({
           <tr className="bg-[#003370] text-white font-bold border-t-2 border-[#004489]">
             <td colSpan={2} className="px-2 py-2 text-right">TOTAL :</td>
             {colonnes.map((c) => {
-              const tv = cumul(c.voie, false)
+              const tv = cumulColonne(avecVoie, c.voie, false)
               return (
                 <Fragment key={c.voie}>
                   <td className="px-2 py-2 text-center border-l-2 border-[#0056B3]">
@@ -1015,22 +920,12 @@ function VueParVoie({
                   {c.avecCat && (
                     <>
                       <td className="px-2 py-2 text-center border-l border-[#0056B3]">
-                        {formatDuree(cumul(c.voie, true).reel)}
+                        {formatDuree(cumulColonne(avecVoie, c.voie, true).reel)}
                       </td>
                       <td className="px-2 py-2 text-center">
                         {(() => {
-                          let reel = 0
-                          let prevu = 0
-                          for (const r of avecVoie) {
-                            if (r.voie !== c.voie || r.typeFermeture !== 'catenaire') continue
-                            const p2 = prevuCatenaire(r, avecVoie)
-                            const { dureeReelleMin } = computeRow(r)
-                            if (p2 && dureeReelleMin !== null) {
-                              reel += dureeReelleMin
-                              prevu += minutesDe(p2.fin) - minutesDe(p2.debut)
-                            }
-                          }
-                          return prevu > 0 ? `${((reel / prevu) * 100).toFixed(0)} %` : '—'
+                          const tc = cumulColonne(avecVoie, c.voie, true)
+                          return tc.delta !== null ? `${tc.delta.toFixed(0)} %` : '—'
                         })()}
                       </td>
                     </>
