@@ -14,7 +14,7 @@ import {
   calcDureeMinutes,
   formatDuree,
 } from '@/lib/utils'
-import { FileText, Plus, Pencil, Trash2, ClipboardList } from 'lucide-react'
+import { FileText, FileSpreadsheet, Plus, Pencil, Trash2, ClipboardList } from 'lucide-react'
 import {
   ORDRE_VOIES_PREF,
   numeroSemaine,
@@ -94,6 +94,7 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
   const [editValue, setEditValue] = useState('')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [vue, setVue] = useState<'voies' | 'liste'>('voies')
+  const [exportEnCours, setExportEnCours] = useState<'pdf' | 'excel' | null>(null)
   const { exportAvecGuard, isExporting } = useExportPDF()
   const userLogo = useProfilStore((s) => s.logoSociete)
   const nomSociete = useProfilStore((s) => s.nomSociete)
@@ -329,12 +330,15 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
         </Button>
         <Button
           onClick={() => {
+            setExportEnCours('pdf')
             exportAvecGuard(async () => {
               try {
                 const { generateARFPDF } = await import('./ARFPDFDownload')
                 await generateARFPDF(projetName, rows, totalMinutes, userLogo ?? undefined, nomSociete ?? undefined)
               } catch (err) {
                 console.error('PDF generation error:', err)
+              } finally {
+                setExportEnCours(null)
               }
             })
           }}
@@ -342,7 +346,27 @@ export function ARFTable({ projetId, projetName, initialData }: Props) {
           className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
         >
           <FileText className="h-4 w-4 mr-1" />
-          {isExporting ? 'Generation...' : 'Export PDF'}
+          {isExporting && exportEnCours === 'pdf' ? 'Generation...' : 'Export PDF'}
+        </Button>
+        <Button
+          onClick={() => {
+            setExportEnCours('excel')
+            exportAvecGuard(async () => {
+              try {
+                const { generateARFExcel } = await import('./ARFExcelDownload')
+                await generateARFExcel(projetName, rows)
+              } catch (err) {
+                console.error('Excel export error:', err)
+              } finally {
+                setExportEnCours(null)
+              }
+            })
+          }}
+          disabled={isExporting}
+          className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-1" />
+          {isExporting && exportEnCours === 'excel' ? 'Generation...' : 'Export Excel'}
         </Button>
         <div className="flex rounded-md border border-[#DCDCDC] overflow-hidden ml-auto">
           <button
