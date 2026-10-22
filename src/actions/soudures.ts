@@ -80,6 +80,35 @@ export async function createSoudure(
   }
 }
 
+// ─── Reorder soudures (drag & drop) ─────────────────────────────────────────
+
+export async function reorderSoudures(
+  projetId: string,
+  orderedIds: string[]
+): Promise<ActionResult> {
+  const user = await getAuthUser()
+  await checkMembership(projetId, user.id)
+
+  try {
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.soudureAluminothermique.updateMany({
+          where: { id, projetId },
+          data: { ordre: index },
+        })
+      )
+    )
+
+    revalidatePath(`/projets/${projetId}/suivi/sa`)
+    return { success: true, data: undefined }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }
+  }
+}
+
 // ─── Update a soudure field ─────────────────────────────────────────────────
 
 const UpdateSoudureSchema = z.object({
