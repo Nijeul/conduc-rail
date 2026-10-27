@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { BulleEvenement } from './BulleEvenement'
 import { FiltresFrise } from './FiltresFrise'
 import { DialogEvenement } from './DialogEvenement'
@@ -222,16 +223,30 @@ export function FriseChronologique({
     })
   }
 
+  // Période d'export : pendant la génération du PDF, la frise est re-rendue
+  // limitée à [debut, fin] avant capture
+  const [plageExport, setPlageExport] = useState<{ debut: string; fin: string } | null>(null)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportDebut, setExportDebut] = useState('')
+  const [exportFin, setExportFin] = useState('')
+
   // Filter: only events with afficherFrise AND matching active category
   const evenementsFiltres = useMemo(
     () =>
       evenements.filter((ev) => {
         if (!ev.afficherFrise) return false
+        if (plageExport) {
+          const t = new Date(ev.date).getTime()
+          if (plageExport.debut && t < new Date(plageExport.debut + 'T00:00:00').getTime())
+            return false
+          if (plageExport.fin && t > new Date(plageExport.fin + 'T23:59:59').getTime())
+            return false
+        }
         if (ev.categorieId) return filtresActifs.has(ev.categorieId)
         // Legacy event (no categorieId) — pass through if __legacy__ is active
         return filtresActifs.has('__legacy__')
       }),
-    [evenements, filtresActifs]
+    [evenements, filtresActifs, plageExport]
   )
 
   const { dateMin, dateMax, largeurTotale, moisLabels, placements, hauteurConteneur, yLigne } =
@@ -326,10 +341,41 @@ export function FriseChronologique({
     return cat.border
   }
 
-  const handleExportFrise = () =>
-    exportAvecGuard(async () => {
+  const ouvrirExportDialog = () => {
+    if (evenementsFiltres.length > 0) {
+      const dates = evenementsFiltres.map((e) => new Date(e.date).getTime())
+      setExportDebut(new Date(Math.min(...dates)).toISOString().slice(0, 10))
+      setExportFin(new Date(Math.max(...dates)).toISOString().slice(0, 10))
+    } else {
+      setExportDebut('')
+      setExportFin('')
+    }
+    setExportDialogOpen(true)
+  }
+
+  // Événements de la plage choisie (la closure evenementsFiltres d'avant
+  // flushSync ne contient pas encore le filtre de période)
+  const evenementsPlage = (debut: string, fin: string) => {
+    const borneDebut = debut ? new Date(debut + 'T00:00:00').getTime() : -Infinity
+    const borneFin = fin ? new Date(fin + 'T23:59:59').getTime() : Infinity
+    return evenementsFiltres.filter((ev) => {
+      const t = new Date(ev.date).getTime()
+      return t >= borneDebut && t <= borneFin
+    })
+  }
+
+  const handleExportFrise = () => {
+    setExportDialogOpen(false)
+    exportAvecGuard(() => {
+      flushSync(() => setPlageExport({ debut: exportDebut, fin: exportFin }))
+      return executerExport().finally(() => setPlageExport(null))
+    })
+  }
+
+  const executerExport = async () => {
       if (!friseRef.current) return
       const el = friseRef.current
+      const evtsExport = evenementsPlage(exportDebut, exportFin)
 
       const styleOriginal = {
         overflow: el.style.overflow,
@@ -443,7 +489,10 @@ export function FriseChronologique({
       const PAGE_W = 297, PAGE_H = 210, MARGIN = 10, HEADER_H = 18, FOOTER_H = 8
 
       // ---- Légende des catégories (dessinée en vectoriel sous la frise) ----
-      const legendeItems = categoriesUtilisees.map((c) => ({ nom: c.nom, couleur: c.couleurPoint }))
+      const catsExport = new Set(evtsExport.map((e) => e.categorieId))
+      const legendeItems = categoriesUtilisees
+        .filter((c) => catsExport.has(c.id))
+        .map((c) => ({ nom: c.nom, couleur: c.couleurPoint }))
       pdf.setFontSize(7)
       const mesureItem = (nom: string) => 4.5 + pdf.getTextWidth(nom) + 6
       const largeurDispo = PAGE_W - MARGIN * 2
@@ -486,6 +535,15 @@ export function FriseChronologique({
       pdf.setFontSize(8)
       pdf.text(nomProjet, PAGE_W / 2, MARGIN + 11, { align: 'center' })
       pdf.text(`Edite le ${formatDateFR(new Date())}`, PAGE_W - MARGIN, MARGIN + 5, { align: 'right' })
+      if (exportDebut && exportFin) {
+        pdf.setFontSize(7)
+        pdf.text(
+          `Periode : du ${formatDateFR(new Date(exportDebut))} au ${formatDateFR(new Date(exportFin))}`,
+          PAGE_W - MARGIN,
+          MARGIN + 11,
+          { align: 'right' }
+        )
+      }
 
       const friseY = MARGIN + HEADER_H + 2
       const friseH = PAGE_H - friseY - FOOTER_H - 4 - LEGENDE_H
@@ -581,7 +639,7 @@ export function FriseChronologique({
       }
 
       // ---- ETAPE 9 : Pages pieces jointes ----
-      const eventsWithImages = evenementsFiltres.filter(
+      const eventsWithImages = evtsExport.filter(
         ev => ev.fichiers.some(f => f.type.startsWith('image/') && f.contenu)
       )
 
@@ -704,19 +762,85 @@ export function FriseChronologique({
         }
       }
 
-      pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`)
-    })
+      const suffixe =
+        exportDebut && exportFin
+          ? `${exportDebut}-au-${exportFin}`
+          : new Date().toISOString().slice(0, 10)
+      pdf.save(`frise-${nomProjet.replace(/\s+/g, '-')}-${suffixe}.pdf`)
+  }
 
   return (
     <div>
       <div className="flex items-center gap-3 flex-wrap mb-2">
         <button
-          onClick={handleExportFrise}
+          onClick={ouvrirExportDialog}
           disabled={isExporting}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm bg-[#F0F0F0] text-[#000000] border border-[#DCDCDC] hover:bg-[#E0E0E0] disabled:opacity-50"
         >
           {isExporting ? 'Generation...' : 'Export PDF'}
         </button>
+
+        {exportDialogOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setExportDialogOpen(false)}
+          >
+            <div
+              className="bg-white rounded-lg shadow-lg p-5 w-[340px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-bold text-[#004489] mb-4">
+                Exporter la frise en PDF
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm text-[#5A5A5A] mb-1">
+                    Date de debut
+                  </label>
+                  <input
+                    type="date"
+                    value={exportDebut}
+                    onChange={(e) => setExportDebut(e.target.value)}
+                    className="w-full border border-[#DCDCDC] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#004489]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-[#5A5A5A] mb-1">
+                    Date de fin
+                  </label>
+                  <input
+                    type="date"
+                    value={exportFin}
+                    onChange={(e) => setExportFin(e.target.value)}
+                    className="w-full border border-[#DCDCDC] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#004489]"
+                  />
+                </div>
+                <p className="text-xs text-[#5A5A5A]">
+                  {evenementsPlage(exportDebut, exportFin).length} evenement(s)
+                  dans la periode
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setExportDialogOpen(false)}
+                  className="px-3 py-1.5 rounded text-sm bg-white text-[#004489] border border-[#004489] hover:bg-[#E5EFF8]"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleExportFrise}
+                  disabled={
+                    isExporting ||
+                    evenementsPlage(exportDebut, exportFin).length === 0
+                  }
+                  className="px-3 py-1.5 rounded text-sm bg-[#004489] text-white hover:bg-[#003370] disabled:opacity-50"
+                >
+                  Exporter
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <FiltresFrise
           categories={categoriesUtilisees}
           actifs={filtresActifs}
