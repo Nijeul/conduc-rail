@@ -161,6 +161,7 @@ function ChapitreNameEditor({
 }
 
 type FieldKey =
+  | 'etude'
   | 'prevuDCE'
   | 'phaseTransitoire'
   | 'exe'
@@ -169,6 +170,7 @@ type FieldKey =
   | 'coutImpactes'
 
 const COLUMNS: { key: FieldKey; label: string }[] = [
+  { key: 'etude', label: 'Etude / Ecart' },
   { key: 'prevuDCE', label: 'Prevu au DCE' },
   { key: 'phaseTransitoire', label: 'Phase transitoire' },
   { key: 'exe', label: 'EXE' },

@@ -71,12 +71,13 @@ const styles = StyleSheet.create({
   rowAlt: {
     backgroundColor: '#F0F0F0',
   },
-  colPrevuDCE: { width: '17%', paddingRight: 3 },
-  colPhaseTransitoire: { width: '17%', paddingRight: 3 },
-  colExe: { width: '14%', paddingRight: 3 },
-  colImpacts: { width: '22%', paddingRight: 3 },
-  colDelais: { width: '15%', paddingRight: 3 },
-  colCout: { width: '15%' },
+  colEtude: { width: '16%', paddingRight: 3 },
+  colPrevuDCE: { width: '14%', paddingRight: 3 },
+  colPhaseTransitoire: { width: '14%', paddingRight: 3 },
+  colExe: { width: '12%', paddingRight: 3 },
+  colImpacts: { width: '20%', paddingRight: 3 },
+  colDelais: { width: '12%', paddingRight: 3 },
+  colCout: { width: '12%' },
   cellText: {
     fontSize: 8,
   },
@@ -136,6 +137,9 @@ export function FicheEcartTablePDF({ projetName, lignes, user }: Props) {
 
         {/* Table header */}
         <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderText, styles.colEtude]}>
+            Etude / Ecart
+          </Text>
           <Text style={[styles.tableHeaderText, styles.colPrevuDCE]}>
             Prevu au DCE
           </Text>
@@ -173,6 +177,9 @@ export function FicheEcartTablePDF({ projetName, lignes, user }: Props) {
               style={[styles.tableRow, rowIdx % 2 !== 0 ? styles.rowAlt : {}]}
               wrap={false}
             >
+              <Text style={[styles.cellText, styles.colEtude]}>
+                {ligne.etude}
+              </Text>
               <Text style={[styles.cellText, styles.colPrevuDCE]}>
                 {ligne.prevuDCE}
               </Text>
