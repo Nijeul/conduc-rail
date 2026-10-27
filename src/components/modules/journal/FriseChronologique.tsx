@@ -9,119 +9,17 @@ import { resolveCatColors, type CategorieRow, type CouleursCatMap } from './cate
 import html2canvas from 'html2canvas'
 import { useExportPDF } from '@/hooks/useExportPDF'
 import { formatDateFR, hexToRgb } from '@/lib/utils'
+import {
+  calculerPlacements,
+  calculerHauteurConteneur,
+  type PlacementBulle,
+} from './placements'
+
+export type { PlacementBulle }
 
 const LARGEUR_MOIS = 260
 const MARGE_GAUCHE = 60
 const Y_LIGNE_BASE = 200
-
-const LARGEUR_BULLE = 185
-const MARGE_H = 10
-const MARGE_V = 8
-const QUEUE_H = 14
-
-export interface PlacementBulle {
-  id: string
-  x: number
-  y: number
-  cote: 'haut' | 'bas'
-  largeur: number
-  hauteur: number
-}
-
-function estimerHauteur(titre: string, description?: string): number {
-  const lignesTitre = Math.ceil(titre.length / 20)
-  const lignesDesc = description ? Math.min(3, Math.ceil(description.length / 22)) : 0
-  const hauteurDate = 18
-  const hauteurTitre = lignesTitre * 16 + 4
-  const hauteurDesc = lignesDesc > 0 ? lignesDesc * 14 + 10 : 0
-  const padding = 14
-  return Math.max(55, hauteurDate + hauteurTitre + hauteurDesc + padding)
-}
-
-function calculerPlacements(
-  evenements: { id: string; titre: string; description?: string | null }[],
-  positionsX: Record<string, number>,
-  yLigne: number
-): PlacementBulle[] {
-  const placements: PlacementBulle[] = []
-  const tries = [...evenements].sort(
-    (a, b) => positionsX[a.id] - positionsX[b.id]
-  )
-
-  for (const ev of tries) {
-    const x = positionsX[ev.id]
-    const largeur = LARGEUR_BULLE
-    const hauteur = estimerHauteur(ev.titre, ev.description ?? undefined)
-    let placed = false
-
-    for (const cote of ['haut', 'bas'] as const) {
-      const yCandidat =
-        cote === 'haut' ? yLigne - QUEUE_H - hauteur : yLigne + QUEUE_H
-
-      const collision = placements.some(
-        (p) =>
-          p.cote === cote &&
-          Math.abs(x - p.x) < (largeur + p.largeur) / 2 + MARGE_H &&
-          Math.abs(yCandidat - p.y) < Math.max(hauteur, p.hauteur) + MARGE_V
-      )
-
-      if (!collision) {
-        placements.push({ id: ev.id, x, y: yCandidat, cote, largeur, hauteur })
-        placed = true
-        break
-      }
-    }
-
-    if (!placed) {
-      const chevauchants = placements.filter(
-        (p) => Math.abs(p.x - x) < (largeur + p.largeur) / 2 + MARGE_H
-      )
-      const nbHaut = chevauchants.filter((p) => p.cote === 'haut').length
-      const nbBas = chevauchants.filter((p) => p.cote === 'bas').length
-      const cote = nbHaut <= nbBas ? 'haut' : 'bas'
-      const memesCote = chevauchants.filter((p) => p.cote === cote)
-
-      let y: number
-      if (cote === 'haut') {
-        const topMin =
-          memesCote.length > 0
-            ? Math.min(...memesCote.map((p) => p.y))
-            : yLigne - QUEUE_H
-        y = topMin - hauteur - MARGE_V
-      } else {
-        const bottomMax =
-          memesCote.length > 0
-            ? Math.max(...memesCote.map((p) => p.y + p.hauteur))
-            : yLigne + QUEUE_H
-        y = bottomMax + MARGE_V
-      }
-
-      placements.push({ id: ev.id, x, y, cote, largeur, hauteur })
-    }
-  }
-
-  return placements
-}
-
-function calculerHauteurConteneur(
-  placements: PlacementBulle[],
-  _yLigne: number
-): { hauteur: number; offsetY: number } {
-  if (placements.length === 0) return { hauteur: 400, offsetY: 0 }
-
-  const topMin = Math.min(...placements.map(p => p.y))
-  const bottomMax = Math.max(...placements.map(p => p.y + p.hauteur))
-
-  const MARGE_HAUT = 30
-  const MARGE_BAS = 50
-
-  const offsetY = topMin < MARGE_HAUT
-    ? Math.ceil(Math.abs(topMin)) + MARGE_HAUT
-    : 0
-
-  const hauteur = offsetY + bottomMax + MARGE_BAS
-  return { hauteur: Math.max(hauteur, 350), offsetY }
-}
 
 interface FichierRow {
   id: string
@@ -370,8 +268,9 @@ export function FriseChronologique({
   const handleExportFrise = () => {
     setExportDialogOpen(false)
     exportAvecGuard(() => {
-      // Étalement : viser ~1000 px de contenu utile (les mois vides de part
-      // et d'autre sont recadrés à la capture), sans jamais resserrer
+      // Étalement : chercher la largeur/mois pour laquelle la frise remplit
+      // toute la largeur de la page (le placement est un calcul pur, on peut
+      // itérer sans rendre). Les bulles restent à l'aplomb de leur date.
       const evts = evenementsPlage(exportDebut, exportFin)
       let largeurMois: number | null = null
       if (evts.length > 0) {
@@ -380,9 +279,45 @@ export function FriseChronologique({
         dMin.setMonth(dMin.getMonth() - 1)
         const dMax = new Date(Math.max(...ds))
         dMax.setMonth(dMax.getMonth() + 1)
-        const nbMois = genererMois(dMin, dMax).length
-        const cible = (1000 * nbMois) / Math.max(1, nbMois - 2)
-        largeurMois = Math.min(900, Math.max(LARGEUR_MOIS, Math.ceil(cible / nbMois)))
+        const mois = genererMois(dMin, dMax)
+
+        // Dimensions utiles (px) de la frise pour une largeur/mois donnée,
+        // bornées aux bulles comme le recadrage de la capture
+        const dimensionsPour = (lm: number) => {
+          const totalWidth = Math.max(mois.length * lm, 800)
+          const positionsX: Record<string, number> = {}
+          for (const ev of evts) {
+            positionsX[ev.id] = dateVersX(new Date(ev.date), dMin, dMax, totalWidth)
+          }
+          const pl = calculerPlacements(evts, positionsX, Y_LIGNE_BASE)
+          const { hauteur } = calculerHauteurConteneur(pl, Y_LIGNE_BASE)
+          const gauche = Math.min(...pl.map((p) => p.x - p.largeur / 2)) - 90
+          const droite = Math.max(...pl.map((p) => p.x + p.largeur / 2)) + 90
+          return { largeur: droite - gauche, hauteur }
+        }
+
+        // Largeur affichée (mm) une fois la hauteur ajustée à la page
+        const PX_PAR_MM = 96 / 25.4
+        const FRISE_W_MM = 277
+        const FRISE_H_MM = 155
+        const largeurAffichee = (lm: number) => {
+          const { largeur, hauteur } = dimensionsPour(lm)
+          const ratio = Math.min(1, FRISE_H_MM / (hauteur / PX_PAR_MM))
+          return (largeur / PX_PAR_MM) * ratio
+        }
+
+        if (largeurAffichee(LARGEUR_MOIS) < FRISE_W_MM) {
+          // La frise tient sur moins d'une page : étirer l'axe de temps
+          // jusqu'à remplir la largeur
+          let lo = LARGEUR_MOIS
+          let hi = 8000
+          for (let i = 0; i < 18 && hi - lo > 10; i++) {
+            const mid = Math.round((lo + hi) / 2)
+            if (largeurAffichee(mid) < FRISE_W_MM * 0.97) lo = mid
+            else hi = mid
+          }
+          largeurMois = lo
+        }
       }
       flushSync(() => {
         setPlageExport({ debut: exportDebut, fin: exportFin })
@@ -982,7 +917,7 @@ export function FriseChronologique({
                   key={`point-${ev.id}`}
                   className="absolute rounded-full z-10"
                   style={{
-                    left: placement.x - 5,
+                    left: placement.xAncre - 5,
                     top: yLigne - 5,
                     width: 10,
                     height: 10,
@@ -1013,12 +948,14 @@ export function FriseChronologique({
                     key={`line-${p.id}`}
                     x1={p.x}
                     y1={yBulle}
-                    x2={p.x}
+                    x2={p.xAncre}
                     y2={yLigne}
                     stroke={getCatColor(p.id)}
                     strokeWidth={1.5}
                     strokeDasharray={
-                      Math.abs(yBulle - yLigne) > 30 ? '4 3' : 'none'
+                      Math.abs(yBulle - yLigne) > 30 || Math.abs(p.x - p.xAncre) > 30
+                        ? '4 3'
+                        : 'none'
                     }
                     opacity={0.7}
                   />
