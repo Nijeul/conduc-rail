@@ -552,7 +552,17 @@ export function FriseChronologique({
       // px canvas -> mm, à l'échelle de capture réelle
       const pxToMm = (px: number) => (px / capScale) / (96 / 25.4)
 
-      const imgW_mm = pxToMm(canvas.width)
+      // Largeur utile : on recadre à la dernière bulle (+ marge pour le label
+      // du mois) — la ligne de temps peut continuer à vide bien au-delà et
+      // générerait des pages quasi vides
+      const largeurUtilePx = intervallesBulles.length
+        ? Math.min(
+            canvas.width,
+            Math.ceil((Math.max(...intervallesBulles.map((i) => i.d)) + 90) * capScale)
+          )
+        : canvas.width
+
+      const imgW_mm = pxToMm(largeurUtilePx)
       const imgH_mm = pxToMm(canvas.height)
 
       // Échelle d'affichage UNIQUE pour toutes les pages : la hauteur remplit
@@ -590,11 +600,11 @@ export function FriseChronologique({
 
       // Bornes des tranches
       const coupes: number[] = [0]
-      while (coupes[coupes.length - 1] + capacitePagePx < canvas.width - 4) {
+      while (coupes[coupes.length - 1] + capacitePagePx < largeurUtilePx - 4) {
         const debut = coupes[coupes.length - 1]
         coupes.push(coupeSure(debut + capacitePagePx, debut))
       }
-      coupes.push(canvas.width)
+      coupes.push(largeurUtilePx)
 
       let totalPages = coupes.length - 1
       const JPEG_QUALITE = 0.82
@@ -614,24 +624,17 @@ export function FriseChronologique({
         const x1 = coupes[i + 1]
         const trancheW_px = x1 - x0
 
-        let dataUrl: string
-        let trancheW_mm: number
-        if (totalPages === 1) {
-          dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITE)
-          trancheW_mm = imgW_mm * ratioU
-        } else {
-          const sliceCanvas = document.createElement('canvas')
-          sliceCanvas.width = trancheW_px
-          sliceCanvas.height = canvas.height
-          const ctx = sliceCanvas.getContext('2d')
-          if (ctx) {
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
-            ctx.drawImage(canvas, -x0, 0)
-          }
-          dataUrl = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITE)
-          trancheW_mm = pxToMm(trancheW_px) * ratioU
+        const sliceCanvas = document.createElement('canvas')
+        sliceCanvas.width = trancheW_px
+        sliceCanvas.height = canvas.height
+        const ctx = sliceCanvas.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+          ctx.drawImage(canvas, -x0, 0)
         }
+        const dataUrl = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITE)
+        const trancheW_mm = pxToMm(trancheW_px) * ratioU
 
         // Frise seule : centrée ; tranches : alignées à gauche, même échelle
         const imgX = totalPages === 1 ? MARGIN + (friseW - trancheW_mm) / 2 : MARGIN
