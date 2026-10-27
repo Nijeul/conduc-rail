@@ -380,10 +380,30 @@ export function FriseChronologique({
         if (bulle) bulle.style.height = 'auto'
       })
 
+      el.scrollLeft = 0
+
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
 
+      // Position horizontale des bulles (coordonnées élément) pour découper
+      // les pages entre les bulles, jamais au travers
+      const elRect = el.getBoundingClientRect()
+      const intervallesBulles = (Array.from(
+        el.querySelectorAll('[data-bulle]')
+      ) as HTMLElement[]).map(b => {
+        const r = b.getBoundingClientRect()
+        return { g: r.left - elRect.left, d: r.right - elRect.left }
+      })
+
+      // Échelle de capture plafonnée : au-delà de ~16,7 Mpx de surface,
+      // le canvas sort blanc ou tronqué sur tablette (limite Safari/iPad)
+      const AIRE_MAX = 16_000_000
+      const capScale = Math.min(
+        2,
+        Math.sqrt(AIRE_MAX / Math.max(1, el.scrollWidth * el.scrollHeight))
+      )
+
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: capScale,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -471,59 +491,83 @@ export function FriseChronologique({
       const friseH = PAGE_H - friseY - FOOTER_H - 4 - LEGENDE_H
       const friseW = PAGE_W - MARGIN * 2
 
-      const imgW_mm = (canvas.width / 2) / (96 / 25.4)
-      const imgH_mm = (canvas.height / 2) / (96 / 25.4)
-      const ratioW = friseW / imgW_mm
-      const ratioH = friseH / imgH_mm
-      const ratio = Math.min(ratioW, ratioH, 1)
-      const finalW = imgW_mm * ratio
-      const finalH = imgH_mm * ratio
+      // px canvas -> mm, à l'échelle de capture réelle
+      const pxToMm = (px: number) => (px / capScale) / (96 / 25.4)
+
+      const imgW_mm = pxToMm(canvas.width)
+      const imgH_mm = pxToMm(canvas.height)
+
+      // Échelle d'affichage UNIQUE pour toutes les pages : la hauteur remplit
+      // la page, la largeur est découpée en tranches (jamais compressée)
+      const ratioU = Math.min(1, friseH / imgH_mm)
+      const finalH = imgH_mm * ratioU
       const imgY = friseY + (friseH - finalH) / 2
 
-      const RATIO_MIN = 0.55
-      let totalPages = 1
-      if (ratio < RATIO_MIN) {
-        const nbPages = Math.ceil(imgW_mm / (friseW / RATIO_MIN))
-        totalPages = nbPages
-        const trancheW_px = Math.ceil(canvas.width / nbPages)
+      // Largeur de canvas qu'une page peut contenir à cette échelle
+      const capacitePagePx = Math.floor((friseW / ratioU) * (96 / 25.4) * capScale)
 
-        for (let i = 0; i < nbPages; i++) {
-          if (i > 0) {
-            pdf.addPage()
-            pdf.setFillColor(0, 68, 137)
-            pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
-            pdf.setFont('helvetica', 'bold')
-            pdf.setFontSize(10)
-            pdf.setTextColor(255, 255, 255)
-            pdf.text(nomProjet, PAGE_W / 2, MARGIN + 7, { align: 'center' })
-          }
+      // Un x de coupe qui ne traverse aucune bulle (recherche vers la gauche)
+      const margeCoupe = 6 * capScale
+      const coupeDansBulle = (x: number) =>
+        intervallesBulles.some(
+          (i) => x > i.g * capScale - margeCoupe && x < i.d * capScale + margeCoupe
+        )
+      const coupeSure = (cible: number, min: number) => {
+        if (!coupeDansBulle(cible)) return cible
+        for (let x = cible - 2; x > Math.max(min + 20, cible - capacitePagePx * 0.4); x -= 2) {
+          if (!coupeDansBulle(x)) return x
+        }
+        return cible
+      }
 
+      // Bornes des tranches
+      const coupes: number[] = [0]
+      while (coupes[coupes.length - 1] + capacitePagePx < canvas.width) {
+        const debut = coupes[coupes.length - 1]
+        coupes.push(coupeSure(debut + capacitePagePx, debut))
+      }
+      coupes.push(canvas.width)
+
+      let totalPages = coupes.length - 1
+      const JPEG_QUALITE = 0.82
+
+      for (let i = 0; i < totalPages; i++) {
+        if (i > 0) {
+          pdf.addPage()
+          pdf.setFillColor(0, 68, 137)
+          pdf.rect(0, 0, PAGE_W, HEADER_H + MARGIN, 'F')
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(10)
+          pdf.setTextColor(255, 255, 255)
+          pdf.text(nomProjet, PAGE_W / 2, MARGIN + 7, { align: 'center' })
+        }
+
+        const x0 = coupes[i]
+        const x1 = coupes[i + 1]
+        const trancheW_px = x1 - x0
+
+        let dataUrl: string
+        let trancheW_mm: number
+        if (totalPages === 1) {
+          dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITE)
+          trancheW_mm = imgW_mm * ratioU
+        } else {
           const sliceCanvas = document.createElement('canvas')
           sliceCanvas.width = trancheW_px
           sliceCanvas.height = canvas.height
           const ctx = sliceCanvas.getContext('2d')
-          ctx?.drawImage(canvas, -i * trancheW_px, 0)
-
-          const sliceW_mm = (trancheW_px / 2) / (96 / 25.4)
-          const sliceH_mm = (canvas.height / 2) / (96 / 25.4)
-          const sliceRatio = Math.min(friseW / sliceW_mm, friseH / sliceH_mm)
-          const sliceFinalW = sliceW_mm * sliceRatio
-          const sliceFinalH = sliceH_mm * sliceRatio
-          const sliceImgY = friseY + (friseH - sliceFinalH) / 2
-
-          pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', MARGIN, sliceImgY, sliceFinalW, sliceFinalH)
-
-          dessinerLegende()
-
-          pdf.setFillColor(0, 51, 112)
-          pdf.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H, 'F')
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(7)
-          pdf.setTextColor(181, 171, 161)
-          pdf.text(`Page ${i + 1}`, PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
+          if (ctx) {
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+            ctx.drawImage(canvas, -x0, 0)
+          }
+          dataUrl = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITE)
+          trancheW_mm = pxToMm(trancheW_px) * ratioU
         }
-      } else {
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', MARGIN, imgY, finalW, finalH)
+
+        // Frise seule : centrée ; tranches : alignées à gauche, même échelle
+        const imgX = totalPages === 1 ? MARGIN + (friseW - trancheW_mm) / 2 : MARGIN
+        pdf.addImage(dataUrl, 'JPEG', imgX, imgY, trancheW_mm, finalH, undefined, 'FAST')
 
         dessinerLegende()
 
@@ -532,8 +576,8 @@ export function FriseChronologique({
         pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(7)
         pdf.setTextColor(181, 171, 161)
-        pdf.text(nomProjet, MARGIN, PAGE_H - 2)
-        pdf.text('Page 1', PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
+        if (i === 0) pdf.text(nomProjet, MARGIN, PAGE_H - 2)
+        pdf.text(`Page ${i + 1}`, PAGE_W - MARGIN, PAGE_H - 2, { align: 'right' })
       }
 
       // ---- ETAPE 9 : Pages pieces jointes ----
