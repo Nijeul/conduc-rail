@@ -226,6 +226,9 @@ export function FriseChronologique({
   // Période d'export : pendant la génération du PDF, la frise est re-rendue
   // limitée à [debut, fin] avant capture
   const [plageExport, setPlageExport] = useState<{ debut: string; fin: string } | null>(null)
+  // Pendant l'export, l'axe de temps est étalé (px/mois plus grand) pour
+  // remplir la largeur de la page : moins d'empilement, bulles plus lisibles
+  const [exportLargeurMois, setExportLargeurMois] = useState<number | null>(null)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportDebut, setExportDebut] = useState('')
   const [exportFin, setExportFin] = useState('')
@@ -274,7 +277,7 @@ export function FriseChronologique({
       dMax.setMonth(dMax.getMonth() + 1)
 
       const mois = genererMois(dMin, dMax)
-      const totalWidth = Math.max(mois.length * LARGEUR_MOIS, 800)
+      const totalWidth = Math.max(mois.length * (exportLargeurMois ?? LARGEUR_MOIS), 800)
 
       const positionsX: Record<string, number> = {}
       for (const ev of evenementsFiltres) {
@@ -300,7 +303,7 @@ export function FriseChronologique({
         hauteurConteneur: hauteur,
         yLigne: yLigneVal,
       }
-    }, [evenementsFiltres])
+    }, [evenementsFiltres, exportLargeurMois])
 
   const placementMap = useMemo(() => {
     const map = new Map<string, PlacementBulle>()
@@ -367,8 +370,28 @@ export function FriseChronologique({
   const handleExportFrise = () => {
     setExportDialogOpen(false)
     exportAvecGuard(() => {
-      flushSync(() => setPlageExport({ debut: exportDebut, fin: exportFin }))
-      return executerExport().finally(() => setPlageExport(null))
+      // Étalement : viser ~1000 px de contenu utile (les mois vides de part
+      // et d'autre sont recadrés à la capture), sans jamais resserrer
+      const evts = evenementsPlage(exportDebut, exportFin)
+      let largeurMois: number | null = null
+      if (evts.length > 0) {
+        const ds = evts.map((e) => new Date(e.date).getTime())
+        const dMin = new Date(Math.min(...ds))
+        dMin.setMonth(dMin.getMonth() - 1)
+        const dMax = new Date(Math.max(...ds))
+        dMax.setMonth(dMax.getMonth() + 1)
+        const nbMois = genererMois(dMin, dMax).length
+        const cible = (1000 * nbMois) / Math.max(1, nbMois - 2)
+        largeurMois = Math.min(900, Math.max(LARGEUR_MOIS, Math.ceil(cible / nbMois)))
+      }
+      flushSync(() => {
+        setPlageExport({ debut: exportDebut, fin: exportFin })
+        setExportLargeurMois(largeurMois)
+      })
+      return executerExport().finally(() => {
+        setPlageExport(null)
+        setExportLargeurMois(null)
+      })
     })
   }
 
@@ -552,15 +575,22 @@ export function FriseChronologique({
       // px canvas -> mm, à l'échelle de capture réelle
       const pxToMm = (px: number) => (px / capScale) / (96 / 25.4)
 
-      // Largeur utile : on recadre à la dernière bulle (+ marge pour le label
-      // du mois) — la ligne de temps peut continuer à vide bien au-delà et
-      // générerait des pages quasi vides
-      const largeurUtilePx = intervallesBulles.length
-        ? Math.min(
-            canvas.width,
-            Math.ceil((Math.max(...intervallesBulles.map((i) => i.d)) + 90) * capScale)
-          )
-        : canvas.width
+      // Zone utile : on recadre de la première à la dernière bulle (+ marge
+      // pour les labels de mois) — l'axe de temps peut continuer à vide de
+      // part et d'autre et générerait des pages quasi vides
+      let bordG = 0
+      let bordD = canvas.width
+      if (intervallesBulles.length > 0) {
+        bordG = Math.max(
+          0,
+          Math.floor((Math.min(...intervallesBulles.map((i) => i.g)) - 90) * capScale)
+        )
+        bordD = Math.min(
+          canvas.width,
+          Math.ceil((Math.max(...intervallesBulles.map((i) => i.d)) + 90) * capScale)
+        )
+      }
+      const largeurUtilePx = bordD - bordG
 
       const imgW_mm = pxToMm(largeurUtilePx)
       const imgH_mm = pxToMm(canvas.height)
@@ -586,9 +616,12 @@ export function FriseChronologique({
 
       // Un x de coupe qui ne traverse aucune bulle (recherche vers la gauche)
       const margeCoupe = 6 * capScale
+      // x relatif au bord gauche recadré
       const coupeDansBulle = (x: number) =>
         intervallesBulles.some(
-          (i) => x > i.g * capScale - margeCoupe && x < i.d * capScale + margeCoupe
+          (i) =>
+            x + bordG > i.g * capScale - margeCoupe &&
+            x + bordG < i.d * capScale + margeCoupe
         )
       const coupeSure = (cible: number, min: number) => {
         if (!coupeDansBulle(cible)) return cible
@@ -631,7 +664,7 @@ export function FriseChronologique({
         if (ctx) {
           ctx.fillStyle = '#ffffff'
           ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
-          ctx.drawImage(canvas, -x0, 0)
+          ctx.drawImage(canvas, -(bordG + x0), 0)
         }
         const dataUrl = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITE)
         const trancheW_mm = pxToMm(trancheW_px) * ratioU
