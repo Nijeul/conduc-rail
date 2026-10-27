@@ -557,7 +557,17 @@ export function FriseChronologique({
 
       // Échelle d'affichage UNIQUE pour toutes les pages : la hauteur remplit
       // la page, la largeur est découpée en tranches (jamais compressée)
-      const ratioU = Math.min(1, friseH / imgH_mm)
+      let ratioU = Math.min(1, friseH / imgH_mm)
+      // Si une compression supplémentaire de 15 % max suffit à économiser
+      // une page (ex. dépassement de quelques mm), on compresse plutôt que
+      // de générer une page quasi vide
+      {
+        const nbPagesBrut = Math.ceil((imgW_mm * ratioU) / friseW)
+        if (nbPagesBrut > 1) {
+          const ratioReduit = ((nbPagesBrut - 1) * friseW) / imgW_mm
+          if (ratioReduit >= ratioU * 0.85) ratioU = ratioReduit
+        }
+      }
       const finalH = imgH_mm * ratioU
       const imgY = friseY + (friseH - finalH) / 2
 
@@ -580,7 +590,7 @@ export function FriseChronologique({
 
       // Bornes des tranches
       const coupes: number[] = [0]
-      while (coupes[coupes.length - 1] + capacitePagePx < canvas.width) {
+      while (coupes[coupes.length - 1] + capacitePagePx < canvas.width - 4) {
         const debut = coupes[coupes.length - 1]
         coupes.push(coupeSure(debut + capacitePagePx, debut))
       }
