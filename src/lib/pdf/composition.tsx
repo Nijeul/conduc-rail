@@ -268,13 +268,23 @@ const PROPERTIES = [
   { key: 'type', label: 'Type' },
   { key: 'designation', label: 'Designation' },
   { key: 'nombre', label: 'Nombre' },
+  { key: 'capEssieuxFreines', label: 'Cap. essieux freines (unit.)' },
+  { key: 'nbEssieux', label: 'Nb Essieux (unit.)' },
+  { key: 'poidsEntrant', label: 'Poids Entrant (T, unit.)' },
+  { key: 'poidsSortant', label: 'Poids Sortant (T, unit.)' },
+  { key: 'longueur', label: 'Longueur (m, unit.)' },
+  { key: 'capTraction', label: 'Cap. traction (T, unit.)' },
+  { key: 'commentaires', label: 'Commentaires' },
+]
+
+// Totaux par colonne : valeur unitaire × nombre
+const TOTAL_ROWS: { key: keyof Vehicule; label: string }[] = [
   { key: 'capEssieuxFreines', label: 'Cap. essieux freines' },
-  { key: 'nbEssieux', label: 'Nb Essieux' },
-  { key: 'poidsEntrant', label: 'Poids Entrant (T)' },
-  { key: 'poidsSortant', label: 'Poids Sortant (T)' },
+  { key: 'nbEssieux', label: 'Nb essieux' },
+  { key: 'poidsEntrant', label: 'Poids entrant (T)' },
+  { key: 'poidsSortant', label: 'Poids sortant (T)' },
   { key: 'longueur', label: 'Longueur (m)' },
   { key: 'capTraction', label: 'Cap. traction (T)' },
-  { key: 'commentaires', label: 'Commentaires' },
 ]
 
 export function CompositionPDF({ projetName, data, userLogo, nomSociete, user }: Props) {
@@ -382,6 +392,34 @@ export function CompositionPDF({ projetName, data, userLogo, nomSociete, user }:
                     </Text>
                   )
                 })}
+              </View>
+            ))}
+
+            {/* Totaux par véhicule (unitaire × nombre) */}
+            <View style={{ backgroundColor: '#003370', paddingVertical: 3, paddingHorizontal: 4 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 7, fontFamily: 'Helvetica-Bold' }}>
+                TOTAUX PAR VEHICULE (valeur unitaire x nombre)
+              </Text>
+            </View>
+            {TOTAL_ROWS.map((row, rowIdx) => (
+              <View
+                key={`total-${row.key}`}
+                style={[styles.tableRow, { backgroundColor: rowIdx % 2 !== 0 ? '#D6E6F5' : '#E5EFF8' }]}
+              >
+                <Text style={[styles.propCol, { color: '#003370', fontFamily: 'Helvetica-Bold' }]}>
+                  {row.label}
+                </Text>
+                {vehicules.map((v, colIdx) => (
+                  <Text
+                    key={colIdx}
+                    style={[
+                      styles.valCol,
+                      { width: colWidth, color: '#003370', fontFamily: 'Helvetica-Bold' },
+                    ]}
+                  >
+                    {fmt((v[row.key] as number) * (v.nombre || 1))}
+                  </Text>
+                ))}
               </View>
             ))}
           </View>

@@ -15,7 +15,8 @@ import {
 import { formatNombreFR } from '@/lib/utils'
 import { createComposition, updateComposition } from '@/actions/composition'
 import type { Vehicule } from '@/actions/composition'
-import { Save, Plus, Trash2 } from 'lucide-react'
+import { Save, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { arrayMove } from '@dnd-kit/sortable'
 import { RameVisual } from './RameVisual'
 import { CompositionPDFButton } from './CompositionPDFButton'
 import { AddVehiculeDialog } from './AddVehiculeDialog'
@@ -42,14 +43,25 @@ const PROPERTIES = [
   { key: 'type', label: 'Type', inputType: 'select' },
   { key: 'designation', label: 'Designation', inputType: 'text' },
   { key: 'nombre', label: 'Nombre', inputType: 'number' },
-  { key: 'capEssieuxFreines', label: 'Cap. essieux freines', inputType: 'number' },
-  { key: 'nbEssieux', label: 'Nb Essieux', inputType: 'number' },
-  { key: 'poidsEntrant', label: 'Poids Entrant (T)', inputType: 'number' },
-  { key: 'poidsSortant', label: 'Poids Sortant (T)', inputType: 'number' },
-  { key: 'longueur', label: 'Longueur (m)', inputType: 'number' },
-  { key: 'capTraction', label: 'Capacite traction (T)', inputType: 'number' },
+  { key: 'capEssieuxFreines', label: 'Cap. essieux freines (unit.)', inputType: 'number' },
+  { key: 'nbEssieux', label: 'Nb Essieux (unit.)', inputType: 'number' },
+  { key: 'poidsEntrant', label: 'Poids Entrant (T, unit.)', inputType: 'number' },
+  { key: 'poidsSortant', label: 'Poids Sortant (T, unit.)', inputType: 'number' },
+  { key: 'longueur', label: 'Longueur (m, unit.)', inputType: 'number' },
+  { key: 'capTraction', label: 'Capacite traction (T, unit.)', inputType: 'number' },
   { key: 'commentaires', label: 'Commentaires', inputType: 'text' },
 ] as const
+
+// Lignes calculées automatiquement : valeur unitaire × nombre.
+// Elles se mettent à jour dès que le nombre ou une valeur unitaire change.
+const TOTAL_ROWS: { key: keyof Vehicule; label: string; decimales: number }[] = [
+  { key: 'capEssieuxFreines', label: 'Cap. essieux freines', decimales: 0 },
+  { key: 'nbEssieux', label: 'Nb essieux', decimales: 0 },
+  { key: 'poidsEntrant', label: 'Poids entrant (T)', decimales: 1 },
+  { key: 'poidsSortant', label: 'Poids sortant (T)', decimales: 1 },
+  { key: 'longueur', label: 'Longueur (m)', decimales: 1 },
+  { key: 'capTraction', label: 'Cap. traction (T)', decimales: 0 },
+]
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
@@ -95,16 +107,34 @@ export function CompositionForm({
       ? composition.vehicules
       : [createEmptyVehicule()]
   )
-  const [selectedVehiculeIdx, setSelectedVehiculeIdx] = useState<number | null>(null)
+  // Sélection par id : stable quand on réordonne / insère / supprime
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedVehiculeIdx = useMemo(() => {
+    if (selectedId === null) return null
+    const idx = vehicules.findIndex(v => v.id === selectedId)
+    return idx === -1 ? null : idx
+  }, [vehicules, selectedId])
 
-  // Summary calculations
+  const setSelectedVehiculeIdx = useCallback(
+    (idx: number | null | ((prev: number | null) => number | null)) => {
+      setSelectedId(prev => {
+        const prevIdx = prev === null ? null : vehicules.findIndex(v => v.id === prev)
+        const next = typeof idx === 'function' ? idx(prevIdx === -1 ? null : prevIdx) : idx
+        return next === null ? null : vehicules[next]?.id ?? null
+      })
+    },
+    [vehicules]
+  )
+
+  // Summary calculations — toutes les valeurs sont unitaires × nombre
   const summary = useMemo(() => {
-    const capEssieux = vehicules.reduce((s, v) => s + v.capEssieuxFreines * v.nombre, 0)
-    const nbEssieux = vehicules.reduce((s, v) => s + v.nbEssieux * v.nombre, 0)
-    const capTraction = vehicules.reduce((s, v) => s + v.capTraction, 0)
-    const poidsEntrant = vehicules.reduce((s, v) => s + v.poidsEntrant * v.nombre, 0)
-    const poidsSortant = vehicules.reduce((s, v) => s + v.poidsSortant * v.nombre, 0)
-    const longueur = vehicules.reduce((s, v) => s + v.longueur * v.nombre, 0)
+    const n = (v: Vehicule) => v.nombre || 1
+    const capEssieux = vehicules.reduce((s, v) => s + v.capEssieuxFreines * n(v), 0)
+    const nbEssieux = vehicules.reduce((s, v) => s + v.nbEssieux * n(v), 0)
+    const capTraction = vehicules.reduce((s, v) => s + v.capTraction * n(v), 0)
+    const poidsEntrant = vehicules.reduce((s, v) => s + v.poidsEntrant * n(v), 0)
+    const poidsSortant = vehicules.reduce((s, v) => s + v.poidsSortant * n(v), 0)
+    const longueur = vehicules.reduce((s, v) => s + v.longueur * n(v), 0)
 
     const freinageOk = capEssieux >= nbEssieux
     const tractionOk = capTraction >= poidsSortant
@@ -152,14 +182,32 @@ export function CompositionForm({
       if (prev.length === 1 && !prev[0].designation && !prev[0].materielId) {
         return [newVehicule]
       }
-      return [...prev, newVehicule]
+      // Insertion juste après le véhicule sélectionné, sinon en fin de rame
+      const idx = selectedId === null ? -1 : prev.findIndex(v => v.id === selectedId)
+      if (idx === -1) return [...prev, newVehicule]
+      const next = [...prev]
+      next.splice(idx + 1, 0, newVehicule)
+      return next
     })
+    setSelectedId(newVehicule.id)
   }
 
   function removeVehicule() {
     if (selectedVehiculeIdx === null || vehicules.length <= 1) return
     setVehicules(prev => prev.filter((_, i) => i !== selectedVehiculeIdx))
-    setSelectedVehiculeIdx(null)
+    setSelectedId(null)
+  }
+
+  // Réorganisation : drag & drop depuis le visuel de rame, ou boutons ◀ ▶
+  const handleReorder = useCallback((from: number, to: number) => {
+    setVehicules(prev => arrayMove(prev, from, to))
+  }, [])
+
+  function moveSelected(direction: -1 | 1) {
+    if (selectedVehiculeIdx === null) return
+    const to = selectedVehiculeIdx + direction
+    if (to < 0 || to >= vehicules.length) return
+    setVehicules(prev => arrayMove(prev, selectedVehiculeIdx, to))
   }
 
   const getCurrentData = useCallback(() => {
@@ -248,7 +296,15 @@ export function CompositionForm({
       {/* Rame visuelle */}
       <div className="bg-white border border-[#DCDCDC] rounded-lg p-5">
         <h2 className="text-sm font-bold text-[#004489] mb-3">Visuel de la rame</h2>
-        <RameVisual vehicules={vehicules} selectedIdx={selectedVehiculeIdx} onSelect={setSelectedVehiculeIdx} />
+        <RameVisual
+          vehicules={vehicules}
+          selectedIdx={selectedVehiculeIdx}
+          onSelect={setSelectedVehiculeIdx}
+          onReorder={handleReorder}
+        />
+        <p className="text-xs text-[#5A5A5A] mt-2">
+          Glissez un véhicule pour le déplacer dans la rame — un clic le sélectionne.
+        </p>
       </div>
 
       {/* Main content: Summary sidebar + Transposed table */}
@@ -312,7 +368,30 @@ export function CompositionForm({
               size="sm"
             >
               <Plus className="h-4 w-4 mr-1" />
-              + Vehicule
+              {selectedVehiculeIdx !== null
+                ? `+ Vehicule (apres V${selectedVehiculeIdx + 1})`
+                : '+ Vehicule (en fin)'}
+            </Button>
+            <Button
+              onClick={() => moveSelected(-1)}
+              disabled={selectedVehiculeIdx === null || selectedVehiculeIdx === 0}
+              className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+              size="sm"
+              title="Déplacer le véhicule sélectionné vers la gauche"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => moveSelected(1)}
+              disabled={
+                selectedVehiculeIdx === null ||
+                selectedVehiculeIdx === vehicules.length - 1
+              }
+              className="bg-[#F0F0F0] hover:bg-[#E0E0E0] text-[#000000] border border-[#DCDCDC]"
+              size="sm"
+              title="Déplacer le véhicule sélectionné vers la droite"
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
             <Button
               onClick={removeVehicule}
@@ -407,6 +486,36 @@ export function CompositionForm({
                             }
                             className="h-8 text-xs"
                           />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                {/* Totaux par véhicule : unitaire × nombre, recalculés en direct */}
+                <tr className="border-t-2 border-[#004489]">
+                  <td
+                    colSpan={vehicules.length + 1}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-[#003370]"
+                  >
+                    TOTAUX PAR VEHICULE (valeur unitaire × nombre)
+                  </td>
+                </tr>
+                {TOTAL_ROWS.map(row => (
+                  <tr key={`total-${row.key}`} className="border-t border-[#DCDCDC] bg-[#E5EFF8]">
+                    <td className="px-3 py-1.5 font-medium text-[#003370] border-r border-[#DCDCDC]">
+                      {row.label}
+                    </td>
+                    {vehicules.map((v, colIdx) => (
+                      <td
+                        key={v.id}
+                        className={`px-2 py-1.5 text-center font-semibold text-[#003370] border-r border-[#DCDCDC] ${
+                          selectedVehiculeIdx === colIdx ? 'bg-[#B2D4FC]/40' : ''
+                        }`}
+                      >
+                        {formatNombreFR(
+                          (v[row.key] as number) * (v.nombre || 1),
+                          row.decimales
                         )}
                       </td>
                     ))}
